@@ -19,7 +19,17 @@ import exportRoutes from './modules/exports/exports.routes';
 
 const app = express();
 
-app.use(cors({ origin: config.frontendUrl, credentials: true }));
+const allowedOrigins = config.frontendUrl.split(',').map(o => o.trim());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || config.nodeEnv === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 // Health check
