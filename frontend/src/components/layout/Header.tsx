@@ -1,7 +1,9 @@
-import { Moon, Sun, Globe, LogOut, Bell } from 'lucide-react';
+import { Moon, Sun, Globe, LogOut, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
+import { NotificationsDropdown } from '@/components/NotificationsDropdown';
+import api from '@/lib/api';
 
 export function Header() {
   const { user, tenant, theme, toggleTheme, language, setLanguage, logout } = useAuthStore();
@@ -10,6 +12,20 @@ export function Header() {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleBackup = async () => {
+    try {
+      const res = await api.get('/exports/backup', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-kabrak-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -37,10 +53,13 @@ export function Header() {
           {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
         </Button>
 
-        {/* Notifications */}
-        <Button variant="ghost" size="icon">
-          <Bell className="w-5 h-5" />
+        {/* Backup button */}
+        <Button variant="ghost" size="icon" onClick={handleBackup} title="Backup">
+          <Download className="w-5 h-5" />
         </Button>
+
+        {/* Notifications */}
+        <NotificationsDropdown />
 
         {/* User menu */}
         <div className="flex items-center gap-3 ml-2 pl-4 border-l">

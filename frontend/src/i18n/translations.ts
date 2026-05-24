@@ -37,6 +37,8 @@ export const translations = {
       billing: 'Abonnement',
       settings: 'Paramètres',
       categories: 'Catégories',
+      loyalty: 'Fidélité',
+      stores: 'Magasins',
     },
     auth: {
       login: 'Connexion',
@@ -143,6 +145,27 @@ export const translations = {
       trial: 'Essai gratuit',
       perMonth: '/mois',
     },
+    loyalty: {
+      title: 'Programme de fidélité',
+      points: 'Points',
+      tier: 'Niveau',
+      rewards: 'Récompenses',
+      addReward: 'Ajouter une récompense',
+      redeem: 'Utiliser',
+      pointsEarned: 'Points gagnés',
+      nextTier: 'Prochain niveau',
+    },
+    stores: {
+      title: 'Multi-magasins',
+      addStore: 'Ajouter un magasin',
+      mainStore: 'Magasin principal',
+    },
+    notifications: {
+      title: 'Notifications',
+      stockAlert: 'Alerte stock',
+      newOrder: 'Nouvelle commande',
+      markAllRead: 'Tout marquer lu',
+    },
     categories: {
       clothing: 'Vêtements',
       shoes: 'Chaussures',
@@ -206,6 +229,8 @@ export const translations = {
       billing: 'Subscription',
       settings: 'Settings',
       categories: 'Categories',
+      loyalty: 'Loyalty',
+      stores: 'Stores',
     },
     auth: {
       login: 'Login',
@@ -311,6 +336,27 @@ export const translations = {
       active: 'Active',
       trial: 'Free Trial',
       perMonth: '/month',
+    },
+    loyalty: {
+      title: 'Loyalty Program',
+      points: 'Points',
+      tier: 'Tier',
+      rewards: 'Rewards',
+      addReward: 'Add Reward',
+      redeem: 'Redeem',
+      pointsEarned: 'Points earned',
+      nextTier: 'Next tier',
+    },
+    stores: {
+      title: 'Multi-store',
+      addStore: 'Add Store',
+      mainStore: 'Main Store',
+    },
+    notifications: {
+      title: 'Notifications',
+      stockAlert: 'Stock Alert',
+      newOrder: 'New Order',
+      markAllRead: 'Mark all as read',
     },
     categories: {
       clothing: 'Clothing',

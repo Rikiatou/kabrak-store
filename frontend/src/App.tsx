@@ -13,6 +13,8 @@ import { DeliveriesPage } from './pages/DeliveriesPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { BillingPage } from './pages/BillingPage';
+import { LoyaltyPage } from './pages/LoyaltyPage';
+import { StoresPage } from './pages/StoresPage';
 import { useAuthStore } from './stores/authStore';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -54,6 +56,8 @@ function App() {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/billing" element={<BillingPage />} />
+          <Route path="/loyalty" element={<LoyaltyPage />} />
+          <Route path="/stores" element={<StoresPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

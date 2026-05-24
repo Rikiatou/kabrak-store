@@ -82,6 +82,76 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
       },
     });
 
+    // Update loyalty points (from Beauty Spa Pro pattern)
+    if (order.clientId && order.paymentStatus === 'PAID') {
+      try {
+        const pointsPerXFCFA = parseInt(process.env.LOYALTY_POINTS_PER_FCFA || '1000');
+        const pointsEarned = Math.floor(order.finalAmount / pointsPerXFCFA);
+        if (pointsEarned > 0) {
+          const client = await prisma.client.update({
+            where: { id: order.clientId },
+            data: {
+              loyaltyPoints: { increment: pointsEarned },
+              totalSpent: { increment: order.finalAmount },
+              totalOrders: { increment: 1 },
+              lastVisit: new Date(),
+            },
+          });
+          // Auto-upgrade loyalty tier
+          const TIERS = [
+            { name: 'PLATINUM', min: 1000 },
+            { name: 'GOLD', min: 500 },
+            { name: 'SILVER', min: 100 },
+            { name: 'BRONZE', min: 0 },
+          ];
+          const newTier = TIERS.find((t) => client.loyaltyPoints >= t.min)?.name || 'BRONZE';
+          if (newTier !== client.loyaltyTier) {
+            await prisma.client.update({
+              where: { id: order.clientId },
+              data: { loyaltyTier: newTier },
+            });
+          }
+        }
+      } catch (loyaltyErr) {
+        console.warn('Loyalty update skipped:', (loyaltyErr as Error).message);
+      }
+    }
+
+    // Create stock alert notifications for low stock
+    try {
+      const orderWithItems = await prisma.order.findUnique({
+        where: { id: order.id },
+        include: { items: { include: { product: true } } },
+      });
+      if (orderWithItems?.items) {
+        for (const item of orderWithItems.items) {
+          if (item.product.totalStock <= item.product.lowStockAlert) {
+            const existing = await prisma.notification.findFirst({
+              where: {
+                tenantId: req.user!.tenantId,
+                type: 'STOCK_ALERT',
+                metadata: { path: ['productId'], equals: item.productId },
+                isRead: false,
+              },
+            });
+            if (!existing) {
+              await prisma.notification.create({
+                data: {
+                  type: 'STOCK_ALERT',
+                  title: 'Stock faible',
+                  message: `${item.product.name}: ${item.product.totalStock} en stock (seuil: ${item.product.lowStockAlert})`,
+                  tenantId: req.user!.tenantId,
+                  metadata: { productId: item.productId, stock: item.product.totalStock },
+                },
+              });
+            }
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.warn('Notification creation skipped:', (notifErr as Error).message);
+    }
+
     res.status(201).json({ success: true, data: invoice });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create invoice';

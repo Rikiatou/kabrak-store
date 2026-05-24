@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
-import { BarChart3, TrendingUp, DollarSign, ShoppingCart } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign, ShoppingCart, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
 
 interface SalesReport {
@@ -25,13 +26,40 @@ export function ReportsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const exportData = async (type: string) => {
+    try {
+      const res = await api.get(`/exports/${type}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type}-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kabrak-500" /></div>;
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t('nav.reports')}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">{t('nav.reports')}</h1>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportData('orders')}>
+            <Download className="w-4 h-4 mr-1" /> Commandes
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportData('clients')}>
+            <Download className="w-4 h-4 mr-1" /> Clients
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportData('products')}>
+            <Download className="w-4 h-4 mr-1" /> Produits
+          </Button>
+        </div>
+      </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

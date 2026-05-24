@@ -13,6 +13,8 @@ export const createProductSchema = z.object({
   sellingPrice: z.number().min(0).default(0),
   totalStock: z.number().int().min(0).default(0),
   lowStockAlert: z.number().int().min(0).default(5),
+  barcode: z.string().optional().nullable(),
+  sku: z.string().optional().nullable(),
   adaptiveFields: z.any().optional(),
 });
 

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Search, Users, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Search, Users, Pencil, Trash2, X, Download } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Client {
@@ -55,9 +55,24 @@ export function ClientsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('clients.title')}</h1>
-        <Button onClick={() => { setForm({ name: '', phone: '', email: '', address: '' }); setEditingId(null); setShowForm(true); }}>
-          <Plus className="w-4 h-4 mr-2" /> {t('clients.addClient')}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={async () => {
+            try {
+              const res = await api.get('/exports/clients', { responseType: 'blob' });
+              const url = URL.createObjectURL(res.data);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `clients-${Date.now()}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            } catch (err) { console.error(err); }
+          }}>
+            <Download className="w-4 h-4 mr-1" /> CSV
+          </Button>
+          <Button onClick={() => { setForm({ name: '', phone: '', email: '', address: '' }); setEditingId(null); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-2" /> {t('clients.addClient')}
+          </Button>
+        </div>
       </div>
 
       <div className="relative max-w-md">

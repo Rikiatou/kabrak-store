@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Search, Package, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Search, Package, Pencil, Trash2, X, ScanLine, Download } from 'lucide-react';
+import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -51,6 +52,7 @@ export function ProductsPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
 
@@ -102,15 +104,52 @@ export function ProductsPage() {
     } catch (err) { console.error(err); }
   };
 
+  const handleBarcodeScan = async (code: string) => {
+    try {
+      const { data } = await api.get(`/products/barcode/${code}`);
+      if (data.data) {
+        handleEdit(data.data);
+        setShowScanner(false);
+      }
+    } catch {
+      alert('Produit non trouvé pour ce code');
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const res = await api.get('/exports/products', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `produits-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const businessTypes = tenant?.businessCategories || ['OTHER'];
+  const canScan = tenant?.plan === 'SHOP' || tenant?.plan === 'BUSINESS';
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('products.title')}</h1>
-        <Button onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}>
-          <Plus className="w-4 h-4 mr-2" /> {t('products.addProduct')}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-1" /> CSV
+          </Button>
+          {canScan && (
+            <Button variant="outline" size="sm" onClick={() => setShowScanner(true)}>
+              <ScanLine className="w-4 h-4 mr-1" /> Scanner
+            </Button>
+          )}
+          <Button onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-2" /> {t('products.addProduct')}
+          </Button>
+        </div>
       </div>
 
       {/* Search */}
@@ -257,6 +296,14 @@ export function ProductsPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Barcode Scanner */}
+      {showScanner && (
+        <BarcodeScanner
+          onScan={handleBarcodeScan}
+          onClose={() => setShowScanner(false)}
+        />
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   UserCog, Truck, BarChart3, CreditCard, Tags, ChevronLeft, ChevronRight,
+  Heart, Store,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -16,7 +17,9 @@ const navItems = [
   { key: 'invoices', icon: FileText, path: '/invoices' },
   { key: 'categories', icon: Tags, path: '/categories' },
   { key: 'delivery', icon: Truck, path: '/deliveries' },
+  { key: 'loyalty', icon: Heart, path: '/loyalty' },
   { key: 'employees', icon: UserCog, path: '/employees', plans: ['SHOP', 'BUSINESS'] },
+  { key: 'stores', icon: Store, path: '/stores', plans: ['BUSINESS'] },
   { key: 'reports', icon: BarChart3, path: '/reports' },
   { key: 'billing', icon: CreditCard, path: '/billing' },
 ];

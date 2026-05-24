@@ -12,6 +12,10 @@ import deliveryRoutes from './modules/delivery/delivery.routes';
 import categoryRoutes from './modules/categories/categories.routes';
 import reportRoutes from './modules/reports/reports.routes';
 import billingRoutes from './modules/billing/billing.routes';
+import loyaltyRoutes from './modules/loyalty/loyalty.routes';
+import storeRoutes from './modules/stores/stores.routes';
+import notificationRoutes from './modules/notifications/notifications.routes';
+import exportRoutes from './modules/exports/exports.routes';
 
 const app = express();
 
@@ -34,6 +38,10 @@ app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/stores', storeRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/exports', exportRoutes);
 
 // 404
 app.use((_req, res) => {

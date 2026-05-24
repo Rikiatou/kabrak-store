@@ -35,8 +35,17 @@ enum OrderStatus {
 enum PaymentMethod {
   CASH
   MOBILE_MONEY
+  ORANGE_MONEY
+  MTN_MOMO
   BANK_TRANSFER
   OTHER
+}
+
+enum BillingStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
 }
 
 enum PaymentStatus {
@@ -94,6 +103,9 @@ model Tenant {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
+  invoiceColor      String?          @default("#2563eb")
+  invoiceHeader     String?
+
   users             User[]
   products          Product[]
   orders            Order[]
@@ -102,6 +114,11 @@ model Tenant {
   deliveries        Delivery[]
   categories        Category[]
   subscription      Subscription?
+  billingPayments   BillingPayment[]
+  loyaltyRewards    LoyaltyReward[]
+  stores            Store[]
+  notifications     Notification[]
+  dataExports       DataExport[]
 
   @@map("tenants")
 }
@@ -121,7 +138,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  storeId       String?
+
   tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store         Store?    @relation(fields: [storeId], references: [id])
   orders        Order[]   @relation("orderCreator")
   invoices      Invoice[] @relation("invoiceCreator")
   salesRecords  Order[]   @relation("orderSeller")
@@ -170,10 +190,15 @@ model Product {
   // Perfumes: { brand, volume: "100ml" }
   // Cakes: { flavors: [...], sizes: [...] }
   // Food: { menuItems: [...] }
+  barcode         String?
+  sku             String?
   adaptiveFields  Json?
+
+  storeId         String?
 
   tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   category        Category?        @relation(fields: [categoryId], references: [id])
+  store           Store?           @relation(fields: [storeId], references: [id])
   orderItems      OrderItem[]
 
   @@map("products")
@@ -187,17 +212,20 @@ model Client {
   phone         String?
   email         String?
   address       String?
-  loyaltyPoints Int       @default(0)
-  totalSpent    Float     @default(0)
-  totalOrders   Int       @default(0)
-  tenantId      String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  loyaltyPoints  Int       @default(0)
+  loyaltyTier    String    @default("BRONZE")
+  totalSpent     Float     @default(0)
+  totalOrders    Int       @default(0)
+  lastVisit      DateTime?
+  tenantId       String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  orders        Order[]
-  invoices      Invoice[]
-  deliveries    Delivery[]
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders         Order[]
+  invoices       Invoice[]
+  deliveries     Delivery[]
+  loyaltyRewards LoyaltyReward[]
 
   @@map("clients")
 }
@@ -322,18 +350,116 @@ model Delivery {
 // ─── SUBSCRIPTION (BILLING) ─────────────────────────────
 
 model Subscription {
-  id            String             @id @default(uuid())
-  plan          PlanType           @default(STORE)
-  status        SubscriptionStatus @default(TRIAL)
-  priceMonthly  Int                @default(4900)
-  startDate     DateTime           @default(now())
-  endDate       DateTime
-  trialEndsAt   DateTime?
-  tenantId      String             @unique
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  id              String             @id @default(uuid())
+  plan            PlanType           @default(STORE)
+  status          SubscriptionStatus @default(TRIAL)
+  priceMonthly    Int                @default(4900)
+  startDate       DateTime           @default(now())
+  endDate         DateTime
+  trialEndsAt     DateTime?
+  features        Json?
+  tenantId        String             @unique
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
-  tenant        Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant          Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
+}
+
+// ─── BILLING PAYMENT ─────────────────────────────────────
+
+model BillingPayment {
+  id              String        @id @default(uuid())
+  tenantId        String
+  plan            String
+  months          Int           @default(1)
+  amountXAF       Int
+  extraBranches   Int           @default(0)
+  extraUsers      Int           @default(0)
+  status          BillingStatus @default(PENDING)
+  payToken        String?
+  omOrderId       String?
+  mode            String        @default("manual")
+  confirmedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("billing_payments")
+}
+
+// ─── LOYALTY REWARD ──────────────────────────────────────
+
+model LoyaltyReward {
+  id              String   @id @default(uuid())
+  name            String
+  pointsRequired  Int
+  discountPercent Float    @default(0)
+  discountAmount  Float    @default(0)
+  isActive        Boolean  @default(true)
+  tenantId        String
+  clientId        String?
+  redeemedAt      DateTime?
+  createdAt       DateTime @default(now())
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client          Client?  @relation(fields: [clientId], references: [id])
+
+  @@map("loyalty_rewards")
+}
+
+// ─── STORE (MULTI-STORE) ─────────────────────────────────
+
+model Store {
+  id              String   @id @default(uuid())
+  name            String
+  address         String?
+  phone           String?
+  isMain          Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  tenantId        String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users           User[]
+  products        Product[]
+
+  @@map("stores")
+}
+
+// ─── NOTIFICATION ────────────────────────────────────────
+
+model Notification {
+  id         String   @id @default(uuid())
+  type       String
+  title      String
+  message    String
+  isRead     Boolean  @default(false)
+  metadata   Json?
+  tenantId   String
+  createdAt  DateTime @default(now())
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+// ─── DATA EXPORT ─────────────────────────────────────────
+
+model DataExport {
+  id         String   @id @default(uuid())
+  type       String
+  format     String   @default("csv")
+  status     String   @default("pending")
+  fileUrl    String?
+  metadata   Json?
+  tenantId   String
+  createdAt  DateTime @default(now())
+
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("data_exports")
 }

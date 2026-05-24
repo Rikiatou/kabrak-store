@@ -125,18 +125,50 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const getLowStock = async (req: Request, res: Response): Promise<void> => {
+export const findByBarcode = async (req: Request, res: Response): Promise<void> => {
   try {
-    const products = await prisma.product.findMany({
+    const code = req.params.code as string;
+    const product = await prisma.product.findFirst({
       where: {
         tenantId: req.user!.tenantId,
-        totalStock: { lte: prisma.product.fields.lowStockAlert as unknown as number },
+        OR: [{ barcode: code }, { sku: code }],
       },
       include: { category: true },
-      orderBy: { totalStock: 'asc' },
     });
 
-    res.json({ success: true, data: products });
+    if (!product) {
+      res.status(404).json({ success: false, message: 'Produit non trouvé avec ce code' });
+      return;
+    }
+
+    res.json({ success: true, data: product });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur recherche code-barres';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+export const getLowStock = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const products = await prisma.$queryRaw<
+      Array<{ id: string }>
+    >`
+      SELECT id FROM products
+      WHERE "tenantId" = ${req.user!.tenantId}
+        AND "totalStock" <= "lowStockAlert"
+      ORDER BY "totalStock" ASC
+    `;
+
+    const ids = products.map((p) => p.id);
+    const fullProducts = ids.length > 0
+      ? await prisma.product.findMany({
+          where: { id: { in: ids } },
+          include: { category: true },
+          orderBy: { totalStock: 'asc' },
+        })
+      : [];
+
+    res.json({ success: true, data: fullProducts });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch low stock products';
     res.status(500).json({ success: false, message });
