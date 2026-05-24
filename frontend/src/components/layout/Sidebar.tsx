@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useState } from 'react';
 
 const navItems = [
-  { key: 'dashboard', icon: LayoutDashboard, path: '/' },
+  { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
   { key: 'products', icon: Package, path: '/products' },
   { key: 'orders', icon: ShoppingCart, path: '/orders' },
   { key: 'clients', icon: Users, path: '/clients' },

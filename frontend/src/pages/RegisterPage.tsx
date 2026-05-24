@@ -63,7 +63,7 @@ export function RegisterPage() {
     try {
       const { data } = await api.post('/auth/register', form);
       setAuth(data.data);
-      navigate('/');
+      navigate('/dashboard');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || "Erreur lors de l'inscription");
