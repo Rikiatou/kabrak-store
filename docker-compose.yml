@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kabrak_db_password
+      POSTGRES_DB: kabrak_store
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:kabrak_db_password@db:5432/kabrak_store?schema=public
+      JWT_SECRET: kabrak-production-secret-change-me
+      JWT_EXPIRES_IN: 7d
+      PORT: 3001
+      NODE_ENV: production
+      FRONTEND_URL: http://localhost:5173
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
