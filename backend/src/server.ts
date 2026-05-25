@@ -25,9 +25,18 @@ import recurringRoutes from './modules/recurring/recurring.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import { startRecurringBillingCron } from './cron/recurringBilling';
 
-const app = express();
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err);
+  process.exit(1);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[FATAL] Unhandled rejection:', err);
+  process.exit(1);
+});
 
-console.log('[DEBUG] Server starting...');
+console.log('[BOOT] Starting KABRAK server v1.1.0...');
+
+const app = express();
 
 const allowedOrigins = [
   ...config.frontendUrl.split(',').map(o => o.trim()),
