@@ -15,6 +15,11 @@ enum PlanType {
   BUSINESS
 }
 
+enum BusinessMode {
+  PRODUCT
+  SERVICE
+}
+
 enum UserRole {
   OWNER
   MANAGER
@@ -70,9 +75,18 @@ enum SubscriptionStatus {
   TRIAL
 }
 
+enum ProjectStatus {
+  DRAFT
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
 // ─── BUSINESS CATEGORIES ─────────────────────────────────
 
 enum BusinessCategory {
+  // Product mode — Retail / Commerce
   CLOTHING
   SHOES
   PERFUMES
@@ -80,45 +94,70 @@ enum BusinessCategory {
   HIJABS_ABAYAS
   JEWELRY
   BAGS
-  FOOD
-  CAKES
+  ELECTRONICS
+  HOUSE_PRODUCTS
   KITCHEN_PRODUCTS
+  DECORATION
+  MINI_MARKET
+  WHOLESALE
+  MIXED_SHOP
+  // Product mode — Order-based
+  CAKES
+  FOOD_BUSINESS
+  FOOD_DELIVERY
+  HOME_COOKING
+  WHATSAPP_SELLER
+  MADE_TO_ORDER
+  // Service mode
+  DIGITAL_MARKETING
+  FREELANCER
+  AGENCY
+  CONSULTANT
+  DESIGNER
+  DEVELOPER
+  SOCIAL_MEDIA
+  PRINTING
+  BUSINESS_SERVICES
+  // Catch-all
   OTHER
 }
 
-// ─── TENANT (STORE) ─────────────────────────────────────
+// ─── TENANT ──────────────────────────────────────────────
 
 model Tenant {
-  id                String             @id @default(uuid())
-  name              String
-  slug              String             @unique
-  plan              PlanType           @default(STORE)
+  id                 String             @id @default(uuid())
+  name               String
+  slug               String             @unique
+  plan               PlanType           @default(STORE)
+  businessMode       BusinessMode       @default(PRODUCT)
   businessCategories BusinessCategory[]
-  phone             String?
-  email             String?
-  address           String?
-  logo              String?
-  currency          String             @default("XAF")
-  language          String             @default("fr")
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  phone              String?
+  email              String?
+  address            String?
+  logo               String?
+  currency           String             @default("XAF")
+  language           String             @default("fr")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
 
-  invoiceColor      String?          @default("#2563eb")
-  invoiceHeader     String?
+  invoiceColor       String?            @default("#2563eb")
+  invoiceHeader      String?
 
-  users             User[]
-  products          Product[]
-  orders            Order[]
-  clients           Client[]
-  invoices          Invoice[]
-  deliveries        Delivery[]
-  categories        Category[]
-  subscription      Subscription?
-  billingPayments   BillingPayment[]
-  loyaltyRewards    LoyaltyReward[]
-  stores            Store[]
-  notifications     Notification[]
-  dataExports       DataExport[]
+  users              User[]
+  products           Product[]
+  orders             Order[]
+  clients            Client[]
+  invoices           Invoice[]
+  deliveries         Delivery[]
+  categories         Category[]
+  subscription       Subscription?
+  billingPayments    BillingPayment[]
+  loyaltyRewards     LoyaltyReward[]
+  stores             Store[]
+  notifications      Notification[]
+  dataExports        DataExport[]
+  projects           Project[]
+  recurringBillings  RecurringBilling[]
 
   @@map("tenants")
 }
@@ -145,6 +184,7 @@ model User {
   orders        Order[]   @relation("orderCreator")
   invoices      Invoice[] @relation("invoiceCreator")
   salesRecords  Order[]   @relation("orderSeller")
+  projects      Project[] @relation("projectAssignee")
 
   @@map("users")
 }
@@ -166,7 +206,7 @@ model Category {
   @@map("categories")
 }
 
-// ─── PRODUCT ─────────────────────────────────────────────
+// ─── PRODUCT (also used as Service Package when isService=true) ──
 
 model Product {
   id              String           @id @default(uuid())
@@ -185,14 +225,15 @@ model Product {
   updatedAt       DateTime         @updatedAt
 
   // Adaptive fields stored as JSON
-  // Shoes: { brand, color, sizes: [{ size: "42", stock: 5 }] }
-  // Clothing: { category, color, sizes: [{ size: "M", stock: 3 }] }
-  // Perfumes: { brand, volume: "100ml" }
-  // Cakes: { flavors: [...], sizes: [...] }
-  // Food: { menuItems: [...] }
   barcode         String?
   sku             String?
   adaptiveFields  Json?
+
+  // Service mode fields
+  isService       Boolean          @default(false)
+  duration        String?          // e.g. "1 month", "per session"
+  recurringType   String?          // "one_time" | "monthly" | "quarterly" | "yearly"
+  recurringPrice  Float?
 
   storeId         String?
 
@@ -200,6 +241,8 @@ model Product {
   category        Category?        @relation(fields: [categoryId], references: [id])
   store           Store?           @relation(fields: [storeId], references: [id])
   orderItems      OrderItem[]
+  invoiceLineItems InvoiceLineItem[]
+  recurringBillings RecurringBilling[]
 
   @@map("products")
 }
@@ -207,11 +250,11 @@ model Product {
 // ─── CLIENT ──────────────────────────────────────────────
 
 model Client {
-  id            String    @id @default(uuid())
-  name          String
-  phone         String?
-  email         String?
-  address       String?
+  id             String    @id @default(uuid())
+  name           String
+  phone          String?
+  email          String?
+  address        String?
   loyaltyPoints  Int       @default(0)
   loyaltyTier    String    @default("BRONZE")
   totalSpent     Float     @default(0)
@@ -226,6 +269,8 @@ model Client {
   invoices       Invoice[]
   deliveries     Delivery[]
   loyaltyRewards LoyaltyReward[]
+  projects       Project[]
+  recurringBillings RecurringBilling[]
 
   @@map("clients")
 }
@@ -270,7 +315,7 @@ model OrderItem {
   quantity    Int     @default(1)
   unitPrice   Float
   totalPrice  Float
-  variant     String? // e.g. "Size: M, Color: Blue" or "Pointure: 42"
+  variant     String?
   orderId     String
   productId   String
 
@@ -293,19 +338,40 @@ model Invoice {
   paidAt        DateTime?
   notes         String?
   tenantId      String
-  orderId       String        @unique
+  orderId       String?       @unique
+  projectId     String?
   clientId      String?
   createdById   String
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   tenant        Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  order         Order         @relation(fields: [orderId], references: [id])
+  order         Order?        @relation(fields: [orderId], references: [id])
+  project       Project?      @relation(fields: [projectId], references: [id])
   client        Client?       @relation(fields: [clientId], references: [id])
   createdBy     User          @relation("invoiceCreator", fields: [createdById], references: [id])
   payments      Payment[]
+  lineItems     InvoiceLineItem[]
 
   @@map("invoices")
+}
+
+// ─── INVOICE LINE ITEM (for standalone invoices) ─────────
+
+model InvoiceLineItem {
+  id          String   @id @default(uuid())
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  totalPrice  Float
+
+  invoiceId   String
+  productId   String?
+
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+
+  @@map("invoice_line_items")
 }
 
 // ─── PAYMENT ─────────────────────────────────────────────
@@ -345,6 +411,82 @@ model Delivery {
   client        Client?        @relation(fields: [clientId], references: [id])
 
   @@map("deliveries")
+}
+
+// ─── PROJECT (SERVICE mode) ──────────────────────────────
+
+model Project {
+  id              String        @id @default(uuid())
+  name            String
+  description     String?
+  status          ProjectStatus @default(ACTIVE)
+
+  totalBudget     Float         @default(0)
+  amountPaid      Float         @default(0)
+  amountRemaining Float         @default(0)
+
+  startDate       DateTime?
+  deadline        DateTime?
+  completedAt     DateTime?
+
+  tenantId        String
+  clientId        String?
+  assignedToId    String?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client          Client?       @relation(fields: [clientId], references: [id])
+  assignedTo      User?         @relation("projectAssignee", fields: [assignedToId], references: [id])
+
+  milestones      ProjectMilestone[]
+  invoices        Invoice[]
+
+  @@map("projects")
+}
+
+// ─── PROJECT MILESTONE ───────────────────────────────────
+
+model ProjectMilestone {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  amount      Float     @default(0)
+
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+
+  @@map("project_milestones")
+}
+
+// ─── RECURRING BILLING (SERVICE mode) ────────────────────
+
+model RecurringBilling {
+  id              String   @id @default(uuid())
+  amount          Float
+  frequency       String   @default("monthly")
+  nextBillingDate DateTime
+  isActive        Boolean  @default(true)
+  lastInvoiceId   String?
+
+  tenantId        String
+  clientId        String
+  productId       String?
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client          Client   @relation(fields: [clientId], references: [id])
+  product         Product? @relation(fields: [productId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("recurring_billings")
 }
 
 // ─── SUBSCRIPTION (BILLING) ─────────────────────────────

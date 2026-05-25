@@ -7,20 +7,20 @@ import {
 } from 'lucide-react';
 
 const problemsFR = [
-  { before: 'Tu gères ton stock dans ta tête ou sur un cahier qui se perd', after: 'Stock en temps réel avec alertes automatiques — zéro rupture, zéro surprise' },
-  { before: 'Tu ne sais pas combien tu as réellement gagné à la fin du mois', after: 'Dashboard avec ventes, bénéfices, top produits — tout est clair en 1 clic' },
+  { before: 'Tu gères ton stock ou tes projets dans ta tête', after: 'Dashboard adapté à ton business — produits OU services, tout en 1 clic' },
+  { before: 'Tu ne sais pas combien tu as réellement gagné à la fin du mois', after: 'Revenus, bénéfices, top produits/projets — tout est clair en temps réel' },
   { before: 'Les factures se font à la main et tu oublies les détails', after: 'Factures PDF professionnelles générées en 1 seconde, envoyées par WhatsApp' },
-  { before: 'Tu ne sais pas qui sont tes meilleurs clients', after: 'Programme fidélité intégré — points, récompenses, historique complet par client' },
-  { before: 'Impossible de suivre les ventes de chaque employé', after: 'Chaque employé a son compte — tu vois qui vend quoi et combien' },
-  { before: 'Tu perds du temps à compter les produits manuellement', after: 'Scanner code-barres + gestion de stock intelligente par taille/couleur/pointure' },
+  { before: 'Tu ne sais pas qui sont tes meilleurs clients', after: 'Historique complet par client — achats, projets, paiements, fidélité' },
+  { before: 'Impossible de suivre les paiements récurrents', after: 'Facturation récurrente automatique pour tes clients mensuels' },
+  { before: 'Tu perds du temps avec les outils qui ne comprennent pas ton métier', after: 'Le logiciel s\'adapte : mode Produits pour les boutiques, mode Services pour les freelancers' },
 ];
 const problemsEN = [
-  { before: 'You manage stock in your head or on a notebook that gets lost', after: 'Real-time stock with automatic alerts — zero shortages, zero surprises' },
-  { before: 'You don\'t know how much you really earned at month end', after: 'Dashboard with sales, profits, top products — everything clear in 1 click' },
+  { before: 'You manage stock or projects in your head', after: 'Dashboard adapted to your business — products OR services, all in 1 click' },
+  { before: 'You don\'t know how much you really earned at month end', after: 'Revenue, profits, top products/projects — everything clear in real-time' },
   { before: 'Invoices are done by hand and you forget details', after: 'Professional PDF invoices generated in 1 second, sent via WhatsApp' },
-  { before: 'You don\'t know who your best customers are', after: 'Built-in loyalty program — points, rewards, complete history per client' },
-  { before: 'Impossible to track each employee\'s sales', after: 'Each employee has their account — you see who sells what and how much' },
-  { before: 'You waste time counting products manually', after: 'Barcode scanner + smart stock management by size/color/shoe size' },
+  { before: 'You don\'t know who your best customers are', after: 'Complete client history — purchases, projects, payments, loyalty' },
+  { before: 'Impossible to track recurring payments', after: 'Automatic recurring billing for your monthly clients' },
+  { before: 'You waste time with tools that don\'t understand your business', after: 'Software adapts: Product mode for shops, Service mode for freelancers' },
 ];
 
 const featuresFR = [
@@ -45,20 +45,20 @@ const featuresEN = [
 ];
 
 const targetsFR = [
-  { emoji: '👗', title: 'Vêtements & Mode', tags: ['Robes', 'Pantalons', 'Jupes', 'T-shirts', 'Hijabs', 'Abayas', 'Accessoires'] },
-  { emoji: '👟', title: 'Chaussures', tags: ['Sneakers', 'Talons', 'Sandales', 'Pointures', 'Stock par taille'] },
-  { emoji: '✨', title: 'Cosmétiques & Parfums', tags: ['Parfums', 'Maquillage', 'Soins', 'Crèmes', 'Sérums'] },
-  { emoji: '🎂', title: 'Gâteaux & Food', tags: ['Gâteaux sur commande', 'Food delivery', 'Acomptes', 'Suivi livraison'] },
-  { emoji: '💎', title: 'Bijoux & Sacs', tags: ['Bijoux', 'Sacs', 'Montres', 'Accessoires premium'] },
-  { emoji: '🏪', title: 'Boutique Mixte', tags: ['Multi-catégories', 'Grand stock', 'Multi-employés', 'POS'] },
+  { emoji: '👗', title: 'Vêtements & Mode', tags: ['Robes', 'Pantalons', 'Hijabs', 'Abayas', 'Accessoires'], mode: 'product' },
+  { emoji: '🎂', title: 'Gâteaux & Food', tags: ['Commandes', 'Acomptes', 'Livraison', 'Food delivery'], mode: 'product' },
+  { emoji: '✨', title: 'Cosmétiques & Parfums', tags: ['Parfums', 'Maquillage', 'Soins', 'Stock par ML'], mode: 'product' },
+  { emoji: '🏪', title: 'Boutique & Commerce', tags: ['Mini-market', 'Grossiste', 'Multi-employés', 'POS'], mode: 'product' },
+  { emoji: '💼', title: 'Marketing & Agences', tags: ['Clients', 'Projets', 'Factures', 'Paiements récurrents'], mode: 'service' },
+  { emoji: '🎨', title: 'Freelancers & Consultants', tags: ['Services', 'Devis', 'Milestones', 'Facturation'], mode: 'service' },
 ];
 const targetsEN = [
-  { emoji: '👗', title: 'Clothing & Fashion', tags: ['Dresses', 'Pants', 'Skirts', 'T-shirts', 'Hijabs', 'Abayas', 'Accessories'] },
-  { emoji: '👟', title: 'Shoes', tags: ['Sneakers', 'Heels', 'Sandals', 'Shoe sizes', 'Stock by size'] },
-  { emoji: '✨', title: 'Cosmetics & Perfumes', tags: ['Perfumes', 'Makeup', 'Skincare', 'Creams', 'Serums'] },
-  { emoji: '🎂', title: 'Cakes & Food', tags: ['Custom cakes', 'Food delivery', 'Deposits', 'Delivery tracking'] },
-  { emoji: '💎', title: 'Jewelry & Bags', tags: ['Jewelry', 'Bags', 'Watches', 'Premium accessories'] },
-  { emoji: '🏪', title: 'General Store', tags: ['Multi-category', 'Large stock', 'Multi-employees', 'POS'] },
+  { emoji: '👗', title: 'Clothing & Fashion', tags: ['Dresses', 'Pants', 'Hijabs', 'Abayas', 'Accessories'], mode: 'product' },
+  { emoji: '🎂', title: 'Cakes & Food', tags: ['Orders', 'Deposits', 'Delivery', 'Food delivery'], mode: 'product' },
+  { emoji: '✨', title: 'Cosmetics & Perfumes', tags: ['Perfumes', 'Makeup', 'Skincare', 'Stock by ML'], mode: 'product' },
+  { emoji: '🏪', title: 'Shops & Retail', tags: ['Mini-market', 'Wholesale', 'Multi-employees', 'POS'], mode: 'product' },
+  { emoji: '💼', title: 'Marketing & Agencies', tags: ['Clients', 'Projects', 'Invoices', 'Recurring billing'], mode: 'service' },
+  { emoji: '🎨', title: 'Freelancers & Consultants', tags: ['Services', 'Quotes', 'Milestones', 'Billing'], mode: 'service' },
 ];
 
 const plansFR = [
@@ -242,7 +242,7 @@ const compareEN = [
 ];
 
 const faqsFR = [
-  { q: 'C\'est pour quel type de business ?', a: 'KABRAK Store s\'adapte automatiquement : vêtements, chaussures, parfums, cosmétiques, gâteaux, food delivery, bijoux, sacs — vous cochez vos catégories et les champs produits s\'adaptent.' },
+  { q: 'C\'est pour quel type de business ?', a: 'KABRAK s\'adapte automatiquement : boutiques (vêtements, cosmétiques, food...) ET services (marketing, freelance, consulting, agences). Choisissez votre mode et le logiciel s\'adapte.' },
   { q: 'Puis-je utiliser sur téléphone ?', a: 'Oui ! KABRAK Store est une PWA optimisée mobile. Installez-la sur votre écran d\'accueil comme une vraie application.' },
   { q: 'Comment se passe le paiement ?', a: 'Paiement simple par Orange Money. Activation en quelques minutes après confirmation.' },
   { q: 'Puis-je gérer plusieurs employés ?', a: 'Oui. STORE : 1 utilisateur · SHOP : 3 · BUSINESS : 10. Chaque employé a son accès avec permissions.' },
@@ -251,7 +251,7 @@ const faqsFR = [
   { q: 'Mes données sont-elles en sécurité ?', a: 'Oui, vos données sont cryptées et sauvegardées sur des serveurs sécurisés. Vous pouvez aussi faire des backups JSON.' },
 ];
 const faqsEN = [
-  { q: 'What type of business is this for?', a: 'KABRAK Store adapts automatically: clothing, shoes, perfumes, cosmetics, cakes, food delivery, jewelry, bags — you check your categories and product fields adapt.' },
+  { q: 'What type of business is this for?', a: 'KABRAK adapts automatically: shops (clothing, cosmetics, food...) AND services (marketing, freelance, consulting, agencies). Choose your mode and the software adapts.' },
   { q: 'Can I use it on my phone?', a: 'Yes! KABRAK Store is a mobile-optimized PWA. Install it on your home screen like a real app.' },
   { q: 'How does payment work?', a: 'Simple payment via Orange Money. Activation in a few minutes after confirmation.' },
   { q: 'Can I manage multiple employees?', a: 'Yes. STORE: 1 user · SHOP: 3 · BUSINESS: 10. Each employee has their access with permissions.' },
@@ -323,10 +323,10 @@ export function LandingPage() {
             </span>
           </h1>
           <p className="text-lg sm:text-xl text-gray-500 mb-3 max-w-2xl mx-auto leading-relaxed">
-            {lang === 'fr' ? 'Stock, ventes, factures, clients, fidélité, employés — ' : 'Stock, sales, invoices, clients, loyalty, employees — '}
+            {lang === 'fr' ? 'Produits, services, projets, factures, clients — ' : 'Products, services, projects, invoices, clients — '}
             <span className="font-semibold text-gray-800">{lang === 'fr' ? 'tout centralisé dans un seul logiciel.' : 'everything centralized in one software.'}</span>
           </p>
-          <p className="text-sm text-gray-400 mb-10">{lang === 'fr' ? 'Conçu pour les commerçants au Cameroun et en Afrique. S\'adapte à VOTRE type de business.' : 'Designed for merchants in Cameroon and Africa. Adapts to YOUR type of business.'}</p>
+          <p className="text-sm text-gray-400 mb-10">{lang === 'fr' ? 'Conçu pour les entrepreneurs au Cameroun et en Afrique. Boutiques, services, freelancers — s\'adapte à VOTRE business.' : 'Designed for entrepreneurs in Cameroon and Africa. Shops, services, freelancers — adapts to YOUR business.'}</p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link to="/register"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-base hover:opacity-90 shadow-2xl shadow-blue-300 transition-all">
@@ -355,7 +355,7 @@ export function LandingPage() {
             <p className="text-xs text-blue-200">{lang === 'fr' ? 'Plans adaptés' : 'Adapted plans'}</p>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl font-black">11+</p>
+            <p className="text-2xl sm:text-3xl font-black">30+</p>
             <p className="text-xs text-blue-200">{lang === 'fr' ? 'Catégories business' : 'Business categories'}</p>
           </div>
           <div>
@@ -373,15 +373,20 @@ export function LandingPage() {
       <section className="py-16 px-5 bg-gray-50">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-center text-2xl sm:text-3xl font-black text-gray-900 mb-3">{lang === 'fr' ? 'S\'adapte à VOTRE business' : 'Adapts to YOUR business'}</h2>
-          <p className="text-center text-gray-400 mb-10 text-sm">{lang === 'fr' ? 'Cochez vos catégories — les champs produits s\'adaptent automatiquement.' : 'Check your categories — product fields adapt automatically.'}</p>
+          <p className="text-center text-gray-400 mb-10 text-sm">{lang === 'fr' ? 'Produits ou services — le logiciel s\'adapte automatiquement.' : 'Products or services — the software adapts automatically.'}</p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {targets.map(t => (
-              <div key={t.title} className="p-6 rounded-2xl bg-white border-2 border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all">
-                <div className="text-3xl mb-3">{t.emoji}</div>
+              <div key={t.title} className={`p-6 rounded-2xl bg-white border-2 hover:shadow-lg transition-all ${t.mode === 'service' ? 'border-violet-100 hover:border-violet-300' : 'border-gray-100 hover:border-blue-200'}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-3xl">{t.emoji}</span>
+                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${t.mode === 'service' ? 'bg-violet-100 text-violet-600' : 'bg-blue-50 text-blue-600'}`}>
+                    {t.mode === 'service' ? (lang === 'fr' ? 'Services' : 'Services') : (lang === 'fr' ? 'Produits' : 'Products')}
+                  </span>
+                </div>
                 <h3 className="font-black text-gray-900 text-lg mb-3">{t.title}</h3>
                 <div className="flex flex-wrap gap-2">
                   {t.tags.map(tag => (
-                    <span key={tag} className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">{tag}</span>
+                    <span key={tag} className={`px-2.5 py-1 rounded-lg text-xs font-medium ${t.mode === 'service' ? 'bg-violet-50 text-violet-700' : 'bg-blue-50 text-blue-700'}`}>{tag}</span>
                   ))}
                 </div>
               </div>

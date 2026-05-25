@@ -2,22 +2,38 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   UserCog, Truck, BarChart3, CreditCard, Tags, ChevronLeft, ChevronRight,
-  Heart, Store,
+  Heart, Store, FolderKanban, RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { useState } from 'react';
 
-const navItems = [
+type BusinessMode = 'PRODUCT' | 'SERVICE';
+
+interface NavItem {
+  key: string;
+  icon: typeof LayoutDashboard;
+  path: string;
+  plans?: string[];
+  modes?: BusinessMode[];
+}
+
+const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { key: 'products', icon: Package, path: '/products' },
-  { key: 'orders', icon: ShoppingCart, path: '/orders' },
+  // Product mode items
+  { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'] },
+  { key: 'orders', icon: ShoppingCart, path: '/orders', modes: ['PRODUCT'] },
+  { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'] },
+  { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'] },
+  { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'] },
+  // Service mode items
+  { key: 'projects', icon: FolderKanban, path: '/projects', modes: ['SERVICE'] },
+  { key: 'services', icon: Package, path: '/services', modes: ['SERVICE'] },
+  { key: 'recurring', icon: RefreshCw, path: '/recurring', modes: ['SERVICE'] },
+  // Shared items
   { key: 'clients', icon: Users, path: '/clients' },
   { key: 'invoices', icon: FileText, path: '/invoices' },
-  { key: 'categories', icon: Tags, path: '/categories' },
-  { key: 'delivery', icon: Truck, path: '/deliveries' },
-  { key: 'loyalty', icon: Heart, path: '/loyalty' },
   { key: 'employees', icon: UserCog, path: '/employees', plans: ['SHOP', 'BUSINESS'] },
   { key: 'stores', icon: Store, path: '/stores', plans: ['BUSINESS'] },
   { key: 'reports', icon: BarChart3, path: '/reports' },
@@ -30,9 +46,12 @@ export function Sidebar() {
   const tenant = useAuthStore((s) => s.tenant);
   const [collapsed, setCollapsed] = useState(false);
 
+  const businessMode = tenant?.businessMode || 'PRODUCT';
+
   const filteredItems = navItems.filter((item) => {
-    if (!item.plans) return true;
-    return tenant && item.plans.includes(tenant.plan);
+    if (item.plans && !(tenant && item.plans.includes(tenant.plan))) return false;
+    if (item.modes && !item.modes.includes(businessMode)) return false;
+    return true;
   });
 
   return (

@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { config } from './config';
 
 import authRoutes from './modules/auth/auth.routes';
@@ -16,6 +17,8 @@ import loyaltyRoutes from './modules/loyalty/loyalty.routes';
 import storeRoutes from './modules/stores/stores.routes';
 import notificationRoutes from './modules/notifications/notifications.routes';
 import exportRoutes from './modules/exports/exports.routes';
+import projectRoutes from './modules/projects/projects.routes';
+import recurringRoutes from './modules/recurring/recurring.routes';
 
 const app = express();
 
@@ -32,13 +35,21 @@ app.use(cors({
 }));
 app.use(express.json());
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { success: false, message: 'Too many attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/clients', clientRoutes);
@@ -52,6 +63,8 @@ app.use('/api/loyalty', loyaltyRoutes);
 app.use('/api/stores', storeRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/exports', exportRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/recurring', recurringRoutes);
 
 // 404
 app.use((_req, res) => {

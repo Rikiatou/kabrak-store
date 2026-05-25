@@ -14,6 +14,7 @@ interface Tenant {
   name: string;
   slug?: string;
   plan: string;
+  businessMode: 'PRODUCT' | 'SERVICE';
   businessCategories: string[];
   currency?: string;
   language?: string;

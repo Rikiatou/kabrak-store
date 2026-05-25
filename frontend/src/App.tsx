@@ -16,6 +16,9 @@ import { ReportsPage } from './pages/ReportsPage';
 import { BillingPage } from './pages/BillingPage';
 import { LoyaltyPage } from './pages/LoyaltyPage';
 import { StoresPage } from './pages/StoresPage';
+import { ProjectsPage } from './pages/ProjectsPage';
+import { ServicesPage } from './pages/ServicesPage';
+import { RecurringPage } from './pages/RecurringPage';
 import { useAuthStore } from './stores/authStore';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -49,16 +52,22 @@ function App() {
           }
         >
           <Route path="/dashboard" element={<DashboardPage />} />
+          {/* Product mode routes */}
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/categories" element={<CategoriesPage />} />
+          <Route path="/deliveries" element={<DeliveriesPage />} />
+          <Route path="/loyalty" element={<LoyaltyPage />} />
+          {/* Service mode routes */}
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/services" element={<ServicesPage />} />
+          <Route path="/recurring" element={<RecurringPage />} />
+          {/* Shared routes */}
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/employees" element={<EmployeesPage />} />
-          <Route path="/deliveries" element={<DeliveriesPage />} />
-          <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/billing" element={<BillingPage />} />
-          <Route path="/loyalty" element={<LoyaltyPage />} />
           <Route path="/stores" element={<StoresPage />} />
         </Route>
       </Routes>
