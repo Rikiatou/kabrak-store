@@ -30,7 +30,11 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-const allowedOrigins = config.frontendUrl.split(',').map(o => o.trim());
+const allowedOrigins = [
+  ...config.frontendUrl.split(',').map(o => o.trim()),
+  'https://kabrak-store.kabrakeng.com',
+  'https://admin.kabrakeng.com',
+].filter(Boolean);
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin) || config.nodeEnv === 'development') {
