@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Search, Package, Pencil, Trash2, X, ScanLine, Download } from 'lucide-react';
+import { Plus, Search, Package, Pencil, Trash2, X, ScanLine, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -61,6 +61,10 @@ export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const PAGE_SIZE = 20;
   const [showForm, setShowForm] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -68,13 +72,17 @@ export function ProductsPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const { data } = await api.get('/products', { params: { search, limit: 100 } });
+      const { data } = await api.get('/products', { params: { search, limit: PAGE_SIZE, page } });
       setProducts(data.data);
+      const totalCount = data.pagination?.total || data.data.length;
+      setTotal(totalCount);
+      setTotalPages(Math.max(1, Math.ceil(totalCount / PAGE_SIZE)));
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [search, page]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+  useEffect(() => { setPage(1); }, [search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,29 +152,29 @@ export function ProductsPage() {
   const canScan = tenant?.plan === 'SHOP' || tenant?.plan === 'BUSINESS';
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('products.title')}</h1>
-        <div className="flex gap-2">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold">{t('products.title')}</h1>
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-1" /> CSV
+            <Download className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">CSV</span>
           </Button>
           {canScan && (
             <Button variant="outline" size="sm" onClick={() => setShowScanner(true)}>
-              <ScanLine className="w-4 h-4 mr-1" /> Scanner
+              <ScanLine className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Scanner</span>
             </Button>
           )}
-          <Button onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}>
-            <Plus className="w-4 h-4 mr-2" /> {t('products.addProduct')}
+          <Button size="sm" onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> {t('products.addProduct')}
           </Button>
         </div>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-md">
+      <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          className="pl-9"
+          className="pl-9 max-w-full sm:max-w-md"
           placeholder={t('common.search')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -269,43 +277,70 @@ export function ProductsPage() {
           <p className="text-muted-foreground">{t('common.noResults')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {products.map((product) => (
-            <Card key={product.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-sm">{product.name}</h3>
-                    <p className="text-xs text-muted-foreground">{ADAPTIVE_FIELDS[product.businessType]?.label || product.businessType}</p>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+            {products.map((product) => (
+              <Card key={product.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-start justify-between mb-2 sm:mb-3">
+                    <div className="min-w-0 flex-1 mr-2">
+                      <h3 className="font-semibold text-sm truncate">{product.name}</h3>
+                      <p className="text-xs text-muted-foreground">{ADAPTIVE_FIELDS[product.businessType]?.label || product.businessType}</p>
+                    </div>
+                    <Badge variant={product.totalStock <= product.lowStockAlert ? 'warning' : 'secondary'} className="shrink-0 text-xs">
+                      {product.totalStock}
+                    </Badge>
                   </div>
-                  <Badge variant={product.totalStock <= product.lowStockAlert ? 'warning' : 'secondary'}>
-                    {product.totalStock} {t('products.stock')}
-                  </Badge>
-                </div>
 
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{t('products.costPrice')}</p>
-                    <p className="text-sm">{formatCurrency(product.costPrice)}</p>
+                  <div className="flex items-center justify-between mb-2 sm:mb-3">
+                    <div>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.costPrice')}</p>
+                      <p className="text-xs sm:text-sm">{formatCurrency(product.costPrice)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.sellingPrice')}</p>
+                      <p className="text-xs sm:text-sm font-bold text-kabrak-500">{formatCurrency(product.sellingPrice)}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{t('products.sellingPrice')}</p>
-                    <p className="text-sm font-bold text-kabrak-500">{formatCurrency(product.sellingPrice)}</p>
-                  </div>
-                </div>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(product)}>
-                    <Pencil className="w-3 h-3 mr-1" /> {t('common.edit')}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDelete(product.id)} className="text-destructive hover:text-destructive">
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => handleEdit(product)}>
+                      <Pencil className="w-3 h-3 mr-1" /> {t('common.edit')}
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(product.id)}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {page} / {totalPages} ({total})
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Barcode Scanner */}

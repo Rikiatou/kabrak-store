@@ -138,11 +138,11 @@ export function OrdersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('orders.title')}</h1>
-        <Button onClick={openNewOrder}>
-          <Plus className="w-4 h-4 mr-2" /> {t('orders.newOrder')}
+        <h1 className="text-xl sm:text-2xl font-bold">{t('orders.title')}</h1>
+        <Button size="sm" onClick={openNewOrder}>
+          <Plus className="w-4 h-4 mr-1" /> {t('orders.newOrder')}
         </Button>
       </div>
 
@@ -243,38 +243,35 @@ export function OrdersPage() {
           <p className="text-muted-foreground">{t('common.noResults')}</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {orders.map((order) => (
             <Card key={order.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <p className="font-bold">{order.reference}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {order.client?.name || 'Client anonyme'} · {formatDateTime(order.createdAt)}
-                      </p>
-                    </div>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm sm:text-base">{order.reference}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {order.client?.name || 'Client anonyme'} · {formatDateTime(order.createdAt)}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="font-bold">{formatCurrency(order.finalAmount)}</p>
+                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+                    <div className="sm:text-right">
+                      <p className="font-bold text-sm sm:text-base">{formatCurrency(order.finalAmount)}</p>
                       <div className="flex gap-1">
-                        <Badge variant={statusColors[order.status]}>{t(`status.${order.status.toLowerCase()}`)}</Badge>
-                        <Badge variant={statusColors[order.paymentStatus]}>{t(`status.${order.paymentStatus.toLowerCase()}`)}</Badge>
+                        <Badge variant={statusColors[order.status]} className="text-[10px]">{t(`status.${order.status.toLowerCase()}`)}</Badge>
+                        <Badge variant={statusColors[order.paymentStatus]} className="text-[10px]">{t(`status.${order.paymentStatus.toLowerCase()}`)}</Badge>
                       </div>
                     </div>
                     {order.client?.phone && (
-                      <Button variant="outline" size="sm" onClick={() => handleWhatsApp(order)} title={t('orders.sendWhatsApp')}>
+                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleWhatsApp(order)} title={t('orders.sendWhatsApp')}>
                         <MessageCircle className="w-4 h-4 text-green-500" />
                       </Button>
                     )}
                   </div>
                 </div>
-                {/* Items */}
-                <div className="mt-3 flex flex-wrap gap-1">
+                <div className="mt-2 flex flex-wrap gap-1">
                   {order.items.map((item) => (
-                    <span key={item.id} className="text-xs bg-muted px-2 py-1 rounded">
+                    <span key={item.id} className="text-[10px] sm:text-xs bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                       {item.product.name} x{item.quantity}
                     </span>
                   ))}

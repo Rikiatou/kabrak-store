@@ -154,9 +154,9 @@ export function InvoicesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold dark:text-white">{t('invoices.title')}</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold dark:text-white">{t('invoices.title')}</h1>
         <div className="flex gap-2">
           {isService && (
             <Button size="sm" onClick={() => setShowForm(!showForm)}>

@@ -52,9 +52,9 @@ export function ClientsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('clients.title')}</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-xl sm:text-2xl font-bold">{t('clients.title')}</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={async () => {
             try {
@@ -69,13 +69,13 @@ export function ClientsPage() {
           }}>
             <Download className="w-4 h-4 mr-1" /> CSV
           </Button>
-          <Button onClick={() => { setForm({ name: '', phone: '', email: '', address: '' }); setEditingId(null); setShowForm(true); }}>
-            <Plus className="w-4 h-4 mr-2" /> {t('clients.addClient')}
+          <Button size="sm" onClick={() => { setForm({ name: '', phone: '', email: '', address: '' }); setEditingId(null); setShowForm(true); }}>
+            <Plus className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">{t('clients.addClient')}</span><span className="sm:hidden">+</span>
           </Button>
         </div>
       </div>
 
-      <div className="relative max-w-md">
+      <div className="relative max-w-full sm:max-w-md">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input className="pl-9" placeholder={t('common.search')} value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
@@ -112,10 +112,10 @@ export function ClientsPage() {
       ) : clients.length === 0 ? (
         <div className="text-center py-12"><Users className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">{t('common.noResults')}</p></div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {clients.map((client) => (
             <Card key={client.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-semibold">{client.name}</h3>

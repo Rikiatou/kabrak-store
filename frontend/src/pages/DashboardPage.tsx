@@ -115,10 +115,10 @@ export function DashboardPage() {
   const welcomeShadow = isService ? 'shadow-violet-200/50' : 'shadow-blue-200/50';
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* Welcome */}
-      <div className={`bg-gradient-to-r ${welcomeGradient} rounded-2xl p-6 text-white shadow-lg ${welcomeShadow}`}>
-        <h1 className="text-xl font-bold">
+      <div className={`bg-gradient-to-r ${welcomeGradient} rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg ${welcomeShadow}`}>
+        <h1 className="text-base sm:text-xl font-bold">
           {t('dashboard.welcome')}, {user?.firstName}
         </h1>
         <p className="text-white/70 text-sm mt-1">
@@ -132,23 +132,23 @@ export function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {isService ? (
           serviceStatCards.map((card) => {
             const Icon = card.icon;
             const value = serviceData?.[card.key as keyof ServiceDashboardData] as number || 0;
             const label = card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] || '');
             return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
-                    <Icon className="w-5 h-5 text-white" />
+              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-2 sm:mb-3">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
                   {card.isCurrency ? formatCurrency(value) : value}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">{label}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{label}</p>
               </div>
             );
           })
@@ -157,16 +157,16 @@ export function DashboardPage() {
             const Icon = card.icon;
             const value = productData?.[card.key as keyof DashboardData] as number || 0;
             return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
-                    <Icon className="w-5 h-5 text-white" />
+              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-2 sm:mb-3">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
                   {card.isCurrency ? formatCurrency(value) : value}
                 </p>
-                <p className="text-xs text-gray-400 mt-1">{t(card.labelKey)}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{t(card.labelKey)}</p>
               </div>
             );
           })
@@ -176,15 +176,15 @@ export function DashboardPage() {
       {/* Content area */}
       {isService ? (
         /* Service Dashboard */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
-              <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="p-3 sm:p-5 pb-2 sm:pb-3 border-b border-gray-50 dark:border-gray-700">
+              <h2 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center gap-2">
                 <FolderKanban className="w-4 h-4 text-violet-500" />
                 {language === 'fr' ? 'Projets récents' : 'Recent Projects'}
               </h2>
             </div>
-            <div className="p-5 pt-3">
+            <div className="p-3 sm:p-5 pt-2 sm:pt-3">
               <div className="space-y-2">
                 {serviceData?.projects?.length ? serviceData.projects.map((project) => (
                   <div key={project.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -230,15 +230,15 @@ export function DashboardPage() {
         </div>
       ) : (
         /* Product Dashboard */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
-              <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+            <div className="p-3 sm:p-5 pb-2 sm:pb-3 border-b border-gray-50 dark:border-gray-700">
+              <h2 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-gray-400" />
                 {t('dashboard.recentOrders')}
               </h2>
             </div>
-            <div className="p-5 pt-3">
+            <div className="p-3 sm:p-5 pt-2 sm:pt-3">
               <div className="space-y-2">
                 {productData?.recentOrders?.length ? productData.recentOrders.map((order) => (
                   <div key={order.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">

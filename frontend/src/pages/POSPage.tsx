@@ -147,10 +147,10 @@ export function POSPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex gap-4 overflow-hidden">
+    <div className="h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col lg:flex-row gap-3 sm:gap-4 overflow-hidden">
       {/* Left: Products */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
@@ -203,7 +203,7 @@ export function POSPage() {
       </div>
 
       {/* Right: Cart */}
-      <div className="w-80 lg:w-96 flex flex-col bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="w-full lg:w-80 xl:w-96 flex flex-col bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm min-h-0 max-h-[50vh] lg:max-h-full">
         {/* Cart header */}
         <div className="p-4 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
