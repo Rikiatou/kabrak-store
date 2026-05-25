@@ -1,6 +1,6 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { authenticate } from '../../middleware/auth';
-import { requireSuperAdmin } from '../../middleware/adminAuth';
+import { requireSuperAdmin, requireAdminToken } from '../../middleware/adminAuth';
 import {
   getDashboard,
   getAllTenants,
@@ -18,7 +18,34 @@ import {
 
 const router = Router();
 
-router.use(authenticate, requireSuperAdmin);
+// Admin auth: login via shared ADMIN_SECRET (same mechanism as Beauty Pro)
+router.post('/auth', (req: Request, res: Response) => {
+  const { password } = req.body;
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) {
+    res.status(503).json({ success: false, message: 'ADMIN_SECRET non configuré' });
+    return;
+  }
+  if (password !== secret) {
+    res.status(401).json({ success: false, message: 'Mot de passe incorrect' });
+    return;
+  }
+  res.json({ success: true });
+});
+
+// Accept either JWT+superAdmin OR x-admin-token header
+const adminAuth = (req: Request, res: Response, next: NextFunction): void => {
+  const adminToken = req.headers['x-admin-token'];
+  if (adminToken) {
+    requireAdminToken(req, res, next);
+    return;
+  }
+  authenticate(req, res, () => {
+    requireSuperAdmin(req, res, next);
+  });
+};
+
+router.use(adminAuth);
 
 // Dashboard
 router.get('/dashboard', getDashboard);

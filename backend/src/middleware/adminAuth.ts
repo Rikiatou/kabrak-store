@@ -19,3 +19,19 @@ export const requireSuperAdmin = async (req: Request, res: Response, next: NextF
 
   next();
 };
+
+export const requireAdminToken = (req: Request, res: Response, next: NextFunction): void => {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) {
+    res.status(503).json({ success: false, message: 'ADMIN_SECRET non configuré' });
+    return;
+  }
+
+  const token = req.headers['x-admin-token'];
+  if (!token || token !== secret) {
+    res.status(403).json({ success: false, message: 'Accès refusé' });
+    return;
+  }
+
+  next();
+};
