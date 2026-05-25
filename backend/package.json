@@ -1,10 +1,10 @@
 {
   "name": "kabrak-store-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "KABRAK Store/Shop/Business SaaS Backend",
   "main": "dist/server.js",
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
