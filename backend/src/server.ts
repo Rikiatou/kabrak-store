@@ -27,14 +27,13 @@ import { startRecurringBillingCron } from './cron/recurringBilling';
 
 const app = express();
 
-// Security headers
-app.use(helmet());
-
 const allowedOrigins = [
   ...config.frontendUrl.split(',').map(o => o.trim()),
   'https://kabrak-store.kabrakeng.com',
   'https://admin.kabrakeng.com',
 ].filter(Boolean);
+
+// CORS must be before helmet to handle preflight OPTIONS requests
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin) || config.nodeEnv === 'development') {
@@ -44,7 +43,15 @@ app.use(cors({
     }
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token'],
 }));
+
+// Explicitly handle preflight
+app.options('*', cors());
+
+// Security headers
+app.use(helmet());
 app.use(express.json());
 
 const authLimiter = rateLimit({
