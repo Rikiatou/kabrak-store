@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   UserCog, Truck, BarChart3, CreditCard, Tags, ChevronLeft, ChevronRight,
-  Heart, Store, FolderKanban, RefreshCw,
+  Heart, Store, FolderKanban, RefreshCw, Monitor,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -27,6 +27,7 @@ const navItems: NavItem[] = [
   { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'] },
   { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'] },
   { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'] },
+  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
   // Service mode items
   { key: 'projects', icon: FolderKanban, path: '/projects', modes: ['SERVICE'] },
   { key: 'services', icon: Package, path: '/services', modes: ['SERVICE'] },

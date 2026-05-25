@@ -16,6 +16,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { BillingPage } from './pages/BillingPage';
 import { LoyaltyPage } from './pages/LoyaltyPage';
 import { StoresPage } from './pages/StoresPage';
+import { POSPage } from './pages/POSPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { ServicesPage } from './pages/ServicesPage';
 import { RecurringPage } from './pages/RecurringPage';
@@ -58,6 +59,7 @@ function App() {
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/deliveries" element={<DeliveriesPage />} />
           <Route path="/loyalty" element={<LoyaltyPage />} />
+          <Route path="/pos" element={<POSPage />} />
           {/* Service mode routes */}
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/services" element={<ServicesPage />} />

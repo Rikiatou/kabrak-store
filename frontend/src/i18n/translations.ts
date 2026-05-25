@@ -42,6 +42,7 @@ export const translations = {
       projects: 'Projets',
       services: 'Services',
       recurring: 'Facturation récurrente',
+      pos: 'Caisse POS',
     },
     auth: {
       login: 'Connexion',
@@ -281,6 +282,7 @@ export const translations = {
       projects: 'Projects',
       services: 'Services',
       recurring: 'Recurring Billing',
+      pos: 'POS Register',
     },
     auth: {
       login: 'Login',

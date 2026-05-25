@@ -25,18 +25,28 @@ interface Product {
   category?: { id: string; name: string } | null;
 }
 
-const ADAPTIVE_FIELDS: Record<string, { label: string; fields: string[] }> = {
-  SHOES: { label: 'Chaussures', fields: ['brand', 'color', 'sizes'] },
-  CLOTHING: { label: 'Vêtements', fields: ['category', 'color', 'sizes'] },
-  PERFUMES: { label: 'Parfums', fields: ['brand', 'volume'] },
-  COSMETICS: { label: 'Cosmétiques', fields: ['brand', 'type'] },
-  CAKES: { label: 'Gâteaux', fields: ['flavors', 'sizes'] },
-  FOOD: { label: 'Nourriture', fields: ['menuItems'] },
-  HIJABS_ABAYAS: { label: 'Hijabs/Abayas', fields: ['color', 'sizes'] },
-  JEWELRY: { label: 'Bijoux', fields: ['material', 'type'] },
-  BAGS: { label: 'Sacs', fields: ['brand', 'color', 'material'] },
-  KITCHEN_PRODUCTS: { label: 'Cuisine', fields: ['type'] },
-  OTHER: { label: 'Autre', fields: [] },
+const ADAPTIVE_FIELDS: Record<string, { label: string; labelEn: string; fields: string[] }> = {
+  CLOTHING: { label: 'Vêtements', labelEn: 'Clothing', fields: ['color', 'sizes'] },
+  SHOES: { label: 'Chaussures', labelEn: 'Shoes', fields: ['brand', 'color', 'sizes'] },
+  PERFUMES: { label: 'Parfums', labelEn: 'Perfumes', fields: ['brand', 'volume'] },
+  COSMETICS: { label: 'Cosmétiques', labelEn: 'Cosmetics', fields: ['brand', 'type'] },
+  HIJABS_ABAYAS: { label: 'Hijabs/Abayas', labelEn: 'Hijabs/Abayas', fields: ['color', 'sizes'] },
+  JEWELRY: { label: 'Bijoux', labelEn: 'Jewelry', fields: ['material', 'type'] },
+  BAGS: { label: 'Sacs', labelEn: 'Bags', fields: ['brand', 'color', 'material'] },
+  ELECTRONICS: { label: 'Électronique', labelEn: 'Electronics', fields: ['brand', 'model', 'warranty'] },
+  HOUSE_PRODUCTS: { label: 'Maison', labelEn: 'House', fields: ['type', 'material'] },
+  KITCHEN_PRODUCTS: { label: 'Cuisine', labelEn: 'Kitchen', fields: ['type', 'material'] },
+  DECORATION: { label: 'Décoration', labelEn: 'Decoration', fields: ['type', 'color'] },
+  MINI_MARKET: { label: 'Mini Market', labelEn: 'Mini Market', fields: ['brand', 'weight'] },
+  WHOLESALE: { label: 'Grossiste', labelEn: 'Wholesale', fields: ['brand', 'minQuantity'] },
+  MIXED_SHOP: { label: 'Boutique Mixte', labelEn: 'Mixed Shop', fields: ['type'] },
+  CAKES: { label: 'Gâteaux', labelEn: 'Cakes', fields: ['flavors', 'sizes', 'deliveryDate'] },
+  FOOD_BUSINESS: { label: 'Food Business', labelEn: 'Food Business', fields: ['menuItems', 'portions'] },
+  FOOD_DELIVERY: { label: 'Food Delivery', labelEn: 'Food Delivery', fields: ['menuItems', 'deliveryZone'] },
+  HOME_COOKING: { label: 'Cuisine Maison', labelEn: 'Home Cooking', fields: ['menuItems', 'portions'] },
+  WHATSAPP_SELLER: { label: 'Vendeur WhatsApp', labelEn: 'WhatsApp Seller', fields: ['color', 'sizes'] },
+  MADE_TO_ORDER: { label: 'Sur Commande', labelEn: 'Made to Order', fields: ['measurements', 'deliveryDate', 'deposit'] },
+  OTHER: { label: 'Autre', labelEn: 'Other', fields: [] },
 };
 
 const defaultForm = {

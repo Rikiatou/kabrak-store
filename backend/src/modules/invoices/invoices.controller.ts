@@ -23,6 +23,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
         include: {
           client: true,
           order: { include: { items: { include: { product: true } } } },
+          lineItems: true,
           payments: true,
           createdBy: { select: { id: true, firstName: true, lastName: true } },
         },
@@ -159,6 +160,55 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
   }
 };
 
+export const createStandalone = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { clientId, projectId, items, notes, dueDate } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      res.status(400).json({ success: false, message: 'At least one line item is required' });
+      return;
+    }
+
+    const totalAmount = items.reduce((sum: number, item: { quantity: number; unitPrice: number }) => {
+      return sum + (item.quantity * item.unitPrice);
+    }, 0);
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber: generateInvoiceNumber(),
+        totalAmount,
+        amountPaid: 0,
+        amountDue: totalAmount,
+        paymentStatus: 'PENDING',
+        notes: notes || null,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        tenantId: req.user!.tenantId,
+        clientId: clientId || null,
+        projectId: projectId || null,
+        createdById: req.user!.id,
+        lineItems: {
+          create: items.map((item: { description: string; quantity: number; unitPrice: number }) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.quantity * item.unitPrice,
+          })),
+        },
+      },
+      include: {
+        client: true,
+        lineItems: true,
+        createdBy: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+
+    res.status(201).json({ success: true, data: invoice });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create standalone invoice';
+    res.status(500).json({ success: false, message });
+  }
+};
+
 export const getOne = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
@@ -167,6 +217,7 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
       include: {
         client: true,
         order: { include: { items: { include: { product: true } } } },
+        lineItems: true,
         payments: true,
         createdBy: { select: { id: true, firstName: true, lastName: true } },
       },
