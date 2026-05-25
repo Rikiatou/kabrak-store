@@ -329,23 +329,26 @@ export function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
-          SECTION 6 — PRICING (simple, 3 cartes)
+          SECTION 6 — PRICING (mensuel + annuel, WhatsApp inclus)
           ═══════════════════════════════════════════════ */}
       <section className="py-14 sm:py-20 px-5 bg-gray-50">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2">{fr ? 'Tarifs simples' : 'Simple pricing'}</h2>
-            <p className="text-sm text-gray-400">{fr ? '14 jours gratuits · Aucune carte requise · Orange Money' : '14 days free · No card required · Orange Money'}</p>
+            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2">{fr ? 'Tarifs simples, tout inclus' : 'Simple pricing, everything included'}</h2>
+            <p className="text-sm text-gray-400 mb-4">{fr ? '14 jours gratuits · Aucune carte requise · Orange Money' : '14 days free · No card required · Orange Money'}</p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 border border-green-200">
+              <span className="text-green-600 text-xs sm:text-sm font-bold">{fr ? '💬 WhatsApp · 📊 Rapports · 📱 App mobile · 🧾 Factures PDF — TOUT INCLUS, 0 frais cachés' : '💬 WhatsApp · 📊 Reports · 📱 Mobile app · 🧾 PDF invoices — ALL INCLUDED, 0 hidden fees'}</span>
+            </div>
           </div>
           <div className="grid sm:grid-cols-3 gap-5 sm:gap-6">
             {(fr ? [
-              { name: 'KABRAK STORE', price: '4 900', tag: 'Vendeurs en ligne · Solo', users: '1 utilisateur', features: ['Commandes & ventes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp', 'Dashboard & stats', 'Livraison'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', price: '7 900', tag: 'Boutique en croissance', users: '3 utilisateurs', features: ['Tout STORE +', 'Stock avancé', 'Caisse POS & scanner', 'Employés', 'Fidélité', 'Export CSV'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', price: '12 900', tag: 'Multi-magasins · Équipe', users: '10 utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK STORE', priceMonth: '4 900', priceYear: '49 000', tag: 'Vendeurs en ligne · Solo', users: '1 utilisateur', features: ['Commandes & ventes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', 'Livraison', 'App mobile installable'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
+              { name: 'KABRAK SHOP', priceMonth: '7 900', priceYear: '79 000', tag: 'Boutique en croissance', users: '3 utilisateurs', features: ['Tout STORE +', 'Stock avancé', 'Caisse POS & scanner', 'Employés & permissions', 'Programme fidélité', 'Export CSV', 'Rapports avancés'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '12 900', priceYear: '129 000', tag: 'Multi-magasins · Équipe', users: '10 utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ] : [
-              { name: 'KABRAK STORE', price: '4 900', tag: 'Online sellers · Solo', users: '1 user', features: ['Orders & sales', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices', 'Dashboard & stats', 'Delivery'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', price: '7 900', tag: 'Growing store', users: '3 users', features: ['Everything in STORE +', 'Advanced stock', 'POS & barcode scanner', 'Employees', 'Loyalty', 'CSV Export'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', price: '12 900', tag: 'Multi-store · Team', users: '10 users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Priority support'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK STORE', priceMonth: '4 900', priceYear: '49 000', tag: 'Online sellers · Solo', users: '1 user', features: ['Orders & sales', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', 'Delivery', 'Installable mobile app'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
+              { name: 'KABRAK SHOP', priceMonth: '7 900', priceYear: '79 000', tag: 'Growing store', users: '3 users', features: ['Everything in STORE +', 'Advanced stock', 'POS & barcode scanner', 'Employees & roles', 'Loyalty program', 'CSV Export', 'Advanced reports'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '12 900', priceYear: '129 000', tag: 'Multi-store · Team', users: '10 users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Priority support'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ]).map(plan => (
               <div key={plan.name} className={`bg-white rounded-2xl border-2 p-5 sm:p-6 relative flex flex-col ${plan.color}`}>
                 {plan.popular && (
@@ -355,11 +358,12 @@ export function LandingPage() {
                 )}
                 <span className="font-black text-gray-900 text-base sm:text-lg">{plan.name}</span>
                 <p className="text-[10px] sm:text-xs text-gray-400 mb-3">{plan.tag}</p>
-                <div className="mb-1">
-                  <span className="text-2xl sm:text-3xl font-black text-gray-900">{plan.price}</span>
+                <div className="mb-0.5">
+                  <span className="text-2xl sm:text-3xl font-black text-gray-900">{plan.priceMonth}</span>
                   <span className="text-gray-400 text-xs sm:text-sm"> FCFA/{fr ? 'mois' : 'month'}</span>
                 </div>
-                <p className="text-xs font-semibold text-blue-600 mb-5">{plan.users}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mb-1">{fr ? 'ou' : 'or'} <span className="font-bold text-gray-600">{plan.priceYear} FCFA/{fr ? 'an' : 'year'}</span> <span className="text-green-600 font-bold">({fr ? '2 mois offerts' : '2 months free'})</span></p>
+                <p className="text-xs font-semibold text-blue-600 mb-4">{plan.users}</p>
                 <ul className="space-y-2 mb-6 flex-1">
                   {plan.features.map(f => (
                     <li key={f} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
@@ -373,6 +377,7 @@ export function LandingPage() {
               </div>
             ))}
           </div>
+          <p className="text-center text-xs text-gray-400 mt-6">{fr ? 'Pas de frais cachés. Pas de supplément WhatsApp. Pas de supplément pour les rapports. Tout est inclus.' : 'No hidden fees. No WhatsApp add-on. No reports add-on. Everything is included.'}</p>
         </div>
       </section>
 
