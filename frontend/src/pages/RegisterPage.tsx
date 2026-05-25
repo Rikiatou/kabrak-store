@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
-import { ArrowLeft, Check, Eye, EyeOff, Store, ChevronRight, ChevronLeft, ShoppingBag, Briefcase } from 'lucide-react';
+import { ArrowLeft, Check, Eye, EyeOff, ChevronRight, ChevronLeft, ShoppingBag, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type BusinessMode = 'PRODUCT' | 'SERVICE';
@@ -131,10 +131,7 @@ export function RegisterPage() {
 
       <div className="w-full max-w-lg pt-14 sm:pt-4">
         <div className="text-center mb-6">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center mb-3 shadow-lg shadow-blue-200">
-            <Store className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="text-xl font-black text-gray-900 dark:text-white">KABRAK <span className="text-blue-600">Store</span></h1>
+          <img src="/logo.png" alt="KABRAK Store" className="mx-auto h-16 sm:h-20 object-contain mb-1" />
           <p className="text-gray-400 mt-1 text-sm">
             {language === 'fr' ? 'Créez votre espace en 4 étapes' : 'Create your space in 4 steps'}
           </p>

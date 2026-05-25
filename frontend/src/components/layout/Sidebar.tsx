@@ -76,15 +76,10 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Logo + close button */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-kabrak-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">K</span>
-            </div>
-            <div>
-              <h1 className="font-bold text-kabrak-500 text-lg leading-none">KABRAK</h1>
-              <p className="text-[10px] text-gold-500 font-semibold tracking-wider">
-                {tenant?.plan || 'STORE'}
-              </p>
-            </div>
+            <img src="/logo.png" alt="KABRAK Store" className="h-10 object-contain" />
+            <p className="text-[10px] text-gold-500 font-semibold tracking-wider">
+              {tenant?.plan || 'STORE'}
+            </p>
           </div>
           <button
             onClick={onClose}

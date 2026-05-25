@@ -28,7 +28,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first with offline fallback
+// Fetch: cache-first for HTML, network-first for API
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
@@ -36,12 +36,30 @@ self.addEventListener('fetch', (event) => {
   // Skip API calls — always go to network
   if (event.request.url.includes('/api/')) return;
 
-  // For navigation requests, show offline page if network fails
+  // For navigation requests (HTML): cache-first with network fallback
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() =>
-        caches.match(OFFLINE_URL).then((response) => response || new Response('Offline', { status: 503 }))
-      )
+      caches.match(event.request).then((cached) => {
+        if (cached) {
+          // Fetch in background and update cache
+          fetch(event.request).then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+          });
+          return cached;
+        }
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        }).catch(() =>
+          caches.match(OFFLINE_URL).then((response) => response || new Response('Offline', { status: 503 }))
+        );
+      })
     );
     return;
   }

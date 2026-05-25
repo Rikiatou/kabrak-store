@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import {
   CheckCircle, ArrowRight, X,
-  ChevronDown, ChevronUp, Globe, Store, Star,
+  ChevronDown, ChevronUp, Globe, Star,
   MessageCircle
 } from 'lucide-react';
 
@@ -51,15 +51,9 @@ export function LandingPage() {
       {/* ─── NAVBAR ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-200">
-              <Store className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-            </div>
-            <div>
-              <span className="font-black text-gray-900 text-sm sm:text-lg">KABRAK</span>
-              <span className="text-blue-600 font-bold text-sm sm:text-base"> Store</span>
-            </div>
-          </div>
+          <Link to="/" className="flex items-center">
+            <img src="/logo.png" alt="KABRAK Store" className="h-10 sm:h-14 object-contain" />
+          </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all">
               <Globe className="w-3.5 h-3.5" /> {fr ? 'EN' : 'FR'}
@@ -492,14 +486,8 @@ export function LandingPage() {
       <footer className="py-10 px-5 bg-gray-900 text-white">
         <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-8">
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <Store className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <span className="font-black text-white text-sm">KABRAK</span>
-                <span className="text-blue-400 font-bold text-xs"> Store</span>
-              </div>
+            <div className="mb-3">
+              <img src="/logo.png" alt="KABRAK Store" className="h-12 object-contain brightness-0 invert" />
             </div>
             <p className="text-gray-400 text-xs leading-relaxed">{fr ? 'Le logiciel de gestion qui s\'adapte à votre business.' : 'The management software that adapts to your business.'}</p>
             <p className="text-gray-500 text-[10px] mt-2 font-medium">KABRAK ENG</p>

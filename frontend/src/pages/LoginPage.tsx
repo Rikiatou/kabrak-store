@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
-import { ArrowLeft, Eye, EyeOff, Store } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export function LoginPage() {
   const { t, language } = useTranslation();
@@ -41,10 +41,7 @@ export function LoginPage() {
 
       <div className="w-full max-w-md pt-14 sm:pt-0">
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
-            <Store className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-black text-gray-900">KABRAK <span className="text-blue-600">Store</span></h1>
+          <img src="/logo.png" alt="KABRAK Store" className="mx-auto h-20 sm:h-24 object-contain mb-2" />
           <p className="text-gray-400 mt-1 text-sm">
             {language === 'fr' ? 'Connectez-vous à votre espace' : 'Sign in to your space'}
           </p>
