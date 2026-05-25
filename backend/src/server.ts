@@ -22,6 +22,7 @@ import notificationRoutes from './modules/notifications/notifications.routes';
 import exportRoutes from './modules/exports/exports.routes';
 import projectRoutes from './modules/projects/projects.routes';
 import recurringRoutes from './modules/recurring/recurring.routes';
+import adminRoutes from './modules/admin/admin.routes';
 import { startRecurringBillingCron } from './cron/recurringBilling';
 
 const app = express();
@@ -60,6 +61,9 @@ app.use('/api/auth', authLimiter, authRoutes);
 
 // Billing routes (subscription check skipped — must be accessible to renew expired accounts)
 app.use('/api/billing', billingRoutes);
+
+// Admin routes (super admin only, subscription check skipped)
+app.use('/api/admin', adminRoutes);
 
 // All other routes require active subscription
 app.use('/api/products', authenticate, requireActiveSubscription, productRoutes);

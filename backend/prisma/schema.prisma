@@ -172,6 +172,7 @@ model User {
   lastName      String
   phone         String?
   role          UserRole  @default(EMPLOYEE)
+  isSuperAdmin  Boolean   @default(false)
   isActive      Boolean   @default(true)
   tenantId      String
   createdAt     DateTime  @default(now())
