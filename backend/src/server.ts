@@ -1,7 +1,10 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
+import { requireActiveSubscription } from './middleware/subscriptionGate';
+import { authenticate } from './middleware/auth';
 
 import authRoutes from './modules/auth/auth.routes';
 import productRoutes from './modules/products/products.routes';
@@ -19,8 +22,12 @@ import notificationRoutes from './modules/notifications/notifications.routes';
 import exportRoutes from './modules/exports/exports.routes';
 import projectRoutes from './modules/projects/projects.routes';
 import recurringRoutes from './modules/recurring/recurring.routes';
+import { startRecurringBillingCron } from './cron/recurringBilling';
 
 const app = express();
+
+// Security headers
+app.use(helmet());
 
 const allowedOrigins = config.frontendUrl.split(',').map(o => o.trim());
 app.use(cors({
@@ -48,23 +55,27 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API Routes
+// Auth routes (no subscription check — must be accessible to login/register)
 app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/invoices', invoiceRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/deliveries', deliveryRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/reports', reportRoutes);
+
+// Billing routes (subscription check skipped — must be accessible to renew expired accounts)
 app.use('/api/billing', billingRoutes);
-app.use('/api/loyalty', loyaltyRoutes);
-app.use('/api/stores', storeRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/exports', exportRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/recurring', recurringRoutes);
+
+// All other routes require active subscription
+app.use('/api/products', authenticate, requireActiveSubscription, productRoutes);
+app.use('/api/orders', authenticate, requireActiveSubscription, orderRoutes);
+app.use('/api/clients', authenticate, requireActiveSubscription, clientRoutes);
+app.use('/api/invoices', authenticate, requireActiveSubscription, invoiceRoutes);
+app.use('/api/employees', authenticate, requireActiveSubscription, employeeRoutes);
+app.use('/api/deliveries', authenticate, requireActiveSubscription, deliveryRoutes);
+app.use('/api/categories', authenticate, requireActiveSubscription, categoryRoutes);
+app.use('/api/reports', authenticate, requireActiveSubscription, reportRoutes);
+app.use('/api/loyalty', authenticate, requireActiveSubscription, loyaltyRoutes);
+app.use('/api/stores', authenticate, requireActiveSubscription, storeRoutes);
+app.use('/api/notifications', authenticate, requireActiveSubscription, notificationRoutes);
+app.use('/api/exports', authenticate, requireActiveSubscription, exportRoutes);
+app.use('/api/projects', authenticate, requireActiveSubscription, projectRoutes);
+app.use('/api/recurring', authenticate, requireActiveSubscription, recurringRoutes);
 
 // 404
 app.use((_req, res) => {
@@ -73,6 +84,7 @@ app.use((_req, res) => {
 
 app.listen(config.port, () => {
   console.log(`KABRAK API running on port ${config.port}`);
+  startRecurringBillingCron();
 });
 
 export default app;

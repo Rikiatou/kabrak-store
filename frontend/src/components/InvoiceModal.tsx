@@ -13,6 +13,13 @@ interface InvoiceItem {
   totalPrice: number;
 }
 
+interface LineItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
 interface InvoiceData {
   id: string;
   invoiceNumber: string;
@@ -21,12 +28,14 @@ interface InvoiceData {
   amountDue: number;
   paymentStatus: string;
   createdAt: string;
+  notes?: string | null;
   client?: { name: string; phone?: string } | null;
   order?: {
     reference: string;
     paymentMethod: string;
     items: InvoiceItem[];
   };
+  lineItems?: LineItem[];
 }
 
 interface Props {
@@ -50,7 +59,12 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const [sharing, setSharing] = useState(false);
   const [printFormat, setPrintFormat] = useState<'standard' | 'thermal'>('standard');
 
-  const items = invoice.order?.items || [];
+  const orderItems = invoice.order?.items || [];
+  const lineItems = invoice.lineItems || [];
+  const isStandalone = orderItems.length === 0 && lineItems.length > 0;
+  const displayItems = isStandalone
+    ? lineItems.map((li) => ({ name: li.description, quantity: li.quantity, unitPrice: li.unitPrice, totalPrice: li.totalPrice }))
+    : orderItems.map((oi) => ({ name: oi.product.name, quantity: oi.quantity, unitPrice: oi.unitPrice, totalPrice: oi.totalPrice }));
   const total = invoice.totalAmount;
   const paid = invoice.amountPaid;
   const due = invoice.amountDue;
@@ -98,8 +112,8 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
   const sendWhatsAppText = () => {
     if (!fullPhone) return;
-    const lines = items
-      .map((i) => `  • ${i.product.name} x${i.quantity}: ${formatCurrency(i.totalPrice)} F`)
+    const lines = displayItems
+      .map((i) => `  • ${i.name} x${i.quantity}: ${formatCurrency(i.totalPrice)} F`)
       .join('\n');
     const msg = encodeURIComponent(
       `Bonjour ${invoice.client?.name || 'cher(e) client(e)'} 👋\n\n` +
@@ -254,10 +268,10 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, idx) => (
+                    {displayItems.map((item, idx) => (
                       <tr key={idx}>
                         <td style={{ paddingTop: '5px', paddingBottom: '5px' }}>
-                          {item.product.name} x{item.quantity}
+                          {item.name} x{item.quantity}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
                           {formatCurrency(item.totalPrice)} F
@@ -335,9 +349,9 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item, idx) => (
+                    {displayItems.map((item, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '8px 4px' }}>{item.product.name}</td>
+                        <td style={{ padding: '8px 4px' }}>{item.name}</td>
                         <td style={{ textAlign: 'center', padding: '8px 4px' }}>{item.quantity}</td>
                         <td style={{ textAlign: 'right', padding: '8px 4px' }}>{formatCurrency(item.unitPrice)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 4px', fontWeight: 'bold' }}>

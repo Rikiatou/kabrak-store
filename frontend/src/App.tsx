@@ -28,6 +28,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ModeGuard({ mode, children }: { mode: 'PRODUCT' | 'SERVICE'; children: React.ReactNode }) {
+  const tenant = useAuthStore((s) => s.tenant);
+  const businessMode = tenant?.businessMode || 'PRODUCT';
+  if (businessMode !== mode) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 function App() {
   const { token, fetchMe, theme } = useAuthStore();
 
@@ -54,16 +61,16 @@ function App() {
         >
           <Route path="/dashboard" element={<DashboardPage />} />
           {/* Product mode routes */}
-          <Route path="/products" element={<ProductsPage />} />
-          <Route path="/orders" element={<OrdersPage />} />
-          <Route path="/categories" element={<CategoriesPage />} />
-          <Route path="/deliveries" element={<DeliveriesPage />} />
-          <Route path="/loyalty" element={<LoyaltyPage />} />
-          <Route path="/pos" element={<POSPage />} />
+          <Route path="/products" element={<ModeGuard mode="PRODUCT"><ProductsPage /></ModeGuard>} />
+          <Route path="/orders" element={<ModeGuard mode="PRODUCT"><OrdersPage /></ModeGuard>} />
+          <Route path="/categories" element={<ModeGuard mode="PRODUCT"><CategoriesPage /></ModeGuard>} />
+          <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><DeliveriesPage /></ModeGuard>} />
+          <Route path="/loyalty" element={<ModeGuard mode="PRODUCT"><LoyaltyPage /></ModeGuard>} />
+          <Route path="/pos" element={<ModeGuard mode="PRODUCT"><POSPage /></ModeGuard>} />
           {/* Service mode routes */}
-          <Route path="/projects" element={<ProjectsPage />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/recurring" element={<RecurringPage />} />
+          <Route path="/projects" element={<ModeGuard mode="SERVICE"><ProjectsPage /></ModeGuard>} />
+          <Route path="/services" element={<ModeGuard mode="SERVICE"><ServicesPage /></ModeGuard>} />
+          <Route path="/recurring" element={<ModeGuard mode="SERVICE"><RecurringPage /></ModeGuard>} />
           {/* Shared routes */}
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
