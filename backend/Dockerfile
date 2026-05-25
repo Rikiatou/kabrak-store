@@ -1,11 +1,11 @@
 FROM node:20-alpine AS builder
-ARG BUILD_DATE
 WORKDIR /app
 COPY package*.json ./
-COPY prisma ./prisma/
 RUN npm ci
+COPY prisma ./prisma/
 RUN npx prisma generate
-COPY . .
+COPY src ./src
+COPY tsconfig.json ./
 RUN npm run build
 
 FROM node:20-alpine
@@ -14,5 +14,6 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
+ENV PORT=3001
 EXPOSE 3001
-CMD ["sh", "-c", "echo 'Starting server...' && npx prisma migrate deploy && echo 'Prisma done, starting node...' && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
