@@ -27,6 +27,8 @@ import { startRecurringBillingCron } from './cron/recurringBilling';
 
 const app = express();
 
+console.log('[DEBUG] Server starting...');
+
 const allowedOrigins = [
   ...config.frontendUrl.split(',').map(o => o.trim()),
   'https://kabrak-store.kabrakeng.com',
