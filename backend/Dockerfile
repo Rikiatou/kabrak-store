@@ -14,6 +14,8 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
+COPY start.sh ./start.sh
+RUN chmod +x start.sh
 ENV PORT=3001
 EXPOSE 3001
-CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy; echo '[CMD] Prisma done, starting server...'; node dist/server.js"]
+CMD ["/app/start.sh"]
