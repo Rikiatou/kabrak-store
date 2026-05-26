@@ -18,9 +18,10 @@ interface DashboardData {
     createdBy: { firstName: string; lastName: string };
   }>;
   topProducts: Array<{
-    product: { id: string; name: string; sellingPrice: number; totalStock?: number } | null;
-    totalQuantity: number | null; totalRevenue: number | null;
+    product: { id: string; name: string; sellingPrice: number; totalStock?: number; costPrice?: number } | null;
+    totalQuantity: number | null; totalRevenue: number | null; totalCost?: number; grossMargin?: number;
   }>;
+  totalGrossMargin?: number;
   upcomingDeliveries?: number;
   pendingDeposits?: number;
   unpaidInvoices?: number;
@@ -337,7 +338,7 @@ export function DashboardPage() {
             const Icon = card.icon;
             let value: number;
             if (card.key === 'profit') {
-              value = expensesSummary?.profit ?? 0;
+              value = productData?.totalGrossMargin ?? 0;
             } else {
               value = productData?.[card.key as keyof DashboardData] as number || 0;
             }

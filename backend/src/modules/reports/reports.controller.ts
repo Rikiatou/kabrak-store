@@ -64,12 +64,21 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
 
     const topProductsWithDetails = topProducts.map((tp) => {
       const product = topProductDetails.find((p) => p.id === tp.productId);
+      const costPrice = product?.costPrice || 0;
+      const totalCost = costPrice * (tp._sum.quantity || 0);
+      const totalPrice = tp._sum.totalPrice || 0;
+      const grossMargin = totalPrice - totalCost;
       return {
         product,
         totalQuantity: tp._sum.quantity,
-        totalRevenue: tp._sum.totalPrice,
+        totalRevenue: totalPrice,
+        totalCost,
+        grossMargin,
       };
     });
+
+    // Calculate total gross margin for the period
+    const totalGrossMargin = topProductsWithDetails.reduce((sum, tp) => sum + (tp.grossMargin || 0), 0);
 
     res.json({
       success: true,
@@ -81,6 +90,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
         lowStockProducts,
         recentOrders,
         topProducts: topProductsWithDetails,
+        totalGrossMargin,
       },
     });
   } catch (error) {
