@@ -219,22 +219,43 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
         });
       }
 
-      // Create invoice payment if invoice exists
-      const invoice = await tx.invoice.findUnique({ where: { orderId: order.id } });
-      if (invoice) {
-        await tx.payment.create({
-          data: { amount, method, reference, notes, invoiceId: invoice.id },
-        });
-        await tx.invoice.update({
-          where: { id: invoice.id },
+      // Auto-create invoice if it doesn't exist (on first payment)
+      let invoice = await tx.invoice.findUnique({ where: { orderId: order.id } });
+      if (!invoice) {
+        // Generate invoice number
+        const date = new Date();
+        const dateStr = date.toISOString().slice(2, 10).replace(/-/g, '');
+        const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const invoiceNumber = `INV-${dateStr}-${rand}`;
+
+        invoice = await tx.invoice.create({
           data: {
-            amountPaid: { increment: amount },
-            amountDue: { decrement: amount },
+            invoiceNumber,
+            totalAmount: order.finalAmount,
+            amountPaid: amount,
+            amountDue: order.finalAmount - amount,
             paymentStatus,
             paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
+            orderId: order.id,
+            clientId: order.clientId,
+            createdById: req.user!.id,
           },
         });
       }
+
+      // Create payment and update invoice
+      await tx.payment.create({
+        data: { amount, method, reference, notes, invoiceId: invoice.id },
+      });
+      await tx.invoice.update({
+        where: { id: invoice.id },
+        data: {
+          amountPaid: { increment: amount },
+          amountDue: { decrement: amount },
+          paymentStatus,
+          paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
+        },
+      });
 
       return updated;
     });
