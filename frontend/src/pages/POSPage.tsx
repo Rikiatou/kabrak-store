@@ -382,7 +382,7 @@ export function POSPage() {
       </div>
 
       {/* Client picker modal */}
-      {showClientPicker && (
+      {showClientPicker ? (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md">
             <CardContent className="p-4 space-y-3">
@@ -413,15 +413,15 @@ export function POSPage() {
             </CardContent>
           </Card>
         </div>
-      )}
+      ) : null}
 
       {/* Scanner */}
-      {showScanner && (
+      {showScanner ? (
         <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setShowScanner(false)} />
-      )}
+      ) : null}
 
       {/* Variant / Size picker */}
-      {variantPicker && (
+      {variantPicker ? (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <Card className="w-full max-w-sm">
             <CardContent className="p-4">
@@ -454,7 +454,7 @@ export function POSPage() {
             </CardContent>
           </Card>
         </div>
-      )}
+      ) : null}
 
       {/* Invoice modal after checkout */}
       {showInvoice && completedInvoice && (
