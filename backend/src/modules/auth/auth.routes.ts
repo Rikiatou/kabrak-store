@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, me, updateProfile, changePassword } from './auth.controller';
+import { register, login, me, updateProfile, changePassword, updateStore } from './auth.controller';
 import { validate } from '../../middleware/validate';
 import { authenticate } from '../../middleware/auth';
 import { registerSchema, loginSchema } from './auth.schema';
@@ -11,5 +11,6 @@ router.post('/login', validate(loginSchema), login);
 router.get('/me', authenticate, me);
 router.put('/profile', authenticate, updateProfile);
 router.put('/password', authenticate, changePassword);
+router.put('/store', authenticate, updateStore);
 
 export default router;

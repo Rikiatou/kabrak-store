@@ -73,7 +73,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const dateStr = new Date(invoice.createdAt).toLocaleDateString('fr-FR');
   const paymentMethod = invoice.order?.paymentMethod || 'CASH';
   const paymentLabel = paymentLabels[paymentMethod] || paymentMethod;
-  const invoiceColor = '#2563eb';
+  const invoiceColor = tenant?.invoiceColor || '#2563eb';
 
   const shareAsImage = async () => {
     setSharing(true);

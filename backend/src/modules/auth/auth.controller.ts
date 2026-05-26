@@ -192,6 +192,28 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+export const updateStore = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, phone, logo, invoiceColor } = req.body;
+    const tenantId = req.user!.tenantId;
+
+    const updated = await prisma.tenant.update({
+      where: { id: tenantId },
+      data: {
+        ...(name && { name }),
+        ...(phone !== undefined && { phone }),
+        ...(logo !== undefined && { logo }),
+        ...(invoiceColor && { invoiceColor }),
+      },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Update failed';
+    res.status(500).json({ success: false, message });
+  }
+};
+
 export const changePassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -266,6 +288,8 @@ export const me = async (req: Request, res: Response): Promise<void> => {
           currency: user.tenant.currency,
           language: user.tenant.language,
           logo: user.tenant.logo,
+          phone: user.tenant.phone,
+          invoiceColor: user.tenant.invoiceColor,
         },
         subscription: user.tenant.subscription,
       },
