@@ -20,20 +20,23 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'] },
+  // SHOP+ : catalogue produits & stock
+  { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
   { key: 'orders', icon: ShoppingCart, path: '/orders', modes: ['PRODUCT'] },
-  { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'] },
-  { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'] },
-  { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'] },
+  { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
+  { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
+  { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
   { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
+  // Service mode
   { key: 'projects', icon: FolderKanban, path: '/projects', modes: ['SERVICE'] },
   { key: 'services', icon: Package, path: '/services', modes: ['SERVICE'] },
   { key: 'recurring', icon: RefreshCw, path: '/recurring', modes: ['SERVICE'] },
+  // All plans
   { key: 'clients', icon: Users, path: '/clients' },
   { key: 'invoices', icon: FileText, path: '/invoices' },
   { key: 'employees', icon: UserCog, path: '/employees', plans: ['SHOP', 'BUSINESS'] },
   { key: 'stores', icon: Store, path: '/stores', plans: ['BUSINESS'] },
-  { key: 'reports', icon: BarChart3, path: '/reports' },
+  { key: 'reports', icon: BarChart3, path: '/reports', plans: ['SHOP', 'BUSINESS'] },
   { key: 'billing', icon: CreditCard, path: '/billing' },
   { key: 'settings', icon: Settings, path: '/settings' },
 ];
