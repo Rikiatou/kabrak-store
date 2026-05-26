@@ -34,7 +34,7 @@ process.on('unhandledRejection', (err) => {
   process.exit(1);
 });
 
-console.log('[BOOT] Starting KABRAK server v1.1.0...');
+console.log('[BOOT] Starting KABRAK server v1.2.0...');
 
 const app = express();
 
