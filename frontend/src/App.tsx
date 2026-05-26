@@ -128,10 +128,11 @@ function App() {
           {/* Product mode routes */}
           <Route path="/products" element={<ModeGuard mode="PRODUCT"><ProductsPage /></ModeGuard>} />
           <Route path="/orders" element={<ModeGuard mode="PRODUCT"><OrdersPage /></ModeGuard>} />
-          <Route path="/categories" element={<ModeGuard mode="PRODUCT"><CategoriesPage /></ModeGuard>} />
-          <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><DeliveriesPage /></ModeGuard>} />
-          <Route path="/loyalty" element={<ModeGuard mode="PRODUCT"><LoyaltyPage /></ModeGuard>} />
           <Route path="/pos" element={<ModeGuard mode="PRODUCT"><POSPage /></ModeGuard>} />
+          {/* SHOP+ only */}
+          <Route path="/categories" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><CategoriesPage /></PlanGuard></ModeGuard>} />
+          <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><DeliveriesPage /></PlanGuard></ModeGuard>} />
+          <Route path="/loyalty" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><LoyaltyPage /></PlanGuard></ModeGuard>} />
           {/* Service mode routes */}
           <Route path="/projects" element={<ModeGuard mode="SERVICE"><ProjectsPage /></ModeGuard>} />
           <Route path="/services" element={<ModeGuard mode="SERVICE"><ServicesPage /></ModeGuard>} />
@@ -140,7 +141,7 @@ function App() {
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/employees" element={<PlanGuard plans={['SHOP','BUSINESS']}><EmployeesPage /></PlanGuard>} />
-          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/reports" element={<PlanGuard plans={['SHOP','BUSINESS']}><ReportsPage /></PlanGuard>} />
           <Route path="/ai-reports" element={<PlanGuard plans={['BUSINESS']}><AIReportsPage /></PlanGuard>} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/stores" element={<StoresPage />} />
