@@ -4,10 +4,15 @@ import { prisma } from '../../config/prisma';
 export const getDashboard = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.user!.tenantId;
+    const { from, to } = req.query;
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const startDate = from ? new Date(from as string) : today;
+    const endDate = to ? new Date(to as string) : tomorrow;
 
     const [
       todayOrders,
@@ -19,10 +24,10 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       topProducts,
     ] = await Promise.all([
       prisma.order.count({
-        where: { tenantId, createdAt: { gte: today, lt: tomorrow } },
+        where: { tenantId, createdAt: { gte: startDate, lt: endDate } },
       }),
       prisma.order.aggregate({
-        where: { tenantId, createdAt: { gte: today, lt: tomorrow } },
+        where: { tenantId, createdAt: { gte: startDate, lt: endDate } },
         _sum: { amountPaid: true },
       }),
       prisma.product.count({ where: { tenantId, isActive: true } }),
@@ -44,7 +49,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       }),
       prisma.orderItem.groupBy({
         by: ['productId'],
-        where: { order: { tenantId } },
+        where: { order: { tenantId, createdAt: { gte: startDate, lt: endDate } } },
         _sum: { quantity: true, totalPrice: true },
         orderBy: { _sum: { totalPrice: 'desc' } },
         take: 5,

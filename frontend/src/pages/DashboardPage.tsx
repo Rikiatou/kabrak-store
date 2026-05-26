@@ -183,8 +183,30 @@ export function DashboardPage() {
   const [serviceData, setServiceData] = useState<ServiceDashboardData | null>(null);
   const [expensesSummary, setExpensesSummary] = useState<ExpensesSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('today');
+
+  const getPeriodDates = () => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (period) {
+      case 'today':
+        return { from: today.toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
+      case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        return { from: weekStart.toISOString(), to: new Date(weekStart.getTime() + 7 * 86400000).toISOString() };
+      case 'month':
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return { from: monthStart.toISOString(), to: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString() };
+      case 'year':
+        const yearStart = new Date(now.getFullYear(), 0, 1);
+        return { from: yearStart.toISOString(), to: new Date(now.getFullYear() + 1, 0, 1).toISOString() };
+    }
+  };
 
   useEffect(() => {
+    const dates = getPeriodDates();
     if (businessMode === 'SERVICE') {
       Promise.all([
         api.get('/projects?limit=5').catch(() => ({ data: { data: [], pagination: { total: 0 } } })),
@@ -203,14 +225,14 @@ export function DashboardPage() {
       }).finally(() => setLoading(false));
     } else {
       Promise.all([
-        api.get('/reports/dashboard').catch(() => ({ data: { data: null } })),
-        api.get('/expenses/summary').catch(() => ({ data: { data: null } })),
+        api.get('/reports/dashboard', { params: dates }).catch(() => ({ data: { data: null } })),
+        api.get('/expenses/summary', { params: dates }).catch(() => ({ data: { data: null } })),
       ]).then(([dashRes, expRes]) => {
         setProductData(dashRes.data.data);
         setExpensesSummary(expRes.data.data);
       }).catch(console.error).finally(() => setLoading(false));
     }
-  }, [businessMode]);
+  }, [businessMode, period]);
 
   if (loading) {
     return (
@@ -230,23 +252,43 @@ export function DashboardPage() {
     <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* Welcome */}
       <div className={`bg-gradient-to-r ${welcomeGradient} rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg ${welcomeShadow}`}>
-        <div className="flex items-center gap-3">
-          {tenant?.logo && (
-            <img src={tenant.logo} alt={tenant.name} className="h-12 w-12 rounded-lg object-contain bg-white/20 p-1" />
-          )}
-          <div>
-            <h1 className="text-base sm:text-xl font-bold">
-              {t('dashboard.welcome')}, {user?.firstName}
-            </h1>
-            <p className="text-white/70 text-sm mt-1">
-              {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              {isService && (
-                <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                  {language === 'fr' ? 'Mode Services' : 'Service Mode'}
-                </span>
-              )}
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {tenant?.logo && (
+              <img src={tenant.logo} alt={tenant.name} className="h-12 w-12 rounded-lg object-contain bg-white/20 p-1" />
+            )}
+            <div>
+              <h1 className="text-base sm:text-xl font-bold">
+                {t('dashboard.welcome')}, {user?.firstName}
+              </h1>
+              <p className="text-white/70 text-sm mt-1">
+                {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                {isService && (
+                  <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                    {language === 'fr' ? 'Mode Services' : 'Service Mode'}
+                  </span>
+                )}
+              </p>
+            </div>
           </div>
+          {!isService && (
+            <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
+              {(['today', 'week', 'month', 'year'] as const).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                    period === p ? 'bg-white text-blue-600' : 'text-white/80 hover:bg-white/10'
+                  }`}
+                >
+                  {language === 'fr' 
+                    ? { today: 'Aujourd\'hui', week: 'Semaine', month: 'Mois', year: 'Année' }[p]
+                    : { today: 'Today', week: 'Week', month: 'Month', year: 'Year' }[p]
+                  }
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
