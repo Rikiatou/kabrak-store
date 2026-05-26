@@ -176,17 +176,23 @@ export function LandingPage() {
 
           <div className="space-y-4 sm:space-y-5">
             {(fr ? [
-              { emoji: '📦', title: 'Stock intelligent', desc: 'Ajoutez vos produits, le stock se met à jour automatiquement. Alertes quand il est faible. Par taille, couleur, pointure.', tag: 'Produits' },
-              { emoji: '🧾', title: 'Factures WhatsApp en 1 clic', desc: 'Générez une facture PDF professionnelle et envoyez-la direct au client par WhatsApp. A4 ou ticket de caisse.', tag: 'Tous' },
-              { emoji: '💰', title: 'Acomptes & suivi paiements', desc: 'Le client paie 50% ? KABRAK suit le reste. Vous savez toujours qui doit combien.', tag: 'Tous' },
+              { emoji: '📦', title: 'Stock intelligent', desc: 'Ajoutez vos produits, le stock se met à jour automatiquement. Alertes quand il est faible. Par taille, couleur, pointure.', tag: 'SHOP+' },
+              { emoji: '🧾', title: 'Factures WhatsApp en 1 clic', desc: 'Générez une facture PDF professionnelle avec votre logo et envoyez-la direct au client par WhatsApp. A4 ou ticket de caisse.', tag: 'Tous' },
+              { emoji: '💰', title: 'Dépenses & Bénéfice net', desc: 'Suivez vos dépenses par catégorie et calculez automatiquement votre bénéfice net. Dashboard avec marge % en temps réel.', tag: 'Tous' },
               { emoji: '👥', title: 'Clients & fidélité', desc: 'Historique complet de chaque client. Programme fidélité avec points et récompenses automatiques.', tag: 'Tous' },
               { emoji: '📊', title: 'Dashboard revenus', desc: 'Combien avez-vous gagné aujourd\'hui, ce mois, cette année ? Top produits, meilleurs clients — tout en 1 écran.', tag: 'Tous' },
+              { emoji: '🏪', title: 'Fournisseurs', desc: 'Gérez vos fournisseurs, liez-les à vos dépenses d\'achat. Suivi complet de vos achats.', tag: 'SHOP+' },
+              { emoji: '🌐', title: 'Vitrine publique', desc: 'Créez une page publique pour vos produits. Partagez le lien, vos clients commandent direct.', tag: 'BUSINESS' },
+              { emoji: '✨', title: 'Rapports IA', desc: 'Analyse intelligente de votre business par GPT-4o. Recommandations actionnables pour grandir.', tag: 'BUSINESS' },
             ] : [
-              { emoji: '📦', title: 'Smart stock', desc: 'Add your products, stock updates automatically. Alerts when low. By size, color, shoe size.', tag: 'Products' },
-              { emoji: '🧾', title: 'WhatsApp invoices in 1 click', desc: 'Generate a professional PDF invoice and send it directly to the client via WhatsApp. A4 or receipt.', tag: 'All' },
-              { emoji: '💰', title: 'Deposits & payment tracking', desc: 'Client pays 50%? KABRAK tracks the rest. You always know who owes how much.', tag: 'All' },
+              { emoji: '📦', title: 'Smart stock', desc: 'Add your products, stock updates automatically. Alerts when low. By size, color, shoe size.', tag: 'SHOP+' },
+              { emoji: '🧾', title: 'WhatsApp invoices in 1 click', desc: 'Generate a professional PDF invoice with your logo and send it directly via WhatsApp. A4 or receipt.', tag: 'All' },
+              { emoji: '💰', title: 'Expenses & Net Profit', desc: 'Track expenses by category and automatically calculate net profit. Dashboard with real-time margin %.', tag: 'All' },
               { emoji: '👥', title: 'Clients & loyalty', desc: 'Complete history for each client. Loyalty program with automatic points and rewards.', tag: 'All' },
               { emoji: '📊', title: 'Revenue dashboard', desc: 'How much did you earn today, this month, this year? Top products, best clients — all in 1 screen.', tag: 'All' },
+              { emoji: '🏪', title: 'Suppliers', desc: 'Manage your suppliers, link them to purchase expenses. Complete purchase tracking.', tag: 'SHOP+' },
+              { emoji: '🌐', title: 'Public storefront', desc: 'Create a public page for your products. Share the link, clients order directly.', tag: 'BUSINESS' },
+              { emoji: '✨', title: 'AI Reports', desc: 'Intelligent business analysis by GPT-4o. Actionable recommendations to grow.', tag: 'BUSINESS' },
             ]).map((f, i) => (
               <div key={f.title} className={`flex items-start gap-4 sm:gap-6 p-5 sm:p-7 rounded-2xl border-2 transition-all hover:shadow-lg ${i === 0 ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100 hover:border-blue-200'}`}>
                 <span className="text-3xl sm:text-4xl flex-shrink-0">{f.emoji}</span>
@@ -206,8 +212,8 @@ export function LandingPage() {
             <p className="text-xs text-gray-400 mb-3">{fr ? 'Et aussi :' : 'And also:'}</p>
             <div className="flex flex-wrap justify-center gap-2">
               {(fr
-                ? ['Caisse POS', 'Scanner barcode', 'Projets & milestones', 'Facturation récurrente', 'Multi-magasins', 'Employés & permissions', 'Export CSV', 'Livraison', 'Orange Money', 'Bilingue FR/EN']
-                : ['POS Register', 'Barcode scanner', 'Projects & milestones', 'Recurring billing', 'Multi-store', 'Employees & roles', 'CSV Export', 'Delivery', 'Orange Money', 'Bilingual FR/EN']
+                ? ['Caisse POS', 'Scanner barcode', 'Projets & milestones', 'Facturation récurrente', 'Multi-magasins', 'Employés & permissions', 'Export CSV', 'Livraison', 'Orange Money', 'Bilingue FR/EN', 'Lien WhatsApp commande', 'Logo & couleur facture']
+                : ['POS Register', 'Barcode scanner', 'Projects & milestones', 'Recurring billing', 'Multi-store', 'Employees & roles', 'CSV Export', 'Delivery', 'Orange Money', 'Bilingual FR/EN', 'WhatsApp order link', 'Logo & invoice color']
               ).map(f => (
                 <span key={f} className="px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100 text-[10px] sm:text-xs text-gray-500 font-medium">{f}</span>
               ))}
@@ -310,13 +316,13 @@ export function LandingPage() {
           </div>
           <div className="grid sm:grid-cols-3 gap-5 sm:gap-6">
             {(fr ? [
-              { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Boutique · Vente en ligne · Commandes', users: '1 utilisateur', features: ['Ventes & commandes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', 'Livraison', 'App mobile installable'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '7 900', tag: 'Commerce général · Services · Boutique+', users: '3 utilisateurs', features: ['Tout STORE +', 'Stock avancé & POS', 'Caisse rapide & scanner', 'Employés & permissions', 'Programme fidélité', 'Export CSV', 'Rapports avancés'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '', tag: 'Grossistes · Multi-magasins · Équipe', users: '10+ utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire dédié'], quote: true, color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Boutique · Vente en ligne · Commandes', users: '1 utilisateur', features: ['Ventes & commandes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', 'Livraison', 'App mobile installable', '💰 Dépenses & Bénéfice net', '📊 Rapports basiques', '🎨 Logo & couleur facture'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
+              { name: 'KABRAK SHOP', priceMonth: '7 900', tag: 'Commerce général · Services · Boutique+', users: '3 utilisateurs', features: ['Tout STORE +', 'Stock avancé & POS', 'Caisse rapide & scanner', 'Employés & permissions', 'Programme fidélité', 'Export CSV', 'Rapports avancés', '🏪 Fournisseurs'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '', tag: 'Grossistes · Multi-magasins · Équipe', users: '10+ utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire dédié', '🌐 Vitrine publique', '✨ Rapports IA (GPT-4o)', '💬 Lien WhatsApp commande'], quote: true, color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ] : [
-              { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Retail · Online selling · Orders', users: '1 user', features: ['Sales & orders', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', 'Delivery', 'Installable mobile app'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '7 900', tag: 'General store · Services · Growing biz', users: '3 users', features: ['Everything in STORE +', 'Advanced stock & POS', 'Fast register & scanner', 'Employees & roles', 'Loyalty program', 'CSV Export', 'Advanced reports'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '', tag: 'Wholesale · Multi-store · Team', users: '10+ users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Dedicated priority support'], quote: true, color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Retail · Online selling · Orders', users: '1 user', features: ['Sales & orders', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', 'Delivery', 'Installable mobile app', '💰 Expenses & Net Profit', '📊 Basic reports', '🎨 Logo & invoice color'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
+              { name: 'KABRAK SHOP', priceMonth: '7 900', tag: 'General store · Services · Growing biz', users: '3 users', features: ['Everything in STORE +', 'Advanced stock & POS', 'Fast register & scanner', 'Employees & roles', 'Loyalty program', 'CSV Export', 'Advanced reports', '🏪 Suppliers'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '', tag: 'Wholesale · Multi-store · Team', users: '10+ users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Dedicated priority support', '🌐 Public storefront', '✨ AI Reports (GPT-4o)', '💬 WhatsApp order link'], quote: true, color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ]).map(plan => (
               <div key={plan.name} className={`bg-white rounded-2xl border-2 p-5 sm:p-6 relative flex flex-col ${plan.color}`}>
                 {plan.popular && (
