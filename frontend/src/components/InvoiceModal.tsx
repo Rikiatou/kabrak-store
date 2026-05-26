@@ -54,7 +54,7 @@ const paymentLabels: Record<string, string> = {
 
 export function InvoiceModal({ invoice, onClose }: Props) {
   const tenant = useAuthStore((s) => s.tenant);
-  const { t } = useTranslation();
+  useTranslation();
   const printRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
   const [printFormat, setPrintFormat] = useState<'standard' | 'thermal'>('standard');
@@ -74,6 +74,34 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const paymentMethod = invoice.order?.paymentMethod || 'CASH';
   const paymentLabel = paymentLabels[paymentMethod] || paymentMethod;
   const invoiceColor = tenant?.invoiceColor || '#2563eb';
+
+  // Adaptive labels per business category
+  const categories = (tenant?.businessCategories || []) as string[];
+  const primaryCat = categories[0] || '';
+  const isFood = ['CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING'].includes(primaryCat);
+  const isEvent = ['EVENT_DECORATION', 'CATERING', 'MADE_TO_ORDER'].includes(primaryCat);
+  const isMarket = ['MINI_MARKET', 'WHOLESALE'].includes(primaryCat);
+  const isService = tenant?.businessMode === 'SERVICE';
+  const isWhatsapp = primaryCat === 'WHATSAPP_SELLER';
+
+  const invoiceTypeLabel = isEvent ? 'Facture de prestation'
+    : isFood ? 'Bon de commande'
+    : isService ? 'Facture de service'
+    : isWhatsapp ? 'Bon de commande'
+    : 'Facture de vente';
+
+  const itemColumnLabel = isEvent || isService ? 'Prestation / Service'
+    : isFood ? 'Commande'
+    : isMarket ? 'Produit'
+    : 'Article';
+
+  const footerThanks = isFood ? 'Merci pour votre commande 😋'
+    : isEvent ? 'Merci pour votre confiance 🙏'
+    : isService ? 'Merci pour votre confiance 🤝'
+    : isWhatsapp ? 'Merci pour votre commande 🙏'
+    : 'Merci pour votre achat 🛍️';
+
+  const whatsappItemsLabel = isEvent || isService ? 'Prestations' : isFood ? 'Commande' : 'Articles';
 
   const shareAsImage = async () => {
     setSharing(true);
@@ -122,7 +150,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
         `🏪 *${tenant?.name || 'KABRAK Store'}*\n` +
         `📅 ${dateStr}\n` +
         `📋 N° ${invoice.invoiceNumber}\n\n` +
-        `*Articles :*\n${lines}\n\n` +
+        `*${whatsappItemsLabel} :*\n${lines}\n\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
         `💰 *TOTAL : ${formatCurrency(total)} FCFA*\n` +
         `💳 Paiement : ${paymentLabel}\n` +
@@ -315,7 +343,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 800, color: invoiceColor, marginBottom: '2px' }}>Facture de vente</div>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 800, color: invoiceColor, marginBottom: '2px' }}>{invoiceTypeLabel}</div>
                     <div style={{ fontSize: '14px', fontWeight: 800, color: '#111827' }}>N° {invoice.invoiceNumber}</div>
                     <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>{dateStr}</div>
                     {invoice.paymentStatus === 'PAID' && (
@@ -344,7 +372,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                      <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'left', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase', width: '50%' }}>Article</th>
+                      <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'left', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase', width: '50%' }}>{itemColumnLabel}</th>
                       <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'center', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Qté</th>
                       <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'right', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>P.U.</th>
                       <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'right', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Total</th>
@@ -389,7 +417,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '11px', fontWeight: 800, color: invoiceColor }}>{tenant?.name}</div>
-                    <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '1.5px' }}>Merci pour votre confiance 🙏</div>
+                    <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '1.5px' }}>{footerThanks}</div>
                   </div>
                 </div>
 
