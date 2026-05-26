@@ -238,6 +238,7 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
             paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
             orderId: order.id,
             clientId: order.clientId,
+            tenantId: req.user!.tenantId,
             createdById: req.user!.id,
           },
         });
