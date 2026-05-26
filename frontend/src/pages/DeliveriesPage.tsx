@@ -96,7 +96,7 @@ export function DeliveriesPage() {
                   required
                 >
                   <option value="">{language === 'fr' ? 'Sélectionner une commande' : 'Select an order'}</option>
-                  {orders.filter((o) => !o.deliveryId).map((o) => (
+                  {orders.map((o) => (
                     <option key={o.id} value={o.id}>{o.reference} - {o.client?.name || 'No client'}</option>
                   ))}
                 </select>

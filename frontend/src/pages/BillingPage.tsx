@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
 const PLANS = [
-  { value: 'STORE', price: 4900, icon: Shield, features: ['Commandes', 'Clients', 'Facturation', 'WhatsApp', 'Dashboard simple'], quote: false },
-  { value: 'SHOP', price: 7900, icon: Zap, features: ['Tout STORE +', 'Gestion stock', 'Caisse POS', 'Employés légers', 'Dashboard avancé'], quote: false },
-  { value: 'BUSINESS', price: 0, icon: Star, features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Multi-magasins', 'Rapports avancés'], quote: true },
+  { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & catalogue', 'Caisse POS simple', 'Commandes', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats', 'Logo & couleur facture'], quote: false },
+  { value: 'SHOP', price: 7900, icon: Zap, features: ['Tout STORE +', 'Catégories & organisation', 'Livraisons & suivi', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés (Jour/Semaine/Mois)'], quote: false },
+  { value: 'BUSINESS', price: 0, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: true },
 ];
 
 const DURATIONS = [
