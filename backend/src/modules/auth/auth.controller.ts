@@ -161,6 +161,74 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+export const updateProfile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { firstName, lastName, phone, email } = req.body;
+    const userId = req.user!.id;
+
+    if (email) {
+      const existing = await prisma.user.findFirst({ where: { email, NOT: { id: userId } } });
+      if (existing) {
+        res.status(400).json({ success: false, message: 'Cet email est déjà utilisé' });
+        return;
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(firstName && { firstName }),
+        ...(lastName && { lastName }),
+        ...(phone !== undefined && { phone }),
+        ...(email && { email }),
+      },
+      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Update failed';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+export const changePassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user!.id;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ success: false, message: 'Mot de passe actuel et nouveau requis' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ success: false, message: 'Le nouveau mot de passe doit contenir au moins 6 caractères' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+      return;
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      res.status(400).json({ success: false, message: 'Mot de passe actuel incorrect' });
+      return;
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+
+    res.json({ success: true, message: 'Mot de passe modifié avec succès' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Password change failed';
+    res.status(500).json({ success: false, message });
+  }
+};
+
 export const me = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = await prisma.user.findUnique({
