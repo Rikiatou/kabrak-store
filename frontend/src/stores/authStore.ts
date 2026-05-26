@@ -19,6 +19,8 @@ interface Tenant {
   currency?: string;
   language?: string;
   logo?: string;
+  phone?: string;
+  invoiceColor?: string;
 }
 
 interface Subscription {

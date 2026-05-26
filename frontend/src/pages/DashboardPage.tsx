@@ -18,7 +18,7 @@ interface DashboardData {
     createdBy: { firstName: string; lastName: string };
   }>;
   topProducts: Array<{
-    product: { id: string; name: string; sellingPrice: number } | null;
+    product: { id: string; name: string; sellingPrice: number; totalStock?: number } | null;
     totalQuantity: number | null; totalRevenue: number | null;
   }>;
   upcomingDeliveries?: number;
