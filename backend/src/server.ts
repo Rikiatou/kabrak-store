@@ -25,6 +25,7 @@ import recurringRoutes from './modules/recurring/recurring.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import expenseRoutes from './modules/expenses/expenses.routes';
 import supplierRoutes from './modules/suppliers/suppliers.routes';
+import publicRoutes from './modules/public/public.routes';
 import { startRecurringBillingCron } from './cron/recurringBilling';
 
 process.on('uncaughtException', (err) => {
@@ -79,6 +80,9 @@ const authLimiter = rateLimit({
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Public routes (no auth required — storefront)
+app.use('/api/public', publicRoutes);
 
 // Auth routes (no subscription check — must be accessible to login/register)
 app.use('/api/auth', authLimiter, authRoutes);

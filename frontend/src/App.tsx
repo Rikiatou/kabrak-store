@@ -23,6 +23,7 @@ import { RecurringPage } from './pages/RecurringPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { SuppliersPage } from './pages/SuppliersPage';
+import { StorefrontPage } from './pages/StorefrontPage';
 import { useAuthStore } from './stores/authStore';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -112,6 +113,7 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/storefront/:slug" element={<StorefrontPage />} />
         <Route
           element={
             <ProtectedRoute>
