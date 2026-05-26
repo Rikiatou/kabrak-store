@@ -26,6 +26,7 @@ import adminRoutes from './modules/admin/admin.routes';
 import expenseRoutes from './modules/expenses/expenses.routes';
 import supplierRoutes from './modules/suppliers/suppliers.routes';
 import publicRoutes from './modules/public/public.routes';
+import aiRoutes from './modules/ai/ai.routes';
 import { startRecurringBillingCron } from './cron/recurringBilling';
 
 process.on('uncaughtException', (err) => {
@@ -110,6 +111,7 @@ app.use('/api/projects', authenticate, requireActiveSubscription, projectRoutes)
 app.use('/api/recurring', authenticate, requireActiveSubscription, recurringRoutes);
 app.use('/api/expenses', authenticate, requireActiveSubscription, expenseRoutes);
 app.use('/api/suppliers', authenticate, requireActiveSubscription, supplierRoutes);
+app.use('/api/ai', authenticate, requireActiveSubscription, aiRoutes);
 
 // 404
 app.use((_req, res) => {
