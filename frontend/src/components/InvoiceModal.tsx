@@ -309,18 +309,41 @@ export function InvoiceModal({ invoice, onClose }: Props) {
             ) : (
               /* ===== STANDARD INVOICE ===== */
               <div>
-                {/* Header */}
+                {/* Header with Logo */}
                 <div
                   style={{
                     background: `linear-gradient(135deg, ${invoiceColor}, ${invoiceColor}dd)`,
                     color: '#fff',
-                    padding: '20px',
+                    padding: '24px',
                     borderRadius: '12px',
                     marginBottom: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
                   }}
                 >
-                  <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{tenant?.name}</div>
-                  <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '4px' }}>FACTURE</div>
+                  {tenant?.logo && (
+                    <img
+                      src={tenant.logo}
+                      alt={tenant.name}
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '8px',
+                        objectFit: 'contain',
+                        backgroundColor: '#fff',
+                        padding: '4px',
+                      }}
+                    />
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold', marginBottom: '4px' }}>{tenant?.name}</div>
+                    <div style={{ fontSize: '12px', opacity: 0.9 }}>FACTURE</div>
+                  </div>
+                  <div style={{ textAlign: 'right', fontSize: '11px', opacity: 0.9 }}>
+                    <div>KABRAK Store</div>
+                    <div>Logiciel de gestion</div>
+                  </div>
                 </div>
 
                 {/* Invoice details */}
@@ -339,22 +362,22 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 </div>
 
                 {/* Items table */}
-                <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse', marginBottom: '16px' }}>
+                <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse', marginBottom: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
                   <thead>
-                    <tr style={{ borderBottom: `2px solid ${invoiceColor}` }}>
-                      <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 'bold' }}>Article</th>
-                      <th style={{ textAlign: 'center', padding: '8px 4px', fontWeight: 'bold' }}>Qté</th>
-                      <th style={{ textAlign: 'right', padding: '8px 4px', fontWeight: 'bold' }}>P.U.</th>
-                      <th style={{ textAlign: 'right', padding: '8px 4px', fontWeight: 'bold' }}>Total</th>
+                    <tr style={{ background: `${invoiceColor}15`, borderBottom: `2px solid ${invoiceColor}` }}>
+                      <th style={{ textAlign: 'left', padding: '12px 8px', fontWeight: 'bold', color: invoiceColor }}>Article</th>
+                      <th style={{ textAlign: 'center', padding: '12px 8px', fontWeight: 'bold', color: invoiceColor }}>Qté</th>
+                      <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 'bold', color: invoiceColor }}>P.U.</th>
+                      <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 'bold', color: invoiceColor }}>Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayItems.map((item, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '8px 4px' }}>{item.name}</td>
-                        <td style={{ textAlign: 'center', padding: '8px 4px' }}>{item.quantity}</td>
-                        <td style={{ textAlign: 'right', padding: '8px 4px' }}>{formatCurrency(item.unitPrice)}</td>
-                        <td style={{ textAlign: 'right', padding: '8px 4px', fontWeight: 'bold' }}>
+                      <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '10px 8px', color: '#374151' }}>{item.name}</td>
+                        <td style={{ textAlign: 'center', padding: '10px 8px', color: '#6b7280' }}>{item.quantity}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 8px', color: '#6b7280' }}>{formatCurrency(item.unitPrice)}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 'bold', color: '#111827' }}>
                           {formatCurrency(item.totalPrice)}
                         </td>
                       </tr>
@@ -415,10 +438,21 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 </div>
 
                 {/* Footer */}
-                <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: '#999' }}>
-                  Merci pour votre confiance !
-                  <br />
-                  {tenant?.name} — Powered by KABRAK
+                <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}>
+                    Merci pour votre confiance !
+                  </div>
+                  <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>
+                    {tenant?.name}
+                  </div>
+                  <div style={{ fontSize: '9px', color: '#9ca3af' }}>
+                    Géré avec KABRAK Store — Logiciel de gestion professionnel
+                  </div>
+                  {tenant?.phone && (
+                    <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '8px' }}>
+                      📞 {tenant.phone}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
