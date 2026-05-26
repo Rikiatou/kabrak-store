@@ -110,7 +110,7 @@ Format de réponse:
       return;
     }
 
-    const data = await response.json();
+    const data = await response.json() as any;
     const report = data.choices[0]?.message?.content || 'Erreur génération rapport';
 
     res.json({ success: true, data: { report, period, metrics: { totalRevenue, totalExpenses, profit, margin } } });
