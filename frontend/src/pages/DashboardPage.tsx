@@ -397,20 +397,30 @@ export function DashboardPage() {
               <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
                 <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
                   <TrendingUp className="w-4 h-4 text-amber-500" />
-                  {t('dashboard.topProducts')}
+                  {language === 'fr' ? 'Ventes par produit' : 'Sales by Product'}
                 </h2>
               </div>
               <div className="p-5 pt-3">
                 <div className="space-y-3">
                   {productData?.topProducts?.length ? productData.topProducts.map((tp, i) => (
-                    <div key={tp.product?.id || i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-xs font-bold text-amber-600">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[130px]">{tp.product?.name || '—'}</span>
+                    <div key={tp.product?.id || i} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <span className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-xs font-bold text-amber-600">
+                            {i + 1}
+                          </span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[140px]">{tp.product?.name || '—'}</span>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(tp.totalRevenue || 0)}</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(tp.totalRevenue || 0)}</span>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {language === 'fr' ? 'Vendu' : 'Sold'}: <span className="font-semibold text-gray-700 dark:text-gray-300">{tp.totalQuantity || 0}</span>
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          {language === 'fr' ? 'Stock' : 'Stock'}: <span className="font-semibold text-gray-700 dark:text-gray-300">{tp.product?.totalStock || 0}</span>
+                        </span>
+                      </div>
                     </div>
                   )) : (
                     <p className="text-gray-400 text-sm text-center py-4">{t('common.noResults')}</p>
