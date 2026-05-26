@@ -144,10 +144,42 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         });
       }
 
+      // Auto-create invoice when payment is made at order creation
+      if (data.amountPaid > 0) {
+        const invDate = new Date();
+        const invDateStr = invDate.toISOString().slice(2, 10).replace(/-/g, '');
+        const invRand = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const invoiceNumber = `INV-${invDateStr}-${invRand}`;
+        await tx.invoice.create({
+          data: {
+            invoiceNumber,
+            totalAmount: finalAmount,
+            amountPaid: data.amountPaid,
+            amountDue: Math.max(0, amountRemaining),
+            paymentStatus,
+            paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
+            orderId: newOrder.id,
+            clientId: data.clientId ?? undefined,
+            tenantId: req.user!.tenantId,
+            createdById: req.user!.id,
+          },
+        });
+      }
+
       return newOrder;
     });
 
-    res.status(201).json({ success: true, data: order });
+    const orderWithInvoice = await prisma.order.findUnique({
+      where: { id: order.id },
+      include: {
+        client: true,
+        items: { include: { product: true } },
+        invoice: { include: { lineItems: true, payments: true } },
+        createdBy: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+
+    res.status(201).json({ success: true, data: orderWithInvoice });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create order';
     res.status(500).json({ success: false, message });

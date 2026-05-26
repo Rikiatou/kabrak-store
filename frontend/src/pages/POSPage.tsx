@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
 import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, X } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
+import { InvoiceModal } from '@/components/InvoiceModal';
 import api from '@/lib/api';
 
 interface Product {
@@ -16,6 +17,7 @@ interface Product {
   totalStock: number;
   image?: string;
   businessType: string;
+  adaptiveFields?: Record<string, unknown>;
 }
 
 interface CartItem {
@@ -41,12 +43,15 @@ export function POSPage() {
   const [clientSearch, setClientSearch] = useState('');
   const [showClientPicker, setShowClientPicker] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ORANGE_MONEY' | 'CARD'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ORANGE_MONEY' | 'MTN_MOMO' | 'CARD'>('CASH');
   const [amountPaid, setAmountPaid] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState('');
+  const [showInvoice, setShowInvoice] = useState(false);
+  const [completedInvoice, setCompletedInvoice] = useState<unknown>(null);
+  const [variantPicker, setVariantPicker] = useState<{ product: Product; sizes: string[] } | null>(null);
 
   const canScan = tenant?.plan === 'SHOP' || tenant?.plan === 'BUSINESS';
 
@@ -67,34 +72,44 @@ export function POSPage() {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
   useEffect(() => { if (showClientPicker) fetchClients(); }, [showClientPicker, fetchClients]);
 
-  const addToCart = (product: Product) => {
+  const parseSizes = (sizesStr: string): string[] =>
+    sizesStr.split(',').map(s => s.trim()).filter(s => s.includes(':'));
+
+  const addToCart = (product: Product, variant?: string) => {
+    // If HIJABS_ABAYAS or product has sizes, show picker first
+    const sizesStr = product.adaptiveFields?.sizes as string | undefined;
+    if (!variant && sizesStr && sizesStr.includes(':')) {
+      setVariantPicker({ product, sizes: parseSizes(sizesStr) });
+      return;
+    }
     setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+      const existing = prev.find(item => (variant ? item.variant === variant && item.product.id === product.id : item.product.id === product.id && !item.variant));
       if (existing) {
-        if (existing.quantity >= product.totalStock) return prev;
         return prev.map(item =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          (variant ? item.variant === variant && item.product.id === product.id : item.product.id === product.id && !item.variant)
+            ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, variant }];
     });
+    setVariantPicker(null);
   };
 
-  const updateQuantity = (productId: string, delta: number) => {
+  const updateQuantity = (productId: string, delta: number, variant?: string) => {
     setCart(prev => prev
       .map(item => {
         if (item.product.id !== productId) return item;
+        if (variant !== undefined && item.variant !== variant) return item;
         const newQty = item.quantity + delta;
         if (newQty <= 0) return null;
-        if (newQty > item.product.totalStock) return item;
         return { ...item, quantity: newQty };
       })
       .filter(Boolean) as CartItem[]
     );
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+  const removeFromCart = (productId: string, variant?: string) => {
+    setCart(prev => prev.filter(item => !(item.product.id === productId && item.variant === variant)));
   };
 
   const subtotal = cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
@@ -118,7 +133,7 @@ export function POSPage() {
     if (cart.length === 0) return;
     setProcessing(true);
     try {
-      await api.post('/orders', {
+      const res = await api.post('/orders', {
         clientId: selectedClient?.id || null,
         paymentMethod,
         amountPaid: Math.min(amountPaid, total),
@@ -131,14 +146,21 @@ export function POSPage() {
           variant: item.variant || undefined,
         })),
       });
-      setShowSuccess(true);
+      const orderData = res.data.data;
+      // Show invoice immediately if created
+      if (orderData?.invoice) {
+        setCompletedInvoice({ ...orderData.invoice, client: orderData.client, order: { reference: orderData.reference, paymentMethod, items: orderData.items } });
+        setShowInvoice(true);
+      } else {
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      }
       setCart([]);
       setSelectedClient(null);
       setAmountPaid(0);
       setDiscount(0);
       setNotes('');
       fetchProducts();
-      setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
       console.error(err);
       alert(language === 'fr' ? 'Erreur lors de la vente' : 'Error during sale');
@@ -255,25 +277,26 @@ export function POSPage() {
               <p className="text-sm">{language === 'fr' ? 'Panier vide' : 'Cart empty'}</p>
             </div>
           ) : (
-            cart.map((item) => (
-              <div key={item.product.id} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+            cart.map((item, idx) => (
+              <div key={`${item.product.id}-${idx}`} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/30">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.product.name}</p>
-                  <p className="text-xs text-gray-400">{formatCurrency(item.product.sellingPrice)}</p>
+                  {item.variant && <span className="text-xs font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{item.variant}</span>}
+                  {!item.variant && <p className="text-xs text-gray-400">{formatCurrency(item.product.sellingPrice)}</p>}
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => updateQuantity(item.product.id, -1)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                  <button onClick={() => updateQuantity(item.product.id, -1, item.variant)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
                     <Minus className="w-3 h-3" />
                   </button>
                   <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.product.id, 1)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                  <button onClick={() => updateQuantity(item.product.id, 1, item.variant)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
                     <Plus className="w-3 h-3" />
                   </button>
                 </div>
                 <div className="text-right w-20">
                   <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(item.product.sellingPrice * item.quantity)}</p>
                 </div>
-                <button onClick={() => removeFromCart(item.product.id)} className="text-red-400 hover:text-red-600 p-1">
+                <button onClick={() => removeFromCart(item.product.id, item.variant)} className="text-red-400 hover:text-red-600 p-1">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -306,6 +329,7 @@ export function POSPage() {
             {[
               { key: 'CASH' as const, icon: Banknote, label: language === 'fr' ? 'Espèces' : 'Cash' },
               { key: 'ORANGE_MONEY' as const, icon: Smartphone, label: 'OM' },
+              { key: 'MTN_MOMO' as const, icon: Smartphone, label: 'MTN' },
               { key: 'CARD' as const, icon: CreditCard, label: language === 'fr' ? 'Carte' : 'Card' },
             ].map(({ key, icon: Icon, label }) => (
               <button
@@ -396,7 +420,51 @@ export function POSPage() {
         <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setShowScanner(false)} />
       )}
 
-      {/* Success toast */}
+      {/* Variant / Size picker */}
+      {variantPicker && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold">{variantPicker.product.name}</h3>
+                <button onClick={() => setVariantPicker(null)}><X className="w-5 h-5" /></button>
+              </div>
+              <p className="text-sm text-gray-500 mb-3">{language === 'fr' ? 'Choisir la taille :' : 'Choose size:'}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {variantPicker.sizes.map((sizeEntry) => {
+                  const [size, qty] = sizeEntry.split(':');
+                  const available = parseInt(qty, 10) || 0;
+                  return (
+                    <button
+                      key={size}
+                      disabled={available <= 0}
+                      onClick={() => addToCart(variantPicker.product, size.trim())}
+                      className={`p-3 rounded-xl border-2 text-center transition-all ${
+                        available <= 0
+                          ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50'
+                          : 'border-blue-200 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer'
+                      }`}
+                    >
+                      <div className="font-bold text-sm">{size.trim()}</div>
+                      <div className={`text-xs mt-0.5 ${available <= 3 ? 'text-orange-500 font-semibold' : 'text-gray-400'}`}>{available} {language === 'fr' ? 'dispo' : 'left'}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Invoice modal after checkout */}
+      {showInvoice && completedInvoice && (
+        <InvoiceModal
+          invoice={completedInvoice as Parameters<typeof InvoiceModal>[0]['invoice']}
+          onClose={() => { setShowInvoice(false); setCompletedInvoice(null); }}
+        />
+      )}
+
+      {/* Success toast (fallback when no invoice) */}
       {showSuccess && (
         <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2">
           <p className="font-bold">{language === 'fr' ? 'Vente enregistrée !' : 'Sale recorded!'}</p>
