@@ -84,7 +84,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         {/* Logo + close button */}
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="KABRAK Store" className="h-10 object-contain" />
+            <img src={tenant?.logo || '/logo.png'} alt={tenant?.name || 'KABRAK Store'} className="h-10 object-contain" />
             <p className="text-[10px] text-gold-500 font-semibold tracking-wider">
               {tenant?.plan || 'STORE'}
             </p>

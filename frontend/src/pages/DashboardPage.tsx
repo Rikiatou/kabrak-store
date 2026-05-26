@@ -230,17 +230,24 @@ export function DashboardPage() {
     <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* Welcome */}
       <div className={`bg-gradient-to-r ${welcomeGradient} rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg ${welcomeShadow}`}>
-        <h1 className="text-base sm:text-xl font-bold">
-          {t('dashboard.welcome')}, {user?.firstName}
-        </h1>
-        <p className="text-white/70 text-sm mt-1">
-          {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          {isService && (
-            <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-              {language === 'fr' ? 'Mode Services' : 'Service Mode'}
-            </span>
+        <div className="flex items-center gap-3">
+          {tenant?.logo && (
+            <img src={tenant.logo} alt={tenant.name} className="h-12 w-12 rounded-lg object-contain bg-white/20 p-1" />
           )}
-        </p>
+          <div>
+            <h1 className="text-base sm:text-xl font-bold">
+              {t('dashboard.welcome')}, {user?.firstName}
+            </h1>
+            <p className="text-white/70 text-sm mt-1">
+              {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {isService && (
+                <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                  {language === 'fr' ? 'Mode Services' : 'Service Mode'}
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
