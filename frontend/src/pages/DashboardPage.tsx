@@ -203,6 +203,8 @@ export function DashboardPage() {
       case 'year':
         const yearStart = new Date(now.getFullYear(), 0, 1);
         return { from: yearStart.toISOString(), to: new Date(now.getFullYear() + 1, 0, 1).toISOString() };
+      default:
+        return { from: today.toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
     }
   };
 
