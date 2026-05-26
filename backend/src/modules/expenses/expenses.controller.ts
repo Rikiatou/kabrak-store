@@ -65,7 +65,7 @@ export const getSummary = async (req: Request, res: Response): Promise<void> => 
     const profit = totalRevenue - totalExpenses;
     const margin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0;
 
-    let byCategory = [];
+    let byCategory: Array<{ category: string; _sum: { amount: number | null } }> = [];
     try {
       byCategory = await prisma.expense.groupBy({
         by: ['category'],
