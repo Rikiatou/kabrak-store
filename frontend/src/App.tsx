@@ -134,7 +134,7 @@ function App() {
           <Route path="/clients" element={<ClientsPage />} />
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/employees" element={<PlanGuard plans={['SHOP','BUSINESS']}><EmployeesPage /></PlanGuard>} />
-          <Route path="/reports" element={<PlanGuard plans={['SHOP','BUSINESS']}><ReportsPage /></PlanGuard>} />
+          <Route path="/reports" element={<ReportsPage />} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/stores" element={<StoresPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />

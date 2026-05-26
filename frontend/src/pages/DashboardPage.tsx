@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus } from 'lucide-react';
+import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown } from 'lucide-react';
 import api from '@/lib/api';
 
 interface DashboardData {
@@ -24,6 +24,13 @@ interface DashboardData {
   upcomingDeliveries?: number;
   pendingDeposits?: number;
   unpaidInvoices?: number;
+}
+
+interface ExpensesSummary {
+  totalExpenses: number;
+  totalRevenue: number;
+  profit: number;
+  margin: number;
 }
 
 interface ServiceDashboardData {
@@ -149,7 +156,7 @@ const categoryDashboards: Record<string, {
 const productStatCards = [
   { key: 'todayOrders', labelKey: 'dashboard.todaySales', icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
   { key: 'todayRevenue', labelKey: 'dashboard.todayRevenue', icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
-  { key: 'totalProducts', labelKey: 'dashboard.totalProducts', icon: Package, gradient: 'from-emerald-500 to-emerald-600' },
+  { key: 'profit', labelKey: 'dashboard.profit', icon: TrendingDown, gradient: 'from-green-500 to-green-600', isCurrency: true, isProfit: true },
   { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, gradient: 'from-violet-500 to-violet-600' },
 ];
 
@@ -174,6 +181,7 @@ export function DashboardPage() {
 
   const [productData, setProductData] = useState<DashboardData | null>(null);
   const [serviceData, setServiceData] = useState<ServiceDashboardData | null>(null);
+  const [expensesSummary, setExpensesSummary] = useState<ExpensesSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -194,10 +202,13 @@ export function DashboardPage() {
         });
       }).finally(() => setLoading(false));
     } else {
-      api.get('/reports/dashboard')
-        .then((res) => setProductData(res.data.data))
-        .catch(console.error)
-        .finally(() => setLoading(false));
+      Promise.all([
+        api.get('/reports/dashboard').catch(() => ({ data: { data: null } })),
+        api.get('/expenses/summary').catch(() => ({ data: { data: null } })),
+      ]).then(([dashRes, expRes]) => {
+        setProductData(dashRes.data.data);
+        setExpensesSummary(expRes.data.data);
+      }).catch(console.error).finally(() => setLoading(false));
     }
   }, [businessMode]);
 
@@ -275,7 +286,13 @@ export function DashboardPage() {
         ) : (
           productStatCards.map((card) => {
             const Icon = card.icon;
-            const value = productData?.[card.key as keyof DashboardData] as number || 0;
+            let value: number;
+            if (card.key === 'profit') {
+              value = expensesSummary?.profit ?? 0;
+            } else {
+              value = productData?.[card.key as keyof DashboardData] as number || 0;
+            }
+            const isNegative = card.isProfit && value < 0;
             return (
               <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center justify-between mb-2 sm:mb-3">
@@ -283,7 +300,7 @@ export function DashboardPage() {
                     <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                 </div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
+                <p className={`text-lg sm:text-2xl font-bold truncate ${isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
                   {card.isCurrency ? formatCurrency(value) : value}
                 </p>
                 <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{t(card.labelKey)}</p>
