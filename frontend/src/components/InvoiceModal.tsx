@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { X, Printer, Share2, MessageCircle, Download } from 'lucide-react';
+import { X, Printer, Share2, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -158,23 +158,10 @@ export function InvoiceModal({ invoice, onClose }: Props) {
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm my-auto flex flex-col">
         {/* Action bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <span className="text-sm font-bold text-gray-700 dark:text-gray-200">
-            {t('invoices.title')}
-          </span>
+          <span className="text-sm font-bold text-gray-700 dark:text-gray-200">Aperçu facture</span>
           <div className="flex gap-1.5">
-            <Button variant="ghost" size="icon" onClick={() => window.print()} title={t('common.print')}>
+            <Button variant="ghost" size="icon" onClick={() => window.print()} title="Imprimer">
               <Printer className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={shareAsImage} disabled={sharing} title="Télécharger">
-              <Download className="w-4 h-4" />
-            </Button>
-            {fullPhone && (
-              <Button variant="ghost" size="icon" onClick={sendWhatsAppText} className="text-green-500" title="WhatsApp">
-                <MessageCircle className="w-4 h-4" />
-              </Button>
-            )}
-            <Button variant="ghost" size="icon" onClick={shareAsImage} disabled={sharing} title="Partager">
-              <Share2 className="w-4 h-4" />
             </Button>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="w-4 h-4" />
@@ -307,156 +294,134 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 </div>
               </div>
             ) : (
-              /* ===== STANDARD INVOICE ===== */
+              /* ===== STANDARD INVOICE — KABRAK PRO DESIGN ===== */
               <div>
-                {/* Header with Logo */}
-                <div
-                  style={{
-                    background: `linear-gradient(135deg, ${invoiceColor}, ${invoiceColor}dd)`,
-                    color: '#fff',
-                    padding: '24px',
-                    borderRadius: '12px',
-                    marginBottom: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                  }}
-                >
-                  {tenant?.logo && (
-                    <img
-                      src={tenant.logo}
-                      alt={tenant.name}
-                      style={{
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '8px',
-                        objectFit: 'contain',
-                        backgroundColor: '#fff',
-                        padding: '4px',
-                      }}
-                    />
-                  )}
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '22px', fontWeight: 'bold', marginBottom: '4px' }}>{tenant?.name}</div>
-                    <div style={{ fontSize: '12px', opacity: 0.9 }}>FACTURE</div>
+                {/* Top accent bar */}
+                <div style={{ height: '4px', background: `linear-gradient(135deg, ${invoiceColor}, ${invoiceColor}dd)`, borderRadius: '4px', marginBottom: '22px' }} />
+
+                {/* Header: logo + boutique LEFT | Facture stamp RIGHT */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '22px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    {tenant?.logo ? (
+                      <img src={tenant.logo} alt="Logo" crossOrigin="anonymous" style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '12px', border: `1.5px solid ${invoiceColor}30` }} />
+                    ) : (
+                      <div style={{ width: '56px', height: '56px', borderRadius: '12px', background: `linear-gradient(135deg, ${invoiceColor}, ${invoiceColor}dd)`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: '22px', flexShrink: 0 }}>
+                        {tenant?.name?.[0] || 'K'}
+                      </div>
+                    )}
+                    <div>
+                      <div style={{ fontSize: '18px', fontWeight: 800, color: '#111827', letterSpacing: '-0.4px' }}>{tenant?.name}</div>
+                      {tenant?.phone && <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>☎ {tenant.phone}</div>}
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right', fontSize: '11px', opacity: 0.9 }}>
-                    <div>KABRAK Store</div>
-                    <div>Logiciel de gestion</div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1.5px', fontWeight: 800, color: invoiceColor, marginBottom: '2px' }}>Facture de vente</div>
+                    <div style={{ fontSize: '14px', fontWeight: 800, color: '#111827' }}>N° {invoice.invoiceNumber}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '1px' }}>{dateStr}</div>
+                    {invoice.paymentStatus === 'PAID' && (
+                      <div style={{ marginTop: '6px', display: 'inline-block', padding: '3px 10px', borderRadius: '20px', background: '#d1fae5', color: '#065f46', fontSize: '9px', fontWeight: 800, border: '1px solid #a7f3d0' }}>✓ PAYÉE</div>
+                    )}
                   </div>
                 </div>
 
-                {/* Invoice details */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '11px' }}>
-                  <div>
-                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Facture N°</div>
-                    <div>{invoice.invoiceNumber}</div>
-                    <div style={{ marginTop: '8px', fontWeight: 'bold' }}>Date</div>
-                    <div>{dateStr}</div>
+                {/* Client & Règlement Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
+                  <div style={{ background: '#f9fafb', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '9px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Facturé à</div>
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>{invoice.client?.name || 'Client anonyme'}</div>
+                    {invoice.client?.phone && <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>☎ {invoice.client.phone}</div>}
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Client</div>
-                    <div>{invoice.client?.name || 'Client Anonyme'}</div>
-                    {invoice.client?.phone && <div>{invoice.client.phone}</div>}
+                  <div style={{ background: '#f9fafb', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '12px 14px' }}>
+                    <div style={{ fontSize: '9px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>Règlement</div>
+                    <div style={{ fontWeight: 700, fontSize: '12px', color: '#111827' }}>{paymentLabel}</div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                      {invoice.paymentStatus === 'PAID' ? '✅ Soldé' : invoice.paymentStatus === 'PARTIAL' ? '⏳ Acompte reçu' : '⏳ En attente'}
+                    </div>
                   </div>
                 </div>
 
                 {/* Items table */}
-                <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse', marginBottom: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
                   <thead>
-                    <tr style={{ background: `${invoiceColor}15`, borderBottom: `2px solid ${invoiceColor}` }}>
-                      <th style={{ textAlign: 'left', padding: '12px 8px', fontWeight: 'bold', color: invoiceColor }}>Article</th>
-                      <th style={{ textAlign: 'center', padding: '12px 8px', fontWeight: 'bold', color: invoiceColor }}>Qté</th>
-                      <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 'bold', color: invoiceColor }}>P.U.</th>
-                      <th style={{ textAlign: 'right', padding: '12px 8px', fontWeight: 'bold', color: invoiceColor }}>Total</th>
+                    <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                      <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'left', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase', width: '50%' }}>Article</th>
+                      <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'center', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Qté</th>
+                      <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'right', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>P.U.</th>
+                      <th style={{ color: '#4b5563', fontWeight: 700, padding: '10px 4px', textAlign: 'right', fontSize: '10px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {displayItems.map((item, idx) => (
+                    {displayItems.length === 0 ? (
+                      <tr><td colSpan={4} style={{ padding: '16px 4px', textAlign: 'center', color: '#9ca3af', fontSize: '11px', fontStyle: 'italic' }}>Aucun article</td></tr>
+                    ) : displayItems.map((item, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                        <td style={{ padding: '10px 8px', color: '#374151' }}>{item.name}</td>
-                        <td style={{ textAlign: 'center', padding: '10px 8px', color: '#6b7280' }}>{item.quantity}</td>
-                        <td style={{ textAlign: 'right', padding: '10px 8px', color: '#6b7280' }}>{formatCurrency(item.unitPrice)}</td>
-                        <td style={{ textAlign: 'right', padding: '10px 8px', fontWeight: 'bold', color: '#111827' }}>
-                          {formatCurrency(item.totalPrice)}
-                        </td>
+                        <td style={{ padding: '11px 4px', fontSize: '11.5px', color: '#374151', fontWeight: 500 }}>{item.name}</td>
+                        <td style={{ padding: '11px 4px', fontSize: '11.5px', textAlign: 'center', color: '#6b7280' }}>{item.quantity}</td>
+                        <td style={{ padding: '11px 4px', fontSize: '11.5px', textAlign: 'right', color: '#6b7280' }}>{formatCurrency(item.unitPrice)}</td>
+                        <td style={{ padding: '11px 4px', fontSize: '11.5px', textAlign: 'right', fontWeight: 700, color: '#111827' }}>{formatCurrency(item.totalPrice)} <span style={{ fontSize: '9px', color: '#9ca3af', fontWeight: 500 }}>F</span></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
 
                 {/* Totals */}
-                <div
-                  style={{
-                    background: `${invoiceColor}10`,
-                    padding: '16px',
-                    borderRadius: '8px',
-                    border: `1px solid ${invoiceColor}30`,
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>Sous-total</span>
-                    <span>{formatCurrency(total)} FCFA</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>Payé</span>
-                    <span style={{ color: '#16a34a' }}>{formatCurrency(paid)} FCFA</span>
-                  </div>
+                <div style={{ width: '220px', marginLeft: 'auto', marginBottom: '22px' }}>
                   {due > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#dc2626' }}>
-                      <span>Reste à payer</span>
-                      <span>{formatCurrency(due)} FCFA</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 4px', fontSize: '11px', color: '#dc2626' }}>
+                      <span>Reste à payer</span><span style={{ fontWeight: 700 }}>{formatCurrency(due)} F</span>
                     </div>
                   )}
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      fontWeight: 'bold',
-                      fontSize: '16px',
-                      marginTop: '8px',
-                      paddingTop: '8px',
-                      borderTop: `2px solid ${invoiceColor}`,
-                      color: invoiceColor,
-                    }}
-                  >
-                    <span>TOTAL</span>
-                    <span>{formatCurrency(total)} FCFA</span>
+                  {paid > 0 && paid < total && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 4px', fontSize: '11px', color: '#16a34a' }}>
+                      <span>Payé</span><span style={{ fontWeight: 600 }}>{formatCurrency(paid)} F</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: `linear-gradient(135deg, ${invoiceColor}, ${invoiceColor}dd)`, color: '#fff', fontWeight: 800, fontSize: '13px', borderRadius: '10px', marginTop: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.08)' }}>
+                    <span>NET À PAYER</span><span style={{ fontSize: '14px', fontWeight: 900 }}>{formatCurrency(total)} FCFA</span>
                   </div>
-                </div>
-
-                {/* Payment info */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '10px', color: '#666' }}>
-                  <span>Paiement: {paymentLabel}</span>
-                  <span>
-                    {invoice.paymentStatus === 'PAID'
-                      ? '✅ Payée'
-                      : invoice.paymentStatus === 'PARTIAL'
-                        ? '⏳ Partiel'
-                        : '⏳ En attente'}
-                  </span>
                 </div>
 
                 {/* Footer */}
-                <div style={{ textAlign: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#374151', marginBottom: '8px' }}>
-                    Merci pour votre confiance !
+                <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                  <div style={{ fontSize: '9px', color: '#9ca3af', fontStyle: 'italic', maxWidth: '60%', lineHeight: '1.4' }}>
+                    Arrêté la présente facture à la somme de<br />
+                    <strong style={{ color: '#4b5563', fontStyle: 'normal' }}>{formatCurrency(total)} Francs CFA</strong>
                   </div>
-                  <div style={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px' }}>
-                    {tenant?.name}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 800, color: invoiceColor }}>{tenant?.name}</div>
+                    <div style={{ fontSize: '9px', color: '#9ca3af', marginTop: '1.5px' }}>Merci pour votre confiance 🙏</div>
                   </div>
-                  <div style={{ fontSize: '9px', color: '#9ca3af' }}>
-                    Géré avec KABRAK Store — Logiciel de gestion professionnel
-                  </div>
-                  {tenant?.phone && (
-                    <div style={{ fontSize: '10px', color: '#6b7280', marginTop: '8px' }}>
-                      📞 {tenant.phone}
-                    </div>
-                  )}
                 </div>
+
+                {/* Bottom accent bar */}
+                <div style={{ height: '3px', background: `linear-gradient(135deg, ${invoiceColor}, ${invoiceColor}dd)`, borderRadius: '4px', marginTop: '16px', opacity: 0.7 }} />
               </div>
             )}
           </div>
+        </div>
+
+        {/* Bottom action buttons */}
+        <div className="px-4 pb-4 pt-3 space-y-2 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <button
+            onClick={shareAsImage}
+            disabled={sharing}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            style={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}
+          >
+            {sharing ? (
+              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Génération image...</>
+            ) : (
+              <><Share2 className="w-4 h-4" /> 📸 Partager la facture (image)</>
+            )}
+          </button>
+          {fullPhone && (
+            <button
+              onClick={sendWhatsAppText}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 text-white font-bold hover:bg-green-600 transition-colors"
+            >
+              <MessageCircle className="w-4 h-4" /> Envoyer le reçu WhatsApp
+            </button>
+          )}
         </div>
       </div>
     </div>

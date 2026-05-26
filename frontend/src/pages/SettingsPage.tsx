@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
-import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette } from 'lucide-react';
+import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X } from 'lucide-react';
 
 export function SettingsPage() {
   const { language } = useTranslation();
@@ -13,6 +13,8 @@ export function SettingsPage() {
     lastName: user?.lastName || '',
     email: user?.email || '',
   });
+
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [store, setStore] = useState({
     name: tenant?.name || '',
@@ -247,22 +249,46 @@ export function SettingsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">
-              {language === 'fr' ? 'Logo (lien URL ou base64)' : 'Logo (URL link or base64)'}
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              {language === 'fr' ? 'Logo de la boutique' : 'Store Logo'}
             </label>
             <input
-              type="text"
-              value={store.logo}
-              onChange={(e) => setStore({ ...store, logo: e.target.value })}
-              placeholder="https://... ou data:image/png;base64,..."
-              className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                if (file.size > 3 * 1024 * 1024) { alert(language === 'fr' ? 'Image trop grande (max 3MB)' : 'Image too large (max 3MB)'); return; }
+                const reader = new FileReader();
+                reader.onloadend = () => setStore({ ...store, logo: reader.result as string });
+                reader.readAsDataURL(file);
+              }}
             />
-            {store.logo && (
-              <div className="mt-2 flex items-center gap-3">
-                <img src={store.logo} alt="logo preview" className="w-16 h-16 rounded-xl object-contain border border-border bg-white p-1" />
-                <span className="text-xs text-muted-foreground">{language === 'fr' ? 'Aperçu du logo' : 'Logo preview'}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-4">
+              {store.logo ? (
+                <div className="relative">
+                  <img src={store.logo} alt="logo" className="w-20 h-20 rounded-xl object-contain border border-border bg-white p-1" />
+                  <button type="button" onClick={() => setStore({ ...store, logo: '' })} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-20 h-20 rounded-xl border-2 border-dashed border-border flex items-center justify-center bg-gray-50 dark:bg-gray-800">
+                  <Store className="w-8 h-8 text-muted-foreground/40" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                {language === 'fr' ? 'Choisir un logo' : 'Choose a logo'}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">{language === 'fr' ? 'PNG, JPG ou WEBP — max 3MB' : 'PNG, JPG or WEBP — max 3MB'}</p>
           </div>
 
           <div>
