@@ -83,6 +83,17 @@ enum ProjectStatus {
   CANCELLED
 }
 
+enum ExpenseCategory {
+  STOCK
+  SALARY
+  RENT
+  TRANSPORT
+  MARKETING
+  UTILITIES
+  EQUIPMENT
+  OTHER
+}
+
 // ─── BUSINESS CATEGORIES ─────────────────────────────────
 
 enum BusinessCategory {
@@ -160,6 +171,8 @@ model Tenant {
   dataExports        DataExport[]
   projects           Project[]
   recurringBillings  RecurringBilling[]
+  expenses           Expense[]
+  suppliers          Supplier[]
 
   @@map("tenants")
 }
@@ -188,6 +201,7 @@ model User {
   invoices      Invoice[] @relation("invoiceCreator")
   salesRecords  Order[]   @relation("orderSeller")
   projects      Project[] @relation("projectAssignee")
+  expenses      Expense[]
 
   @@map("users")
 }
@@ -590,6 +604,48 @@ model Notification {
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+// ─── SUPPLIER ────────────────────────────────────────────
+
+model Supplier {
+  id        String    @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  tenantId  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
+
+  @@map("suppliers")
+}
+
+// ─── EXPENSE ─────────────────────────────────────────────
+
+model Expense {
+  id            String          @id @default(uuid())
+  amount        Float
+  category      ExpenseCategory @default(OTHER)
+  description   String?
+  date          DateTime        @default(now())
+  reference     String?
+  paymentMethod PaymentMethod   @default(CASH)
+  supplierId    String?
+  tenantId      String
+  createdById   String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier      Supplier?       @relation(fields: [supplierId], references: [id])
+  createdBy     User            @relation(fields: [createdById], references: [id])
+
+  @@map("expenses")
 }
 
 // ─── DATA EXPORT ─────────────────────────────────────────
