@@ -85,6 +85,7 @@ export const translations = {
       volume: 'Volume',
       flavor: 'Saveur',
       lowStock: 'Stock faible',
+      autoCalculated: 'Calculé automatiquement',
     },
     orders: {
       title: 'Commandes',
@@ -327,6 +328,7 @@ export const translations = {
       volume: 'Volume',
       flavor: 'Flavor',
       lowStock: 'Low Stock',
+      autoCalculated: 'Auto-calculated',
     },
     orders: {
       title: 'Orders',
