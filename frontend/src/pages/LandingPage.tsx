@@ -87,11 +87,11 @@ export function LandingPage() {
           {/* Quick business tags */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {(fr
-              ? ['Boutique', 'Vente WhatsApp', 'Gâteaux & Food', 'Mini-Market', 'Services & Freelance', 'Grossiste']
-              : ['Retail Store', 'WhatsApp Selling', 'Cakes & Food', 'Mini-Market', 'Services & Freelance', 'Wholesale']
+              ? ['🛍️ Boutique & Commerce', '📦 Vente en Ligne', '🚚 Commandes & Livraison', '🏪 Commerce Général', '💼 Services & Prestations', '📈 Grossistes']
+              : ['🛍️ Retail & Commerce', '📦 Online Selling', '🚚 Orders & Delivery', '🏪 General Store', '💼 Services & Clients', '📈 Wholesale']
             ).map(tag => (
               <span key={tag} className="px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs sm:text-sm font-medium text-gray-600 shadow-sm">
-                <CheckCircle className="w-3.5 h-3.5 text-green-500 inline -mt-0.5 mr-1" />{tag}
+                {tag}
               </span>
             ))}
           </div>
@@ -113,77 +113,51 @@ export function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
-          SECTION 2 — POUR QUEL BUSINESS ? (cartes visuelles)
+          SECTION 2 — CONÇU POUR VOTRE TYPE DE BUSINESS
           ═══════════════════════════════════════════════ */}
       <section className="py-14 sm:py-20 px-5 bg-white">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10 sm:mb-14">
             <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3">
-              {fr ? 'Pensé pour les entrepreneurs africains' : 'Built for African entrepreneurs'}
+              {fr ? 'Conçu pour votre type de business' : 'Built for your type of business'}
             </h2>
-            <p className="text-sm sm:text-base text-gray-400">{fr ? 'Quel que soit votre business, KABRAK s\'adapte.' : 'Whatever your business, KABRAK adapts.'}</p>
+            <p className="text-sm sm:text-base text-gray-400">{fr ? 'KABRAK s\'adapte automatiquement à votre activité.' : 'KABRAK automatically adapts to your activity.'}</p>
           </div>
 
-          {/* Mode PRODUIT */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-5">
-              <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase">{fr ? 'Vente & Commandes' : 'Sales & Orders'}</span>
-              <span className="text-xs text-gray-400">{fr ? '— 70-80% des entrepreneurs' : '— 70-80% of entrepreneurs'}</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {(fr ? [
-                { emoji: '👠', title: 'Boutique & Mode', sub: 'Chaussures, sacs, vêtements' },
-                { emoji: '🎂', title: 'Gâteaux & Pâtisserie', sub: 'Commandes, acomptes, livraison' },
-                { emoji: '🍲', title: 'Food & Livraison', sub: 'Restaurants, traiteurs' },
-                { emoji: '📱', title: 'Vente WhatsApp', sub: 'Sans boutique physique' },
-                { emoji: '🏪', title: 'Mini-Market', sub: 'Stock, barcode, POS' },
-                { emoji: '📦', title: 'Grossiste', sub: 'Multi-magasins, profit' },
-                { emoji: '🖨️', title: 'Imprimerie', sub: 'Commandes, acomptes' },
-                { emoji: '✂️', title: 'Couture & Sur-mesure', sub: 'Mesures, retrait' },
-              ] : [
-                { emoji: '👠', title: 'Fashion & Retail', sub: 'Shoes, bags, clothing' },
-                { emoji: '🎂', title: 'Cakes & Pastry', sub: 'Orders, deposits, delivery' },
-                { emoji: '🍲', title: 'Food & Delivery', sub: 'Restaurants, caterers' },
-                { emoji: '📱', title: 'WhatsApp Selling', sub: 'No physical store needed' },
-                { emoji: '🏪', title: 'Mini-Market', sub: 'Stock, barcode, POS' },
-                { emoji: '📦', title: 'Wholesale', sub: 'Multi-store, profits' },
-                { emoji: '🖨️', title: 'Print Shop', sub: 'Orders, deposits' },
-                { emoji: '✂️', title: 'Tailoring & Custom', sub: 'Measurements, pickup' },
-              ]).map(b => (
-                <div key={b.title} className="p-4 rounded-2xl bg-gray-50 border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all text-center">
-                  <span className="text-3xl sm:text-4xl block mb-2">{b.emoji}</span>
-                  <p className="font-bold text-gray-900 text-xs sm:text-sm">{b.title}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">{b.sub}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {(fr ? [
+              { emoji: '🛍️', title: 'Boutique & Commerce', sub: 'Vêtements, chaussures, sacs, parfums, bijoux, cosmétique…', features: ['Stock & ventes rapides', 'Acomptes & paiements', 'Programme fidélité'], plan: 'STORE' },
+              { emoji: '📦', title: 'Vente en Ligne', sub: 'WhatsApp, Facebook, TikTok, Instagram, vendeurs à domicile…', features: ['Commandes & suivi', 'Livraisons', 'Paiements mobile money'], plan: 'STORE' },
+              { emoji: '🚚', title: 'Commandes & Livraison', sub: 'Gâteaux, cuisine maison, traiteur, food business, snacks…', features: ['Commandes avec dates', 'Acomptes', 'Statut préparation'], plan: 'STORE' },
+              { emoji: '🏪', title: 'Commerce Général', sub: 'Mini-market, alimentation, quincaillerie, commerce divers…', features: ['Caisse POS rapide', 'Scanner barcode', 'Stock important'], plan: 'SHOP' },
+              { emoji: '💼', title: 'Services & Prestations', sub: 'Marketing, freelance, consulting, design, agence, imprimerie…', features: ['Projets & clients', 'Factures récurrentes', 'Paiements mensuels'], plan: 'SHOP' },
+              { emoji: '📈', title: 'Grossistes & Distribution', sub: 'Wholesale, distribution, stock important, multi-vendeurs…', features: ['Multi-magasins', 'Employés', 'Rapports avancés'], plan: 'BUSINESS' },
+            ] : [
+              { emoji: '🛍️', title: 'Retail & Commerce', sub: 'Clothing, shoes, bags, perfumes, jewelry, cosmetics…', features: ['Stock & quick sales', 'Deposits & payments', 'Loyalty program'], plan: 'STORE' },
+              { emoji: '📦', title: 'Online Selling', sub: 'WhatsApp, Facebook, TikTok, Instagram, home sellers…', features: ['Orders & tracking', 'Deliveries', 'Mobile money payments'], plan: 'STORE' },
+              { emoji: '🚚', title: 'Orders & Delivery', sub: 'Cakes, home cooking, caterer, food business, snacks…', features: ['Orders with dates', 'Deposits', 'Preparation status'], plan: 'STORE' },
+              { emoji: '🏪', title: 'General Store', sub: 'Mini-market, grocery, hardware, general trade…', features: ['Fast POS register', 'Barcode scanner', 'Large stock'], plan: 'SHOP' },
+              { emoji: '💼', title: 'Services & Clients', sub: 'Marketing, freelance, consulting, design, agency, printing…', features: ['Projects & clients', 'Recurring invoices', 'Monthly payments'], plan: 'SHOP' },
+              { emoji: '📈', title: 'Wholesale & Distribution', sub: 'Wholesale, distribution, large stock, multi-sellers…', features: ['Multi-store', 'Employees', 'Advanced reports'], plan: 'BUSINESS' },
+            ]).map(b => (
+              <div key={b.title} className="p-5 sm:p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all">
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl sm:text-4xl">{b.emoji}</span>
+                  <div>
+                    <p className="font-black text-gray-900 text-sm sm:text-base">{b.title}</p>
+                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">{b.plan}</span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Mode SERVICE */}
-          <div>
-            <div className="flex items-center gap-2 mb-5">
-              <span className="px-3 py-1 rounded-full bg-violet-100 text-violet-700 text-xs font-bold uppercase">Services & Clients</span>
-              <span className="text-xs text-gray-400">{fr ? '— Freelancers, agences, consultants' : '— Freelancers, agencies, consultants'}</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {(fr ? [
-                { emoji: '📊', title: 'Marketing Digital', sub: 'Projets, clients, factures' },
-                { emoji: '🎨', title: 'Graphiste / Designer', sub: 'Devis, milestones' },
-                { emoji: '💻', title: 'Agence Web', sub: 'Projets, équipe, deadlines' },
-                { emoji: '📋', title: 'Consultant', sub: 'Missions, paiements' },
-              ] : [
-                { emoji: '📊', title: 'Digital Marketing', sub: 'Projects, clients, invoices' },
-                { emoji: '🎨', title: 'Graphic Designer', sub: 'Quotes, milestones' },
-                { emoji: '💻', title: 'Web Agency', sub: 'Projects, team, deadlines' },
-                { emoji: '📋', title: 'Consultant', sub: 'Missions, payments' },
-              ]).map(b => (
-                <div key={b.title} className="p-4 rounded-2xl bg-violet-50/50 border border-violet-100 hover:border-violet-300 hover:shadow-md transition-all text-center">
-                  <span className="text-3xl sm:text-4xl block mb-2">{b.emoji}</span>
-                  <p className="font-bold text-gray-900 text-xs sm:text-sm">{b.title}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">{b.sub}</p>
-                </div>
-              ))}
-            </div>
+                <p className="text-xs text-gray-400 mb-3">{b.sub}</p>
+                <ul className="space-y-1.5">
+                  {b.features.map(f => (
+                    <li key={f} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
+                      <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -336,13 +310,13 @@ export function LandingPage() {
           </div>
           <div className="grid sm:grid-cols-3 gap-5 sm:gap-6">
             {(fr ? [
-              { name: 'KABRAK STORE', priceMonth: '4 900', priceYear: '49 000', tag: 'Vendeurs en ligne · Solo', users: '1 utilisateur', features: ['Commandes & ventes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', 'Livraison', 'App mobile installable'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '7 900', priceYear: '79 000', tag: 'Boutique en croissance', users: '3 utilisateurs', features: ['Tout STORE +', 'Stock avancé', 'Caisse POS & scanner', 'Employés & permissions', 'Programme fidélité', 'Export CSV', 'Rapports avancés'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '12 900', priceYear: '129 000', tag: 'Multi-magasins · Équipe', users: '10 utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK STORE', priceMonth: '4 900', priceYear: '49 000', tag: 'Boutique · Vente en ligne · Commandes', users: '1 utilisateur', features: ['Ventes & commandes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', 'Livraison', 'App mobile installable'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
+              { name: 'KABRAK SHOP', priceMonth: '7 900', priceYear: '79 000', tag: 'Commerce général · Services · Boutique+', users: '3 utilisateurs', features: ['Tout STORE +', 'Stock avancé & POS', 'Caisse rapide & scanner', 'Employés & permissions', 'Programme fidélité', 'Export CSV', 'Rapports avancés'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '12 900', priceYear: '129 000', tag: 'Grossistes · Multi-magasins · Équipe', users: '10 utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ] : [
-              { name: 'KABRAK STORE', priceMonth: '4 900', priceYear: '49 000', tag: 'Online sellers · Solo', users: '1 user', features: ['Orders & sales', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', 'Delivery', 'Installable mobile app'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '7 900', priceYear: '79 000', tag: 'Growing store', users: '3 users', features: ['Everything in STORE +', 'Advanced stock', 'POS & barcode scanner', 'Employees & roles', 'Loyalty program', 'CSV Export', 'Advanced reports'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '12 900', priceYear: '129 000', tag: 'Multi-store · Team', users: '10 users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Priority support'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK STORE', priceMonth: '4 900', priceYear: '49 000', tag: 'Retail · Online selling · Orders', users: '1 user', features: ['Sales & orders', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', 'Delivery', 'Installable mobile app'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
+              { name: 'KABRAK SHOP', priceMonth: '7 900', priceYear: '79 000', tag: 'General store · Services · Growing biz', users: '3 users', features: ['Everything in STORE +', 'Advanced stock & POS', 'Fast register & scanner', 'Employees & roles', 'Loyalty program', 'CSV Export', 'Advanced reports'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '12 900', priceYear: '129 000', tag: 'Wholesale · Multi-store · Team', users: '10 users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Priority support'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ]).map(plan => (
               <div key={plan.name} className={`bg-white rounded-2xl border-2 p-5 sm:p-6 relative flex flex-col ${plan.color}`}>
                 {plan.popular && (
