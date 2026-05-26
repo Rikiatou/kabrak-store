@@ -197,6 +197,12 @@ export const updateStore = async (req: Request, res: Response): Promise<void> =>
     const { name, phone, logo, invoiceColor } = req.body;
     const tenantId = req.user!.tenantId;
 
+    // Validate logo size (max 500KB base64)
+    if (logo && logo.length > 500000) {
+      res.status(413).json({ success: false, message: 'Logo trop grand (max 500KB)' });
+      return;
+    }
+
     const updated = await prisma.tenant.update({
       where: { id: tenantId },
       data: {

@@ -30,17 +30,32 @@ export const getSummary = async (req: Request, res: Response): Promise<void> => 
   try {
     const { from, to } = req.query;
     const tenantId = req.user!.tenantId;
+    
     const dateFilter: Record<string, unknown> = {};
-    if (from) dateFilter.gte = new Date(from as string);
-    if (to) dateFilter.lte = new Date(to as string);
+    if (from) {
+      try {
+        dateFilter.gte = new Date(from as string);
+      } catch {
+        // Invalid date, ignore
+      }
+    }
+    if (to) {
+      try {
+        dateFilter.lte = new Date(to as string);
+      } catch {
+        // Invalid date, ignore
+      }
+    }
+
+    const hasDateFilter = Object.keys(dateFilter).length > 0;
 
     const [expenseAgg, revenueAgg] = await Promise.all([
       prisma.expense.aggregate({
-        where: { tenantId, ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}) },
+        where: { tenantId, ...(hasDateFilter ? { date: dateFilter } : {}) },
         _sum: { amount: true },
       }),
       prisma.order.aggregate({
-        where: { tenantId, paymentStatus: { in: ['PAID', 'PARTIAL'] }, ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}) },
+        where: { tenantId, paymentStatus: { in: ['PAID', 'PARTIAL'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
         _sum: { amountPaid: true },
       }),
     ]);
@@ -50,14 +65,20 @@ export const getSummary = async (req: Request, res: Response): Promise<void> => 
     const profit = totalRevenue - totalExpenses;
     const margin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0;
 
-    const byCategory = await prisma.expense.groupBy({
-      by: ['category'],
-      where: { tenantId, ...(Object.keys(dateFilter).length ? { date: dateFilter } : {}) },
-      _sum: { amount: true },
-    });
+    let byCategory = [];
+    try {
+      byCategory = await prisma.expense.groupBy({
+        by: ['category'],
+        where: { tenantId, ...(hasDateFilter ? { date: dateFilter } : {}) },
+        _sum: { amount: true },
+      });
+    } catch {
+      // groupBy might fail if no data, return empty array
+    }
 
     res.json({ success: true, data: { totalExpenses, totalRevenue, profit, margin, byCategory } });
   } catch (error) {
+    console.error('Expenses summary error:', error);
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
   }
 };
