@@ -21,12 +21,12 @@ interface NavItem {
 const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
   // SHOP+ : catalogue produits & stock
-  { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
+  { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'] },
   { key: 'orders', icon: ShoppingCart, path: '/orders', modes: ['PRODUCT'] },
-  { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
-  { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
-  { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
-  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
+  { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'] },
+  { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'] },
+  { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'] },
+  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'] },
   // Service mode
   { key: 'projects', icon: FolderKanban, path: '/projects', modes: ['SERVICE'] },
   { key: 'services', icon: Package, path: '/services', modes: ['SERVICE'] },

@@ -126,12 +126,12 @@ function App() {
         >
           <Route path="/dashboard" element={<DashboardPage />} />
           {/* Product mode routes */}
-          <Route path="/products" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><ProductsPage /></PlanGuard></ModeGuard>} />
+          <Route path="/products" element={<ModeGuard mode="PRODUCT"><ProductsPage /></ModeGuard>} />
           <Route path="/orders" element={<ModeGuard mode="PRODUCT"><OrdersPage /></ModeGuard>} />
-          <Route path="/categories" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><CategoriesPage /></PlanGuard></ModeGuard>} />
-          <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><DeliveriesPage /></PlanGuard></ModeGuard>} />
-          <Route path="/loyalty" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><LoyaltyPage /></PlanGuard></ModeGuard>} />
-          <Route path="/pos" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><POSPage /></PlanGuard></ModeGuard>} />
+          <Route path="/categories" element={<ModeGuard mode="PRODUCT"><CategoriesPage /></ModeGuard>} />
+          <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><DeliveriesPage /></ModeGuard>} />
+          <Route path="/loyalty" element={<ModeGuard mode="PRODUCT"><LoyaltyPage /></ModeGuard>} />
+          <Route path="/pos" element={<ModeGuard mode="PRODUCT"><POSPage /></ModeGuard>} />
           {/* Service mode routes */}
           <Route path="/projects" element={<ModeGuard mode="SERVICE"><ProjectsPage /></ModeGuard>} />
           <Route path="/services" element={<ModeGuard mode="SERVICE"><ServicesPage /></ModeGuard>} />
