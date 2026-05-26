@@ -194,9 +194,9 @@ export function POSPage() {
                   {client.phone && <p className="text-xs text-gray-400">{client.phone}</p>}
                 </button>
               ))}
-              {clients.length === 0 && (
+              {clients.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">{t('common.noResults')}</p>
-              )}
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -218,11 +218,11 @@ export function POSPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          {canScan && (
+          {canScan ? (
             <Button variant="outline" size="default" onClick={() => setShowScanner(true)}>
               <ScanLine className="w-4 h-4" />
             </Button>
-          )}
+          ) : null}
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -247,11 +247,11 @@ export function POSPage() {
                   <p className="text-xs text-gray-400 mt-0.5">{product.totalStock} {language === 'fr' ? 'en stock' : 'in stock'}</p>
                   <div className="flex items-center justify-between mt-2">
                     <p className="font-bold text-sm text-blue-600">{formatCurrency(product.sellingPrice)}</p>
-                    {inCart && (
+                    {inCart ? (
                       <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
                         {inCart.quantity}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </button>
               );
@@ -268,17 +268,17 @@ export function POSPage() {
             <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-blue-500" />
               {language === 'fr' ? 'Panier' : 'Cart'}
-              {cart.length > 0 && (
+              {cart.length > 0 ? (
                 <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 text-xs px-2 py-0.5 rounded-full font-bold">
                   {cart.reduce((s, i) => s + i.quantity, 0)}
                 </span>
-              )}
+              ) : null}
             </h2>
-            {cart.length > 0 && (
+            {cart.length > 0 ? (
               <button onClick={() => setCart([])} className="text-xs text-red-500 hover:text-red-600">
                 {language === 'fr' ? 'Vider' : 'Clear'}
               </button>
-            )}
+            ) : null}
           </div>
 
           {/* Client selector */}
@@ -396,11 +396,11 @@ export function POSPage() {
                 {language === 'fr' ? 'Exact' : 'Exact'}
               </Button>
             </div>
-            {change > 0 && (
+            {change > 0 ? (
               <p className="text-xs text-green-600 mt-1 font-medium">
                 {language === 'fr' ? 'Monnaie' : 'Change'}: {formatCurrency(change)}
               </p>
-            )}
+            ) : null}
           </div>
 
           {/* Checkout button */}
@@ -462,19 +462,19 @@ export function POSPage() {
       ) : null}
 
       {/* Invoice modal after checkout */}
-      {showInvoice && completedInvoice && (
+      {showInvoice && completedInvoice ? (
         <InvoiceModal
           invoice={completedInvoice as Parameters<typeof InvoiceModal>[0]['invoice']}
           onClose={() => { setShowInvoice(false); setCompletedInvoice(null); }}
         />
-      )}
+      ) : null}
 
       {/* Success toast (fallback when no invoice) */}
-      {showSuccess && (
+      {showSuccess ? (
         <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-6 py-3 rounded-xl shadow-lg animate-in fade-in slide-in-from-top-2">
           <p className="font-bold">{language === 'fr' ? 'Vente enregistrée !' : 'Sale recorded!'}</p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
