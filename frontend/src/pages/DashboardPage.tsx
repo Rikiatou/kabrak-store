@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw } from 'lucide-react';
+import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus } from 'lucide-react';
 import api from '@/lib/api';
 
 interface DashboardData {
@@ -21,6 +21,9 @@ interface DashboardData {
     product: { id: string; name: string; sellingPrice: number } | null;
     totalQuantity: number | null; totalRevenue: number | null;
   }>;
+  upcomingDeliveries?: number;
+  pendingDeposits?: number;
+  unpaidInvoices?: number;
 }
 
 interface ServiceDashboardData {
@@ -51,6 +54,98 @@ const statusColors: Record<string, string> = {
   ON_HOLD: 'bg-amber-100 text-amber-700',
 };
 
+// Category-based dashboard configurations
+const categoryDashboards: Record<string, {
+  statCards: Array<{
+    key: string;
+    label: { fr: string; en: string };
+    icon: any;
+    gradient: string;
+    isCurrency?: boolean;
+  }>;
+  primaryAction: { label: { fr: string; en: string }; icon: any; href: string; gradient: string };
+}> = {
+  // Boutique & Commerce
+  CLOTHING: {
+    statCards: [
+      { key: 'todayOrders', label: { fr: 'Ventes du jour', en: 'Today Sales' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
+      { key: 'todayRevenue', label: { fr: 'Revenus du jour', en: 'Today Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'totalProducts', label: { fr: 'Produits', en: 'Products' }, icon: Package, gradient: 'from-emerald-500 to-emerald-600' },
+      { key: 'totalClients', label: { fr: 'Clientes', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
+    ],
+    primaryAction: { label: { fr: 'Nouvelle vente', en: 'New Sale' }, icon: Plus, href: '/orders', gradient: 'from-blue-500 to-blue-600' },
+  },
+  // Vente en Ligne (WhatsApp, etc.)
+  WHATSAPP_SELLER: {
+    statCards: [
+      { key: 'todayOrders', label: { fr: 'Commandes du jour', en: 'Today Orders' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
+      { key: 'upcomingDeliveries', label: { fr: 'Livraisons en attente', en: 'Pending Deliveries' }, icon: Truck, gradient: 'from-orange-500 to-orange-600' },
+      { key: 'todayRevenue', label: { fr: 'Paiements reçus', en: 'Payments Received' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
+    ],
+    primaryAction: { label: { fr: 'Nouvelle commande', en: 'New Order' }, icon: Plus, href: '/orders', gradient: 'from-blue-500 to-blue-600' },
+  },
+  // Commandes & Livraison (Food, Événementiel)
+  CAKES: {
+    statCards: [
+      { key: 'todayOrders', label: { fr: 'Commandes du jour', en: 'Today Orders' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
+      { key: 'upcomingDeliveries', label: { fr: 'Livraisons cette semaine', en: 'This Week Deliveries' }, icon: Calendar, gradient: 'from-purple-500 to-purple-600' },
+      { key: 'pendingDeposits', label: { fr: 'Acomptes reçus', en: 'Deposits Received' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'unpaidInvoices', label: { fr: 'Restes à payer', en: 'Remaining Balance' }, icon: AlertTriangle, gradient: 'from-red-500 to-red-600', isCurrency: true },
+    ],
+    primaryAction: { label: { fr: 'Nouvelle commande', en: 'New Order' }, icon: Plus, href: '/orders', gradient: 'from-purple-500 to-purple-600' },
+  },
+  FOOD_BUSINESS: {
+    statCards: [
+      { key: 'todayOrders', label: { fr: 'Commandes du jour', en: 'Today Orders' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
+      { key: 'upcomingDeliveries', label: { fr: 'Livraisons en attente', en: 'Pending Deliveries' }, icon: Truck, gradient: 'from-orange-500 to-orange-600' },
+      { key: 'todayRevenue', label: { fr: 'Revenus du jour', en: 'Today Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
+    ],
+    primaryAction: { label: { fr: 'Nouvelle commande', en: 'New Order' }, icon: Plus, href: '/orders', gradient: 'from-orange-500 to-orange-600' },
+  },
+  // Événementiel & Décoration
+  EVENT_DECORATION: {
+    statCards: [
+      { key: 'todayOrders', label: { fr: 'Événements à venir', en: 'Upcoming Events' }, icon: Calendar, gradient: 'from-purple-500 to-purple-600' },
+      { key: 'pendingDeposits', label: { fr: 'Acomptes reçus', en: 'Deposits Received' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'unpaidInvoices', label: { fr: 'Restes à payer', en: 'Remaining Balance' }, icon: AlertTriangle, gradient: 'from-red-500 to-red-600', isCurrency: true },
+      { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
+    ],
+    primaryAction: { label: { fr: 'Nouvelle réservation', en: 'New Reservation' }, icon: Plus, href: '/orders', gradient: 'from-purple-500 to-purple-600' },
+  },
+  // Traiteur & Gastronomie
+  CATERING: {
+    statCards: [
+      { key: 'todayOrders', label: { fr: 'Événements à venir', en: 'Upcoming Events' }, icon: Calendar, gradient: 'from-purple-500 to-purple-600' },
+      { key: 'pendingDeposits', label: { fr: 'Acomptes reçus', en: 'Deposits Received' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'unpaidInvoices', label: { fr: 'Restes à payer', en: 'Remaining Balance' }, icon: AlertTriangle, gradient: 'from-red-500 to-red-600', isCurrency: true },
+      { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
+    ],
+    primaryAction: { label: { fr: 'Nouvelle réservation', en: 'New Reservation' }, icon: Plus, href: '/orders', gradient: 'from-purple-500 to-purple-600' },
+  },
+  // Commerce Général (Mini-market)
+  MINI_MARKET: {
+    statCards: [
+      { key: 'todayOrders', label: { fr: 'Ventes du jour', en: 'Today Sales' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
+      { key: 'todayRevenue', label: { fr: 'Revenus du jour', en: 'Today Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'totalProducts', label: { fr: 'Stock faible', en: 'Low Stock' }, icon: Package, gradient: 'from-red-500 to-red-600' },
+      { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
+    ],
+    primaryAction: { label: { fr: 'Caisse rapide (POS)', en: 'Fast POS' }, icon: ShoppingCart, href: '/pos', gradient: 'from-emerald-500 to-emerald-600' },
+  },
+  // Grossistes
+  WHOLESALE: {
+    statCards: [
+      { key: 'todayOrders', label: { fr: 'Ventes du jour', en: 'Today Sales' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
+      { key: 'todayRevenue', label: { fr: 'Revenus du jour', en: 'Today Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'totalProducts', label: { fr: 'Stock global', en: 'Total Stock' }, icon: Package, gradient: 'from-emerald-500 to-emerald-600' },
+      { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
+    ],
+    primaryAction: { label: { fr: 'Nouvelle vente grossiste', en: 'New Wholesale Sale' }, icon: ShoppingCart, href: '/orders', gradient: 'from-blue-600 to-blue-700' },
+  },
+};
+
 const productStatCards = [
   { key: 'todayOrders', labelKey: 'dashboard.todaySales', icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
   { key: 'todayRevenue', labelKey: 'dashboard.todayRevenue', icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
@@ -70,6 +165,12 @@ export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const businessMode = tenant?.businessMode || 'PRODUCT';
+  const businessCategories = tenant?.businessCategories || [];
+
+  // Detect primary category for adaptive dashboard
+  const primaryCategory = businessCategories[0] as string;
+  const categoryConfig = primaryCategory ? categoryDashboards[primaryCategory] : null;
+  const useAdaptiveDashboard = !!categoryConfig && businessMode === 'PRODUCT';
 
   const [productData, setProductData] = useState<DashboardData | null>(null);
   const [serviceData, setServiceData] = useState<ServiceDashboardData | null>(null);
@@ -152,6 +253,25 @@ export function DashboardPage() {
               </div>
             );
           })
+        ) : useAdaptiveDashboard && categoryConfig ? (
+          categoryConfig.statCards.map((card) => {
+            const Icon = card.icon;
+            const value = productData?.[card.key as keyof DashboardData] as number || 0;
+            const label = card.label[language as 'fr' | 'en'];
+            return (
+              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-2 sm:mb-3">
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
+                </div>
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
+                  {card.isCurrency ? formatCurrency(value) : value}
+                </p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{label}</p>
+              </div>
+            );
+          })
         ) : (
           productStatCards.map((card) => {
             const Icon = card.icon;
@@ -172,6 +292,16 @@ export function DashboardPage() {
           })
         )}
       </div>
+
+      {/* Primary Action Button (Adaptive) */}
+      {useAdaptiveDashboard && categoryConfig && (
+        <a href={categoryConfig.primaryAction.href} className={`block w-full bg-gradient-to-r ${categoryConfig.primaryAction.gradient} text-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-lg hover:opacity-90 transition-all`}>
+          <div className="flex items-center justify-center gap-3">
+            <categoryConfig.primaryAction.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="font-bold text-base sm:text-lg">{categoryConfig.primaryAction.label[language as 'fr' | 'en']}</span>
+          </div>
+        </a>
+      )}
 
       {/* Content area */}
       {isService ? (
