@@ -383,36 +383,38 @@ export function POSPage() {
 
       {/* Client picker modal */}
       {showClientPicker ? (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold">{language === 'fr' ? 'Choisir un client' : 'Select client'}</h3>
-                <button onClick={() => setShowClientPicker(false)}><X className="w-5 h-5" /></button>
-              </div>
-              <Input
-                placeholder={language === 'fr' ? 'Chercher...' : 'Search...'}
-                value={clientSearch}
-                onChange={(e) => setClientSearch(e.target.value)}
-              />
-              <div className="max-h-60 overflow-y-auto space-y-1">
-                {clients.map(client => (
-                  <button
-                    key={client.id}
-                    onClick={() => { setSelectedClient(client); setShowClientPicker(false); }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <p className="text-sm font-medium">{client.name}</p>
-                    {client.phone && <p className="text-xs text-gray-400">{client.phone}</p>}
-                  </button>
-                ))}
-                {clients.length === 0 && (
-                  <p className="text-sm text-gray-400 text-center py-4">{t('common.noResults')}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <>
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold">{language === 'fr' ? 'Choisir un client' : 'Select client'}</h3>
+                  <button onClick={() => setShowClientPicker(false)}><X className="w-5 h-5" /></button>
+                </div>
+                <Input
+                  placeholder={language === 'fr' ? 'Chercher...' : 'Search...'}
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                />
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {clients.map(client => (
+                    <button
+                      key={client.id}
+                      onClick={() => { setSelectedClient(client); setShowClientPicker(false); }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <p className="text-sm font-medium">{client.name}</p>
+                      {client.phone && <p className="text-xs text-gray-400">{client.phone}</p>}
+                    </button>
+                  ))}
+                  {clients.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">{t('common.noResults')}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
       ) : null}
 
       {/* Scanner */}
