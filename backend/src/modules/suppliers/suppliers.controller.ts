@@ -33,7 +33,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 export const update = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const existing = await prisma.supplier.findFirst({ where: { id, tenantId: req.user!.tenantId } });
+    const existing = await prisma.supplier.findFirst({ where: { id: id as string, tenantId: req.user!.tenantId as string } });
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
     const supplier = await prisma.supplier.update({ where: { id }, data: req.body });
     res.json({ success: true, data: supplier });
@@ -45,7 +45,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
 export const remove = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const existing = await prisma.supplier.findFirst({ where: { id, tenantId: req.user!.tenantId } });
+    const existing = await prisma.supplier.findFirst({ where: { id: id as string, tenantId: req.user!.tenantId as string } });
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
     await prisma.supplier.delete({ where: { id } });
     res.json({ success: true });
