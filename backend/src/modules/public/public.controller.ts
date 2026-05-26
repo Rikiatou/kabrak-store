@@ -35,3 +35,21 @@ export const getPublicProducts = async (req: Request, res: Response): Promise<vo
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
   }
 };
+
+export const getPublicOrder = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token } = req.params;
+    const order = await prisma.order.findFirst({
+      where: { reference: token },
+      include: {
+        client: true,
+        items: { include: { product: true } },
+        tenant: { select: { id: true, name: true, logo: true, invoiceColor: true, phone: true } },
+      },
+    });
+    if (!order) { res.status(404).json({ success: false, message: 'Order not found' }); return; }
+    res.json({ success: true, data: order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
+  }
+};

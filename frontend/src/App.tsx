@@ -24,6 +24,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { StorefrontPage } from './pages/StorefrontPage';
+import { PublicOrderPage } from './pages/PublicOrderPage';
 import { useAuthStore } from './stores/authStore';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -114,6 +115,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/storefront/:slug" element={<StorefrontPage />} />
+        <Route path="/order/:token" element={<PublicOrderPage />} />
         <Route
           element={
             <ProtectedRoute>
