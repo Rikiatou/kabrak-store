@@ -92,7 +92,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
     const { amount, category, description, date, reference, paymentMethod, supplierId } = req.body;
     const expense = await prisma.expense.update({
-      where: { id },
+      where: { id: id as string },
       data: {
         ...(amount !== undefined && { amount: parseFloat(amount) }),
         ...(category && { category }),
@@ -115,7 +115,7 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const existing = await prisma.expense.findFirst({ where: { id: id as string, tenantId: req.user!.tenantId as string } });
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
-    await prisma.expense.delete({ where: { id } });
+    await prisma.expense.delete({ where: { id: id as string } });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
