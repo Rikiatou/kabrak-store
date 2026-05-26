@@ -10,9 +10,9 @@ import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
 const PLANS = [
-  { value: 'STORE', price: 4900, icon: Shield, features: ['Commandes', 'Clients', 'Facturation', 'WhatsApp', 'Dashboard simple'] },
-  { value: 'SHOP', price: 7900, icon: Zap, features: ['Tout STORE +', 'Gestion stock', 'Caisse POS', 'Employés légers', 'Dashboard avancé'] },
-  { value: 'BUSINESS', price: 12900, icon: Star, features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Multi-magasins', 'Rapports avancés'] },
+  { value: 'STORE', price: 4900, icon: Shield, features: ['Commandes', 'Clients', 'Facturation', 'WhatsApp', 'Dashboard simple'], quote: false },
+  { value: 'SHOP', price: 7900, icon: Zap, features: ['Tout STORE +', 'Gestion stock', 'Caisse POS', 'Employés légers', 'Dashboard avancé'], quote: false },
+  { value: 'BUSINESS', price: 0, icon: Star, features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Multi-magasins', 'Rapports avancés'], quote: true },
 ];
 
 const DURATIONS = [
@@ -222,10 +222,14 @@ export function BillingPage() {
                         <PlanIcon className="w-5 h-5 text-kabrak-500" />
                         <h3 className="font-bold text-lg">KABRAK {plan.value}</h3>
                       </div>
-                      <p className="text-2xl font-bold text-kabrak-500 mb-4">
-                        {formatCurrency(plan.price)}{' '}
-                        <span className="text-sm font-normal text-muted-foreground">/mois</span>
-                      </p>
+                      {plan.quote ? (
+                        <p className="text-xl font-bold text-amber-600 mb-4">Sur devis</p>
+                      ) : (
+                        <p className="text-2xl font-bold text-kabrak-500 mb-4">
+                          {formatCurrency(plan.price)}{' '}
+                          <span className="text-sm font-normal text-muted-foreground">/mois</span>
+                        </p>
+                      )}
                       <ul className="space-y-2 mb-6">
                         {plan.features.map((f) => (
                           <li key={f} className="flex items-center gap-2 text-sm">
@@ -233,6 +237,12 @@ export function BillingPage() {
                           </li>
                         ))}
                       </ul>
+                      {plan.quote && (
+                        <a href="https://wa.me/237653561862?text=Bonjour%2C%20je%20suis%20int%C3%A9ress%C3%A9%20par%20le%20plan%20BUSINESS" target="_blank" rel="noreferrer"
+                          className="block text-center py-2 px-4 rounded-lg bg-amber-50 text-amber-700 text-sm font-medium border border-amber-200 hover:bg-amber-100 transition-colors">
+                          Contactez-nous sur WhatsApp
+                        </a>
+                      )}
                       {tenant?.plan === plan.value && (
                         <Badge variant="outline" className="w-full justify-center">
                           Plan actuel

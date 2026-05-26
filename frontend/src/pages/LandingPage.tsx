@@ -310,13 +310,13 @@ export function LandingPage() {
           </div>
           <div className="grid sm:grid-cols-3 gap-5 sm:gap-6">
             {(fr ? [
-              { name: 'KABRAK STORE', priceMonth: '4 900', priceYear: '49 000', tag: 'Boutique · Vente en ligne · Commandes', users: '1 utilisateur', features: ['Ventes & commandes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', 'Livraison', 'App mobile installable'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '7 900', priceYear: '79 000', tag: 'Commerce général · Services · Boutique+', users: '3 utilisateurs', features: ['Tout STORE +', 'Stock avancé & POS', 'Caisse rapide & scanner', 'Employés & permissions', 'Programme fidélité', 'Export CSV', 'Rapports avancés'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '12 900', priceYear: '129 000', tag: 'Grossistes · Multi-magasins · Équipe', users: '10 utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Boutique · Vente en ligne · Commandes', users: '1 utilisateur', features: ['Ventes & commandes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', 'Livraison', 'App mobile installable'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
+              { name: 'KABRAK SHOP', priceMonth: '7 900', tag: 'Commerce général · Services · Boutique+', users: '3 utilisateurs', features: ['Tout STORE +', 'Stock avancé & POS', 'Caisse rapide & scanner', 'Employés & permissions', 'Programme fidélité', 'Export CSV', 'Rapports avancés'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '', tag: 'Grossistes · Multi-magasins · Équipe', users: '10+ utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire dédié'], quote: true, color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ] : [
-              { name: 'KABRAK STORE', priceMonth: '4 900', priceYear: '49 000', tag: 'Retail · Online selling · Orders', users: '1 user', features: ['Sales & orders', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', 'Delivery', 'Installable mobile app'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '7 900', priceYear: '79 000', tag: 'General store · Services · Growing biz', users: '3 users', features: ['Everything in STORE +', 'Advanced stock & POS', 'Fast register & scanner', 'Employees & roles', 'Loyalty program', 'CSV Export', 'Advanced reports'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '12 900', priceYear: '129 000', tag: 'Wholesale · Multi-store · Team', users: '10 users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Priority support'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Retail · Online selling · Orders', users: '1 user', features: ['Sales & orders', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', 'Delivery', 'Installable mobile app'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
+              { name: 'KABRAK SHOP', priceMonth: '7 900', tag: 'General store · Services · Growing biz', users: '3 users', features: ['Everything in STORE +', 'Advanced stock & POS', 'Fast register & scanner', 'Employees & roles', 'Loyalty program', 'CSV Export', 'Advanced reports'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '', tag: 'Wholesale · Multi-store · Team', users: '10+ users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Dedicated priority support'], quote: true, color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ]).map(plan => (
               <div key={plan.name} className={`bg-white rounded-2xl border-2 p-5 sm:p-6 relative flex flex-col ${plan.color}`}>
                 {plan.popular && (
@@ -326,11 +326,17 @@ export function LandingPage() {
                 )}
                 <span className="font-black text-gray-900 text-base sm:text-lg">{plan.name}</span>
                 <p className="text-[10px] sm:text-xs text-gray-400 mb-3">{plan.tag}</p>
-                <div className="mb-0.5">
-                  <span className="text-2xl sm:text-3xl font-black text-gray-900">{plan.priceMonth}</span>
-                  <span className="text-gray-400 text-xs sm:text-sm"> FCFA/{fr ? 'mois' : 'month'}</span>
-                </div>
-                <p className="text-[10px] sm:text-xs text-gray-400 mb-1">{fr ? 'ou' : 'or'} <span className="font-bold text-gray-600">{plan.priceYear} FCFA/{fr ? 'an' : 'year'}</span> <span className="text-green-600 font-bold">({fr ? '2 mois offerts' : '2 months free'})</span></p>
+                {plan.quote ? (
+                  <div className="mb-4">
+                    <span className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">{fr ? 'Sur devis' : 'Custom quote'}</span>
+                    <p className="text-[10px] sm:text-xs text-gray-400 mt-1">{fr ? 'Tarif adapté à vos besoins' : 'Pricing adapted to your needs'}</p>
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <span className="text-2xl sm:text-3xl font-black text-gray-900">{plan.priceMonth}</span>
+                    <span className="text-gray-400 text-xs sm:text-sm"> FCFA/{fr ? 'mois' : 'month'}</span>
+                  </div>
+                )}
                 <p className="text-xs font-semibold text-blue-600 mb-4">{plan.users}</p>
                 <ul className="space-y-2 mb-6 flex-1">
                   {plan.features.map(f => (
@@ -339,9 +345,16 @@ export function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/register" className={`block text-center py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${plan.btn}`}>
-                  {fr ? 'Essai gratuit 14 jours' : '14-day free trial'}
-                </Link>
+                {plan.quote ? (
+                  <a href="https://wa.me/237653561862?text=Bonjour%2C%20je%20suis%20int%C3%A9ress%C3%A9%20par%20le%20plan%20BUSINESS" target="_blank" rel="noreferrer"
+                    className={`block text-center py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${plan.btn}`}>
+                    {fr ? 'Contactez-nous' : 'Contact us'}
+                  </a>
+                ) : (
+                  <Link to="/register" className={`block text-center py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${plan.btn}`}>
+                    {fr ? 'Essai gratuit 14 jours' : '14-day free trial'}
+                  </Link>
+                )}
               </div>
             ))}
           </div>
