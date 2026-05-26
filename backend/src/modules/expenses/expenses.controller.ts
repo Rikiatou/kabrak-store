@@ -71,7 +71,7 @@ export const getSummary = async (req: Request, res: Response): Promise<void> => 
         by: ['category'],
         where: { tenantId, ...(hasDateFilter ? { date: dateFilter } : {}) },
         _sum: { amount: true },
-      });
+      }) as any;
     } catch {
       // groupBy might fail if no data, return empty array
     }

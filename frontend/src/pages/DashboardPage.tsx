@@ -27,13 +27,6 @@ interface DashboardData {
   unpaidInvoices?: number;
 }
 
-interface ExpensesSummary {
-  totalExpenses: number;
-  totalRevenue: number;
-  profit: number;
-  margin: number;
-}
-
 interface ServiceDashboardData {
   totalProjects: number;
   activeProjects: number;
@@ -182,7 +175,6 @@ export function DashboardPage() {
 
   const [productData, setProductData] = useState<DashboardData | null>(null);
   const [serviceData, setServiceData] = useState<ServiceDashboardData | null>(null);
-  const [expensesSummary, setExpensesSummary] = useState<ExpensesSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('today');
 
@@ -229,10 +221,8 @@ export function DashboardPage() {
     } else {
       Promise.all([
         api.get('/reports/dashboard', { params: dates }).catch(() => ({ data: { data: null } })),
-        api.get('/expenses/summary', { params: dates }).catch(() => ({ data: { data: null } })),
-      ]).then(([dashRes, expRes]) => {
+      ]).then(([dashRes]) => {
         setProductData(dashRes.data.data);
-        setExpensesSummary(expRes.data.data);
       }).catch(console.error).finally(() => setLoading(false));
     }
   }, [businessMode, period]);
