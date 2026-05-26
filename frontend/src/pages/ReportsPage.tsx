@@ -34,8 +34,10 @@ export function ReportsPage() {
   const [report, setReport] = useState<SalesReport | null>(null);
   const [serviceReport, setServiceReport] = useState<ServiceReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('day');
+  const [customRange, setCustomRange] = useState<{ from: string; to: string } | null>(null);
 
-  useEffect(() => {
+  const fetchReport = () => {
     if (businessMode === 'SERVICE') {
       api.get('/projects')
         .then((res) => {
@@ -48,12 +50,21 @@ export function ReportsPage() {
         .catch(console.error)
         .finally(() => setLoading(false));
     } else {
-      api.get('/reports/sales')
+      const params: any = { groupBy: period };
+      if (customRange) {
+        params.from = customRange.from;
+        params.to = customRange.to;
+      }
+      api.get('/reports/sales', { params })
         .then((res) => setReport(res.data.data))
         .catch(console.error)
         .finally(() => setLoading(false));
     }
-  }, [businessMode]);
+  };
+
+  useEffect(() => {
+    fetchReport();
+  }, [businessMode, period, customRange]);
 
   const exportData = async (type: string) => {
     try {
@@ -171,9 +182,35 @@ export function ReportsPage() {
   // PRODUCT mode reports
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold dark:text-white">{t('nav.reports')}</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+            <Button
+              variant={period === 'day' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => { setPeriod('day'); setCustomRange(null); }}
+              className="text-xs"
+            >
+              {language === 'fr' ? 'Jour' : 'Day'}
+            </Button>
+            <Button
+              variant={period === 'week' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => { setPeriod('week'); setCustomRange(null); }}
+              className="text-xs"
+            >
+              {language === 'fr' ? 'Semaine' : 'Week'}
+            </Button>
+            <Button
+              variant={period === 'month' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => { setPeriod('month'); setCustomRange(null); }}
+              className="text-xs"
+            >
+              {language === 'fr' ? 'Mois' : 'Month'}
+            </Button>
+          </div>
           <Button variant="outline" size="sm" onClick={() => exportData('orders')}>
             <Download className="w-4 h-4 mr-1" /> {language === 'fr' ? 'Commandes' : 'Orders'}
           </Button>
