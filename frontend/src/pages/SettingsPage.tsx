@@ -43,20 +43,6 @@ const SERVICE_CATEGORIES = [
   { value: 'OTHER', icon: '📋' },
 ];
 
-const categoryKeyMap: Record<string, string> = {
-  CLOTHING: 'clothing', SHOES: 'shoes', PERFUMES: 'perfumes', COSMETICS: 'cosmetics',
-  HIJABS_ABAYAS: 'hijabsAbayas', JEWELRY: 'jewelry', BAGS: 'bags',
-  ELECTRONICS: 'electronics', HOUSE_PRODUCTS: 'houseProducts',
-  KITCHEN_PRODUCTS: 'kitchenProducts', DECORATION: 'decoration',
-  EVENT_DECORATION: 'eventDecoration', CATERING: 'catering',
-  MINI_MARKET: 'miniMarket', WHOLESALE: 'wholesale', MIXED_SHOP: 'mixedShop',
-  CAKES: 'cakes', FOOD_BUSINESS: 'foodBusiness', FOOD_DELIVERY: 'foodDelivery',
-  HOME_COOKING: 'homeCooking', WHATSAPP_SELLER: 'whatsappSeller', MADE_TO_ORDER: 'madeToOrder',
-  DIGITAL_MARKETING: 'digitalMarketing', FREELANCER: 'freelancer', AGENCY: 'agency',
-  CONSULTANT: 'consultant', DESIGNER: 'designer', DEVELOPER: 'developer',
-  SOCIAL_MEDIA: 'socialMedia', PRINTING: 'printing', BUSINESS_SERVICES: 'businessServices',
-  OTHER: 'other',
-};
 
 export function SettingsPage() {
   const { language } = useTranslation();
