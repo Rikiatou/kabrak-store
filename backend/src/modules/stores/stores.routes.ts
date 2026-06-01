@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { getAll, create, update, remove } from './stores.controller';
-import { authenticate, authorize } from '../../middleware/auth';
+import { authorize, requirePlan } from '../../middleware/auth';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(requirePlan('BUSINESS'));
 router.get('/', getAll);
 router.post('/', authorize('OWNER'), create);
 router.put('/:id', authorize('OWNER'), update);

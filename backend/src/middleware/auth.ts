@@ -67,3 +67,55 @@ export const authorize = (...roles: UserRole[]) => {
     next();
   };
 };
+
+export const requireMode = (...modes: ('PRODUCT' | 'SERVICE')[]) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Authentication required' });
+      return;
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user.tenantId },
+      select: { businessMode: true },
+    });
+
+    if (!tenant) {
+      res.status(404).json({ success: false, message: 'Tenant not found' });
+      return;
+    }
+
+    if (!modes.includes(tenant.businessMode as 'PRODUCT' | 'SERVICE')) {
+      res.status(403).json({ success: false, message: 'This feature is not available for your business mode' });
+      return;
+    }
+
+    next();
+  };
+};
+
+export const requirePlan = (...plans: ('STORE' | 'SHOP' | 'BUSINESS')[]) => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Authentication required' });
+      return;
+    }
+
+    const tenant = await prisma.tenant.findUnique({
+      where: { id: req.user.tenantId },
+      select: { plan: true },
+    });
+
+    if (!tenant) {
+      res.status(404).json({ success: false, message: 'Tenant not found' });
+      return;
+    }
+
+    if (!plans.includes(tenant.plan as 'STORE' | 'SHOP' | 'BUSINESS')) {
+      res.status(403).json({ success: false, message: 'This feature requires a higher subscription plan' });
+      return;
+    }
+
+    next();
+  };
+};

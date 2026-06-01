@@ -43,7 +43,7 @@ export function POSPage() {
   const [clientSearch, setClientSearch] = useState('');
   const [showClientPicker, setShowClientPicker] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ORANGE_MONEY' | 'MTN_MOMO' | 'CARD'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ORANGE_MONEY' | 'MTN_MOMO' | 'BANK_TRANSFER'>('CASH');
   const [amountPaid, setAmountPaid] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -159,7 +159,8 @@ export function POSPage() {
       fetchProducts();
     } catch (err) {
       console.error(err);
-      alert(language === 'fr' ? 'Erreur lors de la vente' : 'Error during sale');
+      const errorMsg = err instanceof Error && err.message ? err.message : (language === 'fr' ? 'Erreur lors de la vente' : 'Error during sale');
+      alert(errorMsg);
     }
     setProcessing(false);
   };
@@ -376,7 +377,7 @@ export function POSPage() {
               { key: 'CASH' as const, icon: Banknote, label: language === 'fr' ? 'Espèces' : 'Cash' },
               { key: 'ORANGE_MONEY' as const, icon: Smartphone, label: 'OM' },
               { key: 'MTN_MOMO' as const, icon: Smartphone, label: 'MTN' },
-              { key: 'CARD' as const, icon: CreditCard, label: language === 'fr' ? 'Carte' : 'Card' },
+              { key: 'BANK_TRANSFER' as const, icon: CreditCard, label: language === 'fr' ? 'Virement' : 'Transfer' },
             ].map(({ key, icon: Icon, label }) => (
               <button
                 key={key}

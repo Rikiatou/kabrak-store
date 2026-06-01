@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronUp, Globe, Star,
   MessageCircle
 } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
 
 // ── FAQ ──
 const faqsFR = [
@@ -41,9 +42,9 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 }
 
 export function LandingPage() {
-  const [lang, setLang] = useState<'fr' | 'en'>('fr');
-  const faqs = lang === 'fr' ? faqsFR : faqsEN;
-  const fr = lang === 'fr';
+  const { language, setLanguage } = useAuthStore();
+  const faqs = language === 'fr' ? faqsFR : faqsEN;
+  const fr = language === 'fr';
 
   return (
     <div className="min-h-screen bg-white">
@@ -55,7 +56,7 @@ export function LandingPage() {
             <img src="/logo.png" alt="KABRAK Store" className="h-10 sm:h-14 object-contain" />
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all">
+            <button onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all">
               <Globe className="w-3.5 h-3.5" /> {fr ? 'EN' : 'FR'}
             </button>
             <Link to="/login" className="hidden sm:inline text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">{fr ? 'Connexion' : 'Login'}</Link>

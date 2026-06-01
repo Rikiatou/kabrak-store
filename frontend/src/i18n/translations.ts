@@ -101,6 +101,14 @@ export const translations = {
       paymentMethod: 'Méthode de paiement',
       addPayment: 'Ajouter un paiement',
       sendWhatsApp: 'Envoyer facture WhatsApp',
+      whatsappMessage: {
+        invoice: 'Facture',
+        ref: 'Réf',
+        total: 'Total',
+        paid: 'Payé',
+        remaining: 'Reste',
+        thanks: 'Merci pour votre achat!',
+      },
     },
     clients: {
       title: 'Clients',
@@ -348,6 +356,14 @@ export const translations = {
       paymentMethod: 'Payment Method',
       addPayment: 'Add Payment',
       sendWhatsApp: 'Send Invoice via WhatsApp',
+      whatsappMessage: {
+        invoice: 'Invoice',
+        ref: 'Ref',
+        total: 'Total',
+        paid: 'Paid',
+        remaining: 'Remaining',
+        thanks: 'Thank you for your purchase!',
+      },
     },
     clients: {
       title: 'Clients',

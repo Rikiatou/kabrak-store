@@ -204,7 +204,7 @@ export function DashboardPage() {
     const dates = getPeriodDates();
     if (businessMode === 'SERVICE') {
       Promise.all([
-        api.get('/projects?limit=5').catch(() => ({ data: { data: [], pagination: { total: 0 } } })),
+        api.get('/projects?limit=100').catch(() => ({ data: { data: [], pagination: { total: 0 } } })),
         api.get('/clients?limit=1').catch(() => ({ data: { pagination: { total: 0 } } })),
       ]).then(([projectsRes, clientsRes]) => {
         const projects = projectsRes.data.data || [];

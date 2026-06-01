@@ -7,11 +7,10 @@ import {
   backupAll,
   getExportHistory,
 } from './exports.controller';
-import { authenticate, authorize } from '../../middleware/auth';
+import { authorize } from '../../middleware/auth';
 
 const router = Router();
 
-router.use(authenticate);
 router.get('/history', getExportHistory);
 router.get('/products', exportProducts);
 router.get('/clients', exportClients);

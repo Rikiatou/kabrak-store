@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import { getAll, create, update, remove } from './recurring.controller';
 import { validate } from '../../middleware/validate';
-import { authenticate } from '../../middleware/auth';
-import { requireMode } from '../../middleware/businessMode';
+import { requireMode } from '../../middleware/auth';
 import { createRecurringSchema, updateRecurringSchema } from './recurring.schema';
 
 const router = Router();
 
-router.use(authenticate);
 router.use(requireMode('SERVICE'));
 
 router.get('/', getAll);

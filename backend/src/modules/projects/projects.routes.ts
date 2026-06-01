@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import { getAll, getOne, create, update, remove, addMilestone, completeMilestone } from './projects.controller';
 import { validate } from '../../middleware/validate';
-import { authenticate } from '../../middleware/auth';
-import { requireMode } from '../../middleware/businessMode';
+import { requireMode } from '../../middleware/auth';
 import { createProjectSchema, updateProjectSchema, createMilestoneSchema } from './projects.schema';
 
 const router = Router();
 
-router.use(authenticate);
 router.use(requireMode('SERVICE'));
 
 router.get('/', getAll);

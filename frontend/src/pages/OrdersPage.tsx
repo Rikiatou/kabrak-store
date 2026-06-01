@@ -143,9 +143,9 @@ export function OrdersPage() {
     if (!phone) return;
     const items = order.items.map((i) => `${i.product.name} x${i.quantity} = ${formatCurrency(i.totalPrice)}`).join('\n');
     const message = encodeURIComponent(
-      `*KABRAK - Facture*\n\nRef: ${order.reference}\n\n${items}\n\n` +
-      `Total: ${formatCurrency(order.finalAmount)}\nPayé: ${formatCurrency(order.amountPaid)}\n` +
-      `Reste: ${formatCurrency(order.amountRemaining)}\n\nMerci pour votre achat!`
+      `*KABRAK - ${t('orders.whatsappMessage.invoice')}*\n\n${t('orders.whatsappMessage.ref')}: ${order.reference}\n\n${items}\n\n` +
+      `${t('orders.whatsappMessage.total')}: ${formatCurrency(order.finalAmount)}\n${t('orders.whatsappMessage.paid')}: ${formatCurrency(order.amountPaid)}\n` +
+      `${t('orders.whatsappMessage.remaining')}: ${formatCurrency(order.amountRemaining)}\n\n${t('orders.whatsappMessage.thanks')}`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };

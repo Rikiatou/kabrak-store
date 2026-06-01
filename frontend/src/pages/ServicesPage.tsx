@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
 import { Package, Plus, Edit2, Trash2 } from 'lucide-react';
 
 interface ServicePackage {
@@ -84,7 +85,6 @@ export function ServicesPage() {
     } catch { /* ignore */ }
   };
 
-  const formatCurrency = (n: number) => n.toLocaleString('fr-FR') + ' FCFA';
 
   return (
     <div className="space-y-6">

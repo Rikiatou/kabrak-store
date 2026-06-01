@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { getAll, create, update, remove } from './categories.controller';
-import { authenticate, authorize } from '../../middleware/auth';
+import { authorize, requireMode } from '../../middleware/auth';
 
 const router = Router();
 
-router.use(authenticate);
+router.use(requireMode('PRODUCT'));
 router.get('/', getAll);
 router.post('/', authorize('OWNER', 'MANAGER'), create);
 router.put('/:id', authorize('OWNER', 'MANAGER'), update);

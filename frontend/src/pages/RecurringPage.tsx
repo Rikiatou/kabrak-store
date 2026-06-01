@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
+import { formatCurrency } from '@/lib/utils';
 import { RefreshCw, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -100,7 +101,6 @@ export function RecurringPage() {
     });
   };
 
-  const formatCurrency = (n: number) => n.toLocaleString('fr-FR') + ' FCFA';
   const formatDate = (d: string) => new Date(d).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US');
 
   const FREQ_LABELS: Record<string, Record<string, string>> = {

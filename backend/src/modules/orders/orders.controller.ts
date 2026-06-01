@@ -88,7 +88,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     const data = req.body as CreateOrderInput;
 
     const totalAmount = data.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    const finalAmount = totalAmount - data.discount;
+    const finalAmount = Math.max(0, totalAmount - data.discount);
     const amountRemaining = finalAmount - data.amountPaid;
     const paymentStatus = data.amountPaid >= finalAmount ? 'PAID' : data.amountPaid > 0 ? 'PARTIAL' : 'PENDING';
 
@@ -125,8 +125,21 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         },
       });
 
-      // Update product stock
+      // Update product stock with validation
       for (const item of data.items) {
+        const product = await tx.product.findUnique({
+          where: { id: item.productId },
+          select: { totalStock: true },
+        });
+
+        if (!product) {
+          throw new Error(`Product ${item.productId} not found`);
+        }
+
+        if (product.totalStock < item.quantity) {
+          throw new Error(`Insufficient stock for product ${item.productId}. Available: ${product.totalStock}, Requested: ${item.quantity}`);
+        }
+
         await tx.product.update({
           where: { id: item.productId },
           data: { totalStock: { decrement: item.quantity } },
@@ -288,6 +301,12 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
           paymentStatus,
           paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
         },
+      });
+
+      // Ensure amountDue doesn't go negative
+      await tx.invoice.update({
+        where: { id: invoice.id },
+        data: { amountDue: { set: Math.max(0, invoice.amountDue - amount) } },
       });
 
       return updated;
