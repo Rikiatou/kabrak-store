@@ -257,6 +257,28 @@ export const changePassword = async (req: Request, res: Response): Promise<void>
   }
 };
 
+export const updateCategories = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { businessCategories } = req.body;
+    const tenantId = req.user!.tenantId;
+
+    if (!Array.isArray(businessCategories) || businessCategories.length === 0) {
+      res.status(400).json({ success: false, message: 'Au moins une catégorie requise' });
+      return;
+    }
+
+    const updated = await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { businessCategories },
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Update failed';
+    res.status(500).json({ success: false, message });
+  }
+};
+
 export const me = async (req: Request, res: Response): Promise<void> => {
   try {
     const user = await prisma.user.findUnique({

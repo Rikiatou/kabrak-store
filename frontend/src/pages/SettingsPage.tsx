@@ -2,7 +2,61 @@ import { useState, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
-import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X } from 'lucide-react';
+import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, Check } from 'lucide-react';
+
+const PRODUCT_CATEGORIES = [
+  { value: 'CLOTHING', icon: '👗' },
+  { value: 'SHOES', icon: '👟' },
+  { value: 'PERFUMES', icon: '🧴' },
+  { value: 'COSMETICS', icon: '💄' },
+  { value: 'HIJABS_ABAYAS', icon: '🧕' },
+  { value: 'JEWELRY', icon: '💍' },
+  { value: 'BAGS', icon: '👜' },
+  { value: 'ELECTRONICS', icon: '📱' },
+  { value: 'HOUSE_PRODUCTS', icon: '🏠' },
+  { value: 'KITCHEN_PRODUCTS', icon: '🍳' },
+  { value: 'DECORATION', icon: '🪴' },
+  { value: 'EVENT_DECORATION', icon: '🎉' },
+  { value: 'CATERING', icon: '🍽️' },
+  { value: 'MINI_MARKET', icon: '🏪' },
+  { value: 'WHOLESALE', icon: '📦' },
+  { value: 'MIXED_SHOP', icon: '🛒' },
+  { value: 'CAKES', icon: '🎂' },
+  { value: 'FOOD_BUSINESS', icon: '🍽️' },
+  { value: 'FOOD_DELIVERY', icon: '🛵' },
+  { value: 'HOME_COOKING', icon: '🥘' },
+  { value: 'WHATSAPP_SELLER', icon: '💬' },
+  { value: 'MADE_TO_ORDER', icon: '✂️' },
+  { value: 'OTHER', icon: '📋' },
+];
+
+const SERVICE_CATEGORIES = [
+  { value: 'DIGITAL_MARKETING', icon: '📈' },
+  { value: 'FREELANCER', icon: '💻' },
+  { value: 'AGENCY', icon: '🏢' },
+  { value: 'CONSULTANT', icon: '🎯' },
+  { value: 'DESIGNER', icon: '🎨' },
+  { value: 'DEVELOPER', icon: '⚙️' },
+  { value: 'SOCIAL_MEDIA', icon: '📱' },
+  { value: 'PRINTING', icon: '🖨️' },
+  { value: 'BUSINESS_SERVICES', icon: '💼' },
+  { value: 'OTHER', icon: '📋' },
+];
+
+const categoryKeyMap: Record<string, string> = {
+  CLOTHING: 'clothing', SHOES: 'shoes', PERFUMES: 'perfumes', COSMETICS: 'cosmetics',
+  HIJABS_ABAYAS: 'hijabsAbayas', JEWELRY: 'jewelry', BAGS: 'bags',
+  ELECTRONICS: 'electronics', HOUSE_PRODUCTS: 'houseProducts',
+  KITCHEN_PRODUCTS: 'kitchenProducts', DECORATION: 'decoration',
+  EVENT_DECORATION: 'eventDecoration', CATERING: 'catering',
+  MINI_MARKET: 'miniMarket', WHOLESALE: 'wholesale', MIXED_SHOP: 'mixedShop',
+  CAKES: 'cakes', FOOD_BUSINESS: 'foodBusiness', FOOD_DELIVERY: 'foodDelivery',
+  HOME_COOKING: 'homeCooking', WHATSAPP_SELLER: 'whatsappSeller', MADE_TO_ORDER: 'madeToOrder',
+  DIGITAL_MARKETING: 'digitalMarketing', FREELANCER: 'freelancer', AGENCY: 'agency',
+  CONSULTANT: 'consultant', DESIGNER: 'designer', DEVELOPER: 'developer',
+  SOCIAL_MEDIA: 'socialMedia', PRINTING: 'printing', BUSINESS_SERVICES: 'businessServices',
+  OTHER: 'other',
+};
 
 export function SettingsPage() {
   const { language } = useTranslation();
@@ -35,6 +89,45 @@ export function SettingsPage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [storeLoading, setStoreLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [categoriesMsg, setCategoriesMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(tenant?.businessCategories || []);
+
+  const categories = tenant?.businessMode === 'SERVICE' ? SERVICE_CATEGORIES : PRODUCT_CATEGORIES;
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    );
+  };
+
+  const handleCategoriesSubmit = async () => {
+    if (selectedCategories.length === 0) {
+      setCategoriesMsg({
+        type: 'error',
+        text: language === 'fr' ? 'Sélectionnez au moins une catégorie' : 'Select at least one category',
+      });
+      return;
+    }
+    setCategoriesMsg(null);
+    setCategoriesLoading(true);
+    try {
+      await api.put('/auth/categories', { businessCategories: selectedCategories });
+      await fetchMe();
+      setCategoriesMsg({
+        type: 'success',
+        text: language === 'fr' ? 'Catégories mises à jour avec succès' : 'Categories updated successfully',
+      });
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setCategoriesMsg({
+        type: 'error',
+        text: axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur de mise à jour' : 'Update failed'),
+      });
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,6 +425,75 @@ export function SettingsPage() {
               : (language === 'fr' ? 'Enregistrer la boutique' : 'Save Store')}
           </button>
         </form>
+      </div>
+
+      {/* Categories Section */}
+      <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+            <Store className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <h2 className="text-lg font-semibold text-foreground">
+            {language === 'fr' ? 'Catégories d\'activité' : 'Business Categories'}
+          </h2>
+        </div>
+
+        {categoriesMsg && (
+          <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${
+            categoriesMsg.type === 'success'
+              ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+              : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+          }`}>
+            {categoriesMsg.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {categoriesMsg.text}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            {language === 'fr'
+              ? 'Sélectionnez les catégories qui décrivent votre activité. Vous pouvez les modifier à tout moment.'
+              : 'Select the categories that describe your business. You can change them at any time.'}
+          </p>
+
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-[320px] overflow-y-auto pr-1">
+            {categories.map((cat) => {
+              const isSelected = selectedCategories.includes(cat.value);
+              return (
+                <button
+                  key={cat.value}
+                  onClick={() => toggleCategory(cat.value)}
+                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all cursor-pointer ${
+                    isSelected
+                      ? tenant?.businessMode === 'SERVICE'
+                        ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-sm'
+                        : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
+                      : 'border-gray-100 dark:border-gray-600 hover:border-gray-200 bg-gray-50/50 dark:bg-gray-700'
+                  }`}
+                >
+                  <span className="text-xl">{cat.icon}</span>
+                  <span className="text-[11px] font-medium text-center text-gray-600 dark:text-gray-300 leading-tight">
+                    {language === 'fr'
+                      ? cat.value.replace(/_/g, ' ')
+                      : cat.value.replace(/_/g, ' ')}
+                  </span>
+                  {isSelected && <Check className={`w-3.5 h-3.5 ${tenant?.businessMode === 'SERVICE' ? 'text-violet-500' : 'text-blue-500'}`} />}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleCategoriesSubmit}
+            disabled={categoriesLoading || selectedCategories.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            {categoriesLoading
+              ? (language === 'fr' ? 'Enregistrement...' : 'Saving...')
+              : (language === 'fr' ? 'Enregistrer les catégories' : 'Save Categories')}
+          </button>
+        </div>
       </div>
 
       {/* Password Section */}

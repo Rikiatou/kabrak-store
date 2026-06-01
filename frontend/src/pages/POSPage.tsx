@@ -155,11 +155,7 @@ export function POSPage() {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
       }
-      setCart([]);
-      setSelectedClient(null);
-      setAmountPaid(0);
-      setDiscount(0);
-      setNotes('');
+      resetData();
       fetchProducts();
     } catch (err) {
       console.error(err);
@@ -168,15 +164,24 @@ export function POSPage() {
     setProcessing(false);
   };
 
+  const resetData = () => {
+    setCart([]);
+    setSelectedClient(null);
+    setAmountPaid(0);
+    setDiscount(0);
+    setNotes('');
+    setPaymentMethod('CASH');
+  };
+
   const renderClientPicker = () => {
     if (!showClientPicker) return null;
     return (
-      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+      <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-2xl">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-bold">{language === 'fr' ? 'Choisir un client' : 'Select client'}</h3>
-              <button onClick={() => setShowClientPicker(false)}><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowClientPicker(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5" /></button>
             </div>
             <Input
               placeholder={language === 'fr' ? 'Chercher...' : 'Search...'}
@@ -274,11 +279,16 @@ export function POSPage() {
                 </span>
               ) : null}
             </h2>
-            {cart.length > 0 ? (
-              <button onClick={() => setCart([])} className="text-xs text-red-500 hover:text-red-600">
-                {language === 'fr' ? 'Vider' : 'Clear'}
+            <div className="flex gap-2">
+              {cart.length > 0 ? (
+                <button onClick={() => setCart([])} className="text-xs text-red-500 hover:text-red-600">
+                  {language === 'fr' ? 'Vider' : 'Clear'}
+                </button>
+              ) : null}
+              <button onClick={resetData} className="text-xs text-gray-400 hover:text-gray-600">
+                {language === 'fr' ? 'Réinitialiser' : 'Reset'}
               </button>
-            ) : null}
+            </div>
           </div>
 
           {/* Client selector */}
@@ -427,12 +437,12 @@ export function POSPage() {
 
       {/* Variant / Size picker */}
       {variantPicker ? (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-sm">
+        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm shadow-2xl">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold">{variantPicker.product.name}</h3>
-                <button onClick={() => setVariantPicker(null)}><X className="w-5 h-5" /></button>
+                <button onClick={() => setVariantPicker(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5" /></button>
               </div>
               <p className="text-sm text-gray-500 mb-3">{language === 'fr' ? 'Choisir la taille :' : 'Choose size:'}</p>
               <div className="grid grid-cols-3 gap-2">
