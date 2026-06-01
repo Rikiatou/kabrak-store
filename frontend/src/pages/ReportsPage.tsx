@@ -224,10 +224,10 @@ export function ReportsPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-kabrak-500">
+        <Card className="border-l-4 border-l-blue-500">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-kabrak-100 dark:bg-kabrak-900/30 flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-kabrak-500" />
+            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-blue-600" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Revenus (30j)' : 'Revenue (30d)'}</p>
@@ -235,10 +235,10 @@ export function ReportsPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-gold-500">
+        <Card className="border-l-4 border-l-amber-500">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-gold-100 dark:bg-gold-600/20 flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-gold-500" />
+            <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-600/20 flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-amber-500" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Bénéfices (30j)' : 'Profit (30d)'}</p>
@@ -276,7 +276,7 @@ export function ReportsPage() {
                   <div key={period.period} className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground w-20 shrink-0">{period.period}</span>
                     <div className="flex-1 bg-muted rounded-full h-6 overflow-hidden">
-                      <div className="bg-kabrak-500 h-full rounded-full flex items-center justify-end px-2 transition-all" style={{ width: `${Math.max(width, 5)}%` }}>
+                      <div className="bg-blue-600 h-full rounded-full flex items-center justify-end px-2 transition-all" style={{ width: `${Math.max(width, 5)}%` }}>
                         <span className="text-white text-xs font-medium">{formatCurrency(period.revenue)}</span>
                       </div>
                     </div>
@@ -300,7 +300,7 @@ export function ReportsPage() {
               {report.topSellers.map((seller, i) => (
                 <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-gold-100 dark:bg-gold-600/20 flex items-center justify-center text-sm font-bold text-gold-600">{i + 1}</span>
+                    <span className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-600/20 flex items-center justify-center text-sm font-bold text-amber-600">{i + 1}</span>
                     <span className="font-medium dark:text-white">{seller.name}</span>
                   </div>
                   <div className="text-right">

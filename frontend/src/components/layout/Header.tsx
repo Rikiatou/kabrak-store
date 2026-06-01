@@ -73,7 +73,7 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         {/* User avatar + logout */}
         <div className="flex items-center gap-2 ml-1 sm:ml-2 pl-2 sm:pl-4 border-l">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-kabrak-500 flex items-center justify-center text-white text-xs sm:text-sm font-semibold shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs sm:text-sm font-semibold shrink-0">
             {user?.firstName?.[0]}{user?.lastName?.[0]}
           </div>
           <div className="hidden md:block">

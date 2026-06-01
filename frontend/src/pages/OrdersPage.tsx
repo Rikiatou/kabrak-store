@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
+import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { Plus, ShoppingCart, X, MessageCircle } from 'lucide-react';
 import api from '@/lib/api';
@@ -61,8 +62,17 @@ interface CartItem {
   variant?: string;
 }
 
+const ORDER_BASED_CATS = new Set([
+  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+]);
+
 export function OrdersPage() {
   const { t } = useTranslation();
+  const tenant = useAuthStore((s) => s.tenant);
+  const businessCategories = tenant?.businessCategories || [];
+  const isOrderBased = !!(businessCategories.length &&
+    businessCategories.every((cat) => ORDER_BASED_CATS.has(cat)));
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -73,6 +83,7 @@ export function OrdersPage() {
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [amountPaid, setAmountPaid] = useState(0);
   const [discount, setDiscount] = useState(0);
+  const [deliveryDate, setDeliveryDate] = useState('');
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -95,6 +106,7 @@ export function OrdersPage() {
     setSelectedClient('');
     setAmountPaid(0);
     setDiscount(0);
+    setDeliveryDate('');
     setShowForm(true);
   };
 
@@ -119,6 +131,7 @@ export function OrdersPage() {
         discount,
         paymentMethod,
         amountPaid,
+        deliveryDate: isOrderBased ? deliveryDate : undefined,
       });
       setShowForm(false);
       fetchOrders();
@@ -203,6 +216,13 @@ export function OrdersPage() {
                     </div>
                     <div className="flex justify-between font-bold"><span>Total</span><span>{formatCurrency(finalTotal)}</span></div>
                   </div>
+                </div>
+              )}
+
+              {isOrderBased && (
+                <div>
+                  <label className="text-sm font-medium mb-1 block">{t('delivery.deliveryDate')}</label>
+                  <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
                 </div>
               )}
 

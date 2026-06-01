@@ -96,7 +96,7 @@ export function EmployeesPage() {
       )}
 
       {loading ? (
-        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kabrak-500" /></div>
+        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" /></div>
       ) : employees.length === 0 ? (
         <div className="text-center py-12"><UserCog className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">{t('common.noResults')}</p></div>
       ) : (

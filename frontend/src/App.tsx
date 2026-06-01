@@ -41,6 +41,18 @@ function ModeGuard({ mode, children }: { mode: 'PRODUCT' | 'SERVICE'; children: 
   return <>{children}</>;
 }
 
+const ORDER_BASED_CATS = new Set([
+  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+]);
+
+function DeliveriesGuard({ children }: { children: React.ReactNode }) {
+  const tenant = useAuthStore((s) => s.tenant);
+  const isOrderBased = !!(tenant?.businessCategories?.length &&
+    tenant.businessCategories.every((cat) => ORDER_BASED_CATS.has(cat)));
+  if (isOrderBased) return <>{children}</>;
+  return <PlanGuard plans={['SHOP', 'BUSINESS']}>{children}</PlanGuard>;
+}
+
 function PlanGuard({ plans, children }: { plans: string[]; children: React.ReactNode }) {
   const tenant = useAuthStore((s) => s.tenant);
   const plan = tenant?.plan || 'STORE';
@@ -131,7 +143,7 @@ function App() {
           <Route path="/pos" element={<ModeGuard mode="PRODUCT"><POSPage /></ModeGuard>} />
           {/* SHOP+ only */}
           <Route path="/categories" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><CategoriesPage /></PlanGuard></ModeGuard>} />
-          <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><DeliveriesPage /></PlanGuard></ModeGuard>} />
+          <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><DeliveriesGuard><DeliveriesPage /></DeliveriesGuard></ModeGuard>} />
           <Route path="/loyalty" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><LoyaltyPage /></PlanGuard></ModeGuard>} />
           {/* Service mode routes */}
           <Route path="/projects" element={<ModeGuard mode="SERVICE"><ProjectsPage /></ModeGuard>} />

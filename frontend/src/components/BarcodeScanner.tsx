@@ -86,7 +86,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
               onClick={() => setMode('manual')}
               className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                 mode === 'manual'
-                  ? 'bg-kabrak-500 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}
             >
@@ -96,7 +96,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
               onClick={() => setMode('camera')}
               className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                 mode === 'camera'
-                  ? 'bg-kabrak-500 text-white'
+                  ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}
             >

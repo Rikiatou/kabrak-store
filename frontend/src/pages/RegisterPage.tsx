@@ -53,11 +53,21 @@ const PLANS = [
   { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Rapports avancés'] },
 ];
 
+const ORDER_BASED_PLANS = [
+  { value: 'STORE', price: '4 900', features: ['Commandes', 'Clients', 'Facturation', 'WhatsApp'] },
+  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Livraisons', 'Gestion stock', 'Employés'] },
+  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-employés', 'Rapports avancés', 'IA'] },
+];
+
 const SERVICE_PLANS = [
   { value: 'STORE', price: '4 900', features: ['Projets', 'Clients', 'Facturation', 'WhatsApp'] },
   { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Récurrent', 'Milestones', 'Employés'] },
   { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Rapports avancés'] },
 ];
+
+const ORDER_BASED_CATS = new Set([
+  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+]);
 
 const categoryKeyMap: Record<string, string> = {
   CLOTHING: 'clothing', SHOES: 'shoes', PERFUMES: 'perfumes', COSMETICS: 'cosmetics',
@@ -94,7 +104,11 @@ export function RegisterPage() {
     : ['Your Business', 'Your Info', 'Categories', 'Plan'];
 
   const categories = form.businessMode === 'SERVICE' ? SERVICE_CATEGORIES : PRODUCT_CATEGORIES;
-  const plans = form.businessMode === 'SERVICE' ? SERVICE_PLANS : PLANS;
+  const isOrderBased = form.businessCategories.length > 0 &&
+    form.businessCategories.every((c) => ORDER_BASED_CATS.has(c));
+  const plans = form.businessMode === 'SERVICE'
+    ? SERVICE_PLANS
+    : isOrderBased ? ORDER_BASED_PLANS : PLANS;
 
   const toggleCategory = (cat: string) => {
     setForm((prev) => ({
@@ -201,7 +215,7 @@ export function RegisterPage() {
                         : 'Shop, restaurant, cakes, delivery, online selling, mini-market...'}
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {['Stock', 'POS', language === 'fr' ? 'Commandes' : 'Orders', language === 'fr' ? 'Livraison' : 'Delivery'].map((f) => (
+                      {[language === 'fr' ? 'Commandes' : 'Orders', language === 'fr' ? 'Livraison' : 'Delivery', 'Stock', language === 'fr' ? 'Facturation' : 'Invoicing'].map((f) => (
                         <span key={f} className="text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full font-medium">{f}</span>
                       ))}
                     </div>
@@ -400,6 +414,10 @@ export function RegisterPage() {
               <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 text-center">
                 {t('auth.selectPlan')}
               </h3>
+              <div className="flex items-center justify-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl py-2 px-3">
+                <span>🎁</span>
+                <span className="font-medium">{language === 'fr' ? '14 jours gratuits — aucune carte requise' : '14 days free — no card required'}</span>
+              </div>
               <div className="space-y-3">
                 {plans.map((plan) => {
                   const isSelected = form.plan === plan.value;

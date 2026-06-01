@@ -144,7 +144,7 @@ export function LoyaltyPage() {
       <Card>
         <CardContent className="p-4">
           <p className="text-sm">
-            <Star className="w-4 h-4 inline text-gold-500 mr-1" />
+            <Star className="w-4 h-4 inline text-amber-500 mr-1" />
             <strong>1 point</strong> pour chaque <strong>{formatCurrency(config?.pointsPerFCFA || 1000)} FCFA</strong> dépensé.
             Les points sont attribués automatiquement à chaque achat.
           </p>

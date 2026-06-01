@@ -59,7 +59,7 @@ export function NotificationsDropdown() {
       case 'STOCK_ALERT':
         return <AlertTriangle className="w-4 h-4 text-amber-500" />;
       case 'NEW_ORDER':
-        return <ShoppingCart className="w-4 h-4 text-kabrak-500" />;
+        return <ShoppingCart className="w-4 h-4 text-blue-600" />;
       default:
         return <Package className="w-4 h-4 text-gray-500" />;
     }
@@ -100,7 +100,7 @@ export function NotificationsDropdown() {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="text-xs text-kabrak-500 hover:underline flex items-center gap-1"
+                  className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                 >
                   <Check className="w-3 h-3" /> Tout lire
                 </button>
@@ -117,7 +117,7 @@ export function NotificationsDropdown() {
                   <div
                     key={notif.id}
                     className={`flex gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0 ${
-                      !notif.isRead ? 'bg-kabrak-50 dark:bg-kabrak-900/10' : ''
+                      !notif.isRead ? 'bg-blue-50 dark:bg-blue-900/10' : ''
                     }`}
                   >
                     <div className="mt-0.5">{getIcon(notif.type)}</div>
@@ -127,7 +127,7 @@ export function NotificationsDropdown() {
                       <p className="text-[10px] text-muted-foreground mt-1">{timeAgo(notif.createdAt)}</p>
                     </div>
                     {!notif.isRead && (
-                      <div className="w-2 h-2 bg-kabrak-500 rounded-full mt-2 shrink-0" />
+                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 shrink-0" />
                     )}
                   </div>
                 ))

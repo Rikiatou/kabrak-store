@@ -296,7 +296,7 @@ export function InvoicesPage() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kabrak-500" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
         </div>
       ) : invoices.length === 0 ? (
         <div className="text-center py-12">

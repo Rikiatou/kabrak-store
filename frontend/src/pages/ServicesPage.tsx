@@ -145,6 +145,16 @@ export function ServicesPage() {
               </select>
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{language === 'fr' ? 'Description' : 'Description'}</label>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder={language === 'fr' ? 'Détails du service...' : 'Service details...'}
+              rows={3}
+              className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-200"
+            />
+          </div>
           <div className="flex gap-3">
             <button onClick={() => { setShowForm(false); setEditId(null); }} className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300">
               {t('common.cancel')}

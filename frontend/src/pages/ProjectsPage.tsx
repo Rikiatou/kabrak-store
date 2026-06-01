@@ -38,10 +38,11 @@ const STATUS_COLORS: Record<string, string> = {
 export function ProjectsPage() {
   const { t, language } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', description: '', totalBudget: 0, deadline: '' });
+  const [form, setForm] = useState({ name: '', description: '', totalBudget: 0, deadline: '', clientId: '' });
   const [saving, setSaving] = useState(false);
 
   const fetchProjects = useCallback(async () => {
@@ -52,6 +53,13 @@ export function ProjectsPage() {
     setLoading(false);
   }, []);
 
+  const fetchClients = useCallback(async () => {
+    try {
+      const { data } = await api.get('/clients', { params: { limit: 200 } });
+      setClients(data.data || []);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
   const handleCreate = async () => {
@@ -59,10 +67,15 @@ export function ProjectsPage() {
     try {
       await api.post('/projects', form);
       setShowForm(false);
-      setForm({ name: '', description: '', totalBudget: 0, deadline: '' });
+      setForm({ name: '', description: '', totalBudget: 0, deadline: '', clientId: '' });
       fetchProjects();
     } catch { /* ignore */ }
     setSaving(false);
+  };
+
+  const openForm = async () => {
+    setShowForm(true);
+    await fetchClients();
   };
 
   const formatCurrency = (n: number) => n.toLocaleString('fr-FR') + ' FCFA';
@@ -75,7 +88,7 @@ export function ProjectsPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('projects.title')}</h1>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={openForm}
           className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors"
         >
           <Plus className="w-4 h-4" /> {t('projects.addProject')}
@@ -92,6 +105,17 @@ export function ProjectsPage() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-200"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('clients.title')}</label>
+              <select
+                value={form.clientId}
+                onChange={(e) => setForm({ ...form, clientId: e.target.value })}
+                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-violet-200"
+              >
+                <option value="">{language === 'fr' ? '-- Sélectionner un client --' : '-- Select a client --'}</option>
+                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('projects.budget')}</label>

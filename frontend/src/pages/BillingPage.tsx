@@ -15,6 +15,16 @@ const PLANS = [
   { value: 'BUSINESS', price: 0, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: true },
 ];
 
+const ORDER_BASED_PLANS = [
+  { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & catalogue', 'Commandes', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats', 'Logo & couleur facture'], quote: false },
+  { value: 'SHOP', price: 7900, icon: Zap, features: ['Tout STORE +', 'Livraisons & suivi', 'Catégories & organisation', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés (Jour/Semaine/Mois)'], quote: false },
+  { value: 'BUSINESS', price: 0, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: true },
+];
+
+const ORDER_BASED_CATS = new Set([
+  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+]);
+
 const DURATIONS = [
   { months: 1, label: '1 mois' },
   { months: 3, label: '3 mois' },
@@ -49,6 +59,11 @@ interface PaymentData {
 export function BillingPage() {
   const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
+  const businessCategories = tenant?.businessCategories || [];
+  const isOrderBased = !!(businessCategories.length &&
+    businessCategories.every((cat) => ORDER_BASED_CATS.has(cat)));
+  const plans = isOrderBased ? ORDER_BASED_PLANS : PLANS;
+
   const [sub, setSub] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1); // 1=choose, 2=instructions, 3=waiting
@@ -147,7 +162,7 @@ export function BillingPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <Crown className="w-5 h-5 text-gold-500" />
+                      <Crown className="w-5 h-5 text-amber-500" />
                       <h2 className="text-xl font-bold">KABRAK {sub.plan}</h2>
                       <Badge
                         variant={
@@ -168,7 +183,7 @@ export function BillingPage() {
                     <p className="text-xs text-muted-foreground mt-1">Expire le {formatDate(sub.endDate)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-3xl font-bold text-kabrak-500">{formatCurrency(sub.priceMonthly)}</p>
+                    <p className="text-3xl font-bold text-blue-600">{formatCurrency(sub.priceMonthly)}</p>
                     <p className="text-sm text-muted-foreground">FCFA/mois</p>
                   </div>
                 </div>
@@ -190,7 +205,7 @@ export function BillingPage() {
                     className={cn(
                       'py-3 px-2 rounded-lg text-sm font-medium transition-all border-2',
                       selectedMonths === d.months
-                        ? 'border-kabrak-500 bg-kabrak-50 dark:bg-kabrak-900/20 text-kabrak-700'
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                     )}
                   >
@@ -205,7 +220,7 @@ export function BillingPage() {
           <div>
             <h2 className="text-lg font-semibold mb-4">{t('billing.changePlan')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {PLANS.map((plan) => {
+              {plans.map((plan) => {
                 const PlanIcon = plan.icon;
                 const isSelected = selectedPlan === plan.value;
                 return (
@@ -219,13 +234,13 @@ export function BillingPage() {
                   >
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2 mb-2">
-                        <PlanIcon className="w-5 h-5 text-kabrak-500" />
+                        <PlanIcon className="w-5 h-5 text-blue-600" />
                         <h3 className="font-bold text-lg">KABRAK {plan.value}</h3>
                       </div>
                       {plan.quote ? (
                         <p className="text-xl font-bold text-amber-600 mb-4">Sur devis</p>
                       ) : (
-                        <p className="text-2xl font-bold text-kabrak-500 mb-4">
+                        <p className="text-2xl font-bold text-blue-600 mb-4">
                           {formatCurrency(plan.price)}{' '}
                           <span className="text-sm font-normal text-muted-foreground">/mois</span>
                         </p>
@@ -233,7 +248,7 @@ export function BillingPage() {
                       <ul className="space-y-2 mb-6">
                         {plan.features.map((f) => (
                           <li key={f} className="flex items-center gap-2 text-sm">
-                            <Check className="w-4 h-4 text-gold-500" /> {f}
+                            <Check className="w-4 h-4 text-amber-500" /> {f}
                           </li>
                         ))}
                       </ul>
@@ -262,7 +277,7 @@ export function BillingPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center mb-4">
-                <p className="text-3xl font-bold text-kabrak-500">{formatCurrency(totalAmount)} FCFA</p>
+                <p className="text-3xl font-bold text-blue-600">{formatCurrency(totalAmount)} FCFA</p>
                 <p className="text-sm text-muted-foreground">
                   KABRAK {selectedPlan} × {selectedMonths} mois
                 </p>
@@ -308,7 +323,7 @@ export function BillingPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center mb-4">
-              <p className="text-3xl font-bold text-kabrak-500">
+              <p className="text-3xl font-bold text-blue-600">
                 {formatCurrency(paymentData.amountXAF)} FCFA
               </p>
             </div>
@@ -347,7 +362,7 @@ export function BillingPage() {
             <div className="space-y-2">
               {paymentData.instructions.steps.map((s, i) => (
                 <div key={i} className="flex gap-3 text-sm">
-                  <span className="w-6 h-6 rounded-full bg-kabrak-500 text-white flex items-center justify-center text-xs shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs shrink-0">
                     {i + 1}
                   </span>
                   <span>{s}</span>
@@ -366,7 +381,7 @@ export function BillingPage() {
       {step === 3 && (
         <Card>
           <CardContent className="p-8 text-center">
-            <Clock className="w-16 h-16 mx-auto text-kabrak-500 mb-4 animate-pulse" />
+            <Clock className="w-16 h-16 mx-auto text-blue-600 mb-4 animate-pulse" />
             <h2 className="text-xl font-bold mb-2">En attente de confirmation...</h2>
             <p className="text-sm text-muted-foreground mb-4">
               Nous vérifions votre paiement. Cela peut prendre quelques minutes.

@@ -11,6 +11,17 @@ interface Category {
   _count?: { products: number };
 }
 
+const EMOJI_OPTIONS = [
+  '👕', '👟', '👠', '👜', '💄', '⌚', '🎒', '🧢',
+  '🍔', '🍕', '🥤', '☕', '🍰', '🍪', '🥗', '🍎',
+  '📱', '💻', '🎧', '📷', '🔌', '🔋', '💡', '📺',
+  '🏠', '🛋️', '🛏️', '🚿', '🧹', '🧴', '🧼', '🧽',
+  '🎁', '🎈', '🎂', '🎄', '🎃', '🎨', '🎭', '🎮',
+  '📚', '✏️', '📓', '🔖', '📎', '✂️', '📏', '🖊️',
+  '🚗', '🚲', '🛴', '🏍️', '✈️', '🚢', '🚂', '🚀',
+  '💊', '🩺', '🦷', '👶', '🧸', '🎾', '⚽', '🏀',
+];
+
 export function CategoriesPage() {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -61,8 +72,21 @@ export function CategoriesPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div><label className="text-sm font-medium mb-1 block">{t('products.name')}</label>
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
-                <div><label className="text-sm font-medium mb-1 block">Icon</label>
-                  <Input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} placeholder="shirt, footprints..." /></div>
+                <div>
+                  <label className="text-sm font-medium mb-1 block">Icon</label>
+                  <div className="grid grid-cols-8 gap-1 max-h-40 overflow-y-auto">
+                    {EMOJI_OPTIONS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setForm({ ...form, icon: emoji })}
+                        className={`text-2xl p-2 rounded-lg transition-all ${form.icon === emoji ? 'bg-blue-100 ring-2 ring-blue-500' : 'hover:bg-gray-100'}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex gap-3">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">{t('common.cancel')}</Button>
                   <Button type="submit" className="flex-1">{t('common.save')}</Button>

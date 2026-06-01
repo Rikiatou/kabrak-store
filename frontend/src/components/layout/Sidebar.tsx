@@ -10,23 +10,30 @@ import { useAuthStore } from '@/stores/authStore';
 
 type BusinessMode = 'PRODUCT' | 'SERVICE';
 
+// Businesses that take orders in advance — no walk-in counter sales
+const ORDER_BASED_CATEGORIES = new Set([
+  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+]);
+
 interface NavItem {
   key: string;
   icon: typeof LayoutDashboard;
   path: string;
   plans?: string[];
   modes?: BusinessMode[];
+  hideWhenOrderBased?: boolean;  // hide for order-based businesses (e.g. POS)
+  showWhenOrderBased?: boolean;  // bypass plan gate for order-based businesses (e.g. Deliveries)
 }
 
 const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  // Product mode - STORE has basic products & POS only
+  // Product mode
   { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'] },
   { key: 'orders', icon: ShoppingCart, path: '/orders', modes: ['PRODUCT'] },
-  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'] },
-  // SHOP+ : advanced features
+  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], hideWhenOrderBased: true },
+  // SHOP+ features — Deliveries also surfaced for order-based businesses
   { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
-  { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
+  { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'], showWhenOrderBased: true },
   { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
   // Service mode
   { key: 'projects', icon: FolderKanban, path: '/projects', modes: ['SERVICE'] },
@@ -56,7 +63,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const tenant = useAuthStore((s) => s.tenant);
   const businessMode = tenant?.businessMode || 'PRODUCT';
 
+  // True if ALL tenant categories are order-based (no counter sales)
+  const isOrderBased = !!(tenant?.businessCategories?.length &&
+    tenant.businessCategories.every((cat) => ORDER_BASED_CATEGORIES.has(cat)));
+
   const filteredItems = navItems.filter((item) => {
+    // Hide POS for order-based businesses
+    if (item.hideWhenOrderBased && isOrderBased) return false;
+    // Bypass plan gate for order-based businesses that need deliveries
+    if (item.showWhenOrderBased && isOrderBased) {
+      if (item.modes && !item.modes.includes(businessMode)) return false;
+      return true;
+    }
     if (item.plans && !(tenant && item.plans.includes(tenant.plan))) return false;
     if (item.modes && !item.modes.includes(businessMode)) return false;
     return true;
@@ -85,7 +103,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
             <img src={tenant?.logo || '/logo.png'} alt={tenant?.name || 'KABRAK Store'} className="h-10 object-contain" />
-            <p className="text-[10px] text-gold-500 font-semibold tracking-wider">
+            <p className="text-[10px] text-amber-500 font-semibold tracking-wider">
               {tenant?.plan || 'STORE'}
             </p>
           </div>
@@ -113,7 +131,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     className={cn(
                       'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                       isActive
-                        ? 'bg-kabrak-500 text-white shadow-md'
+                        ? 'bg-blue-600 text-white shadow-md'
                         : 'text-sidebar-foreground hover:bg-accent'
                     )}
                   >
@@ -132,9 +150,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             'text-center text-xs font-medium py-1.5 rounded-lg',
             businessMode === 'SERVICE'
               ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
-              : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+              : isOrderBased
+                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
           )}>
-            {businessMode === 'SERVICE' ? 'Services & Clients' : 'Vente & Commandes'}
+            {businessMode === 'SERVICE' ? 'Services & Clients' : isOrderBased ? 'Sur commande' : 'Vente & Commandes'}
           </div>
         </div>
       </aside>

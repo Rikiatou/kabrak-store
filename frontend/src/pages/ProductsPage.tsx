@@ -40,13 +40,36 @@ const ADAPTIVE_FIELDS: Record<string, { label: string; labelEn: string; fields: 
   MINI_MARKET: { label: 'Mini Market', labelEn: 'Mini Market', fields: ['brand', 'weight'] },
   WHOLESALE: { label: 'Grossiste', labelEn: 'Wholesale', fields: ['brand', 'minQuantity'] },
   MIXED_SHOP: { label: 'Boutique Mixte', labelEn: 'Mixed Shop', fields: ['type'] },
-  CAKES: { label: 'Gâteaux', labelEn: 'Cakes', fields: ['flavors', 'sizes', 'deliveryDate'] },
-  FOOD_BUSINESS: { label: 'Food Business', labelEn: 'Food Business', fields: ['menuItems', 'portions'] },
-  FOOD_DELIVERY: { label: 'Food Delivery', labelEn: 'Food Delivery', fields: ['menuItems', 'deliveryZone'] },
-  HOME_COOKING: { label: 'Cuisine Maison', labelEn: 'Home Cooking', fields: ['menuItems', 'portions'] },
+  CAKES: { label: 'Gâteaux', labelEn: 'Cakes', fields: ['flavors', 'sizes'] },
+  FOOD_BUSINESS: { label: 'Food Business', labelEn: 'Food Business', fields: ['portions'] },
+  FOOD_DELIVERY: { label: 'Food Delivery', labelEn: 'Food Delivery', fields: ['portions', 'deliveryZone'] },
+  HOME_COOKING: { label: 'Cuisine Maison', labelEn: 'Home Cooking', fields: ['portions'] },
   WHATSAPP_SELLER: { label: 'Vendeur WhatsApp', labelEn: 'WhatsApp Seller', fields: ['color', 'sizes'] },
-  MADE_TO_ORDER: { label: 'Sur Commande', labelEn: 'Made to Order', fields: ['measurements', 'deliveryDate', 'deposit'] },
+  MADE_TO_ORDER: { label: 'Sur Commande', labelEn: 'Made to Order', fields: ['measurements'] },
   OTHER: { label: 'Autre', labelEn: 'Other', fields: [] },
+};
+
+// Business types made on order — no stock to track
+const ORDER_BASED_TYPES = new Set([
+  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER',
+]);
+
+// Translated labels for adaptive fields (FR / EN)
+const FIELD_LABELS: Record<string, { fr: string; en: string; placeholder?: string }> = {
+  color: { fr: 'Couleur', en: 'Color' },
+  sizes: { fr: 'Tailles & quantités', en: 'Sizes & quantities', placeholder: 'Ex: S:5, M:10, L:7' },
+  brand: { fr: 'Marque', en: 'Brand' },
+  volume: { fr: 'Volume', en: 'Volume', placeholder: 'Ex: 50ml, 100ml' },
+  type: { fr: 'Type', en: 'Type' },
+  material: { fr: 'Matière', en: 'Material' },
+  model: { fr: 'Modèle', en: 'Model' },
+  warranty: { fr: 'Garantie', en: 'Warranty', placeholder: 'Ex: 6 mois, 1 an' },
+  weight: { fr: 'Poids', en: 'Weight', placeholder: 'Ex: 1kg, 500g' },
+  minQuantity: { fr: 'Quantité minimale', en: 'Minimum quantity' },
+  flavors: { fr: 'Parfums / Saveurs', en: 'Flavors', placeholder: 'Ex: Vanille, Chocolat, Fraise' },
+  portions: { fr: 'Portions', en: 'Portions', placeholder: 'Ex: 1 personne, 4 personnes' },
+  deliveryZone: { fr: 'Zone de livraison', en: 'Delivery zone', placeholder: 'Ex: Akwa, Bonapriso' },
+  measurements: { fr: 'Mesures', en: 'Measurements', placeholder: 'Ex: tour de taille, longueur' },
 };
 
 const defaultForm = {
@@ -56,7 +79,7 @@ const defaultForm = {
 };
 
 export function ProductsPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
@@ -215,7 +238,7 @@ export function ProductsPage() {
                       <button key={bt} type="button"
                         onClick={() => setForm({ ...form, businessType: bt })}
                         className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer',
-                          form.businessType === bt ? 'bg-kabrak-500 text-white border-kabrak-500' : 'border-border hover:border-kabrak-300'
+                          form.businessType === bt ? 'bg-blue-600 text-white border-blue-600' : 'border-border hover:border-blue-300'
                         )}>
                         {ADAPTIVE_FIELDS[bt]?.label || bt}
                       </button>
@@ -234,45 +257,50 @@ export function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">{t('products.stock')}</label>
-                    {form.businessType === 'HIJABS_ABAYAS' ? (
-                      <Input
-                        type="number"
-                        placeholder={t('products.autoCalculated')}
-                        value={form.totalStock || ''}
-                        readOnly
-                        className="bg-gray-50"
-                      />
-                    ) : (
-                      <Input type="number" placeholder="0" value={form.totalStock || ''} onChange={(e) => setForm({ ...form, totalStock: e.target.value ? +e.target.value : 0 })} />
-                    )}
+                {ORDER_BASED_TYPES.has(form.businessType) ? (
+                  <p className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+                    {language === 'fr'
+                      ? 'Produit fait sur commande — pas de gestion de stock. La date de livraison se définit lors de la commande.'
+                      : 'Made-to-order product — no stock tracking. Delivery date is set when the order is placed.'}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">{t('products.stock')}</label>
+                      {form.businessType === 'HIJABS_ABAYAS' ? (
+                        <Input
+                          type="number"
+                          placeholder={t('products.autoCalculated')}
+                          value={form.totalStock || ''}
+                          readOnly
+                          className="bg-gray-50"
+                        />
+                      ) : (
+                        <Input type="number" placeholder="0" value={form.totalStock || ''} onChange={(e) => setForm({ ...form, totalStock: e.target.value ? +e.target.value : 0 })} />
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">{t('products.lowStock')}</label>
+                      <Input type="number" placeholder="5" value={form.lowStockAlert || ''} onChange={(e) => setForm({ ...form, lowStockAlert: e.target.value ? +e.target.value : 5 })} />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">{t('products.lowStock')}</label>
-                    <Input type="number" placeholder="5" value={form.lowStockAlert || ''} onChange={(e) => setForm({ ...form, lowStockAlert: e.target.value ? +e.target.value : 5 })} />
-                  </div>
-                </div>
+                )}
 
                 {/* Adaptive Fields */}
-                {form.businessType && ADAPTIVE_FIELDS[form.businessType]?.fields.map((field) => (
-                  <div key={field}>
-                    <label className="text-sm font-medium mb-1 block capitalize">{field}</label>
-                    {field === 'sizes' ? (
+                {form.businessType && ADAPTIVE_FIELDS[form.businessType]?.fields.map((field) => {
+                  const meta = FIELD_LABELS[field];
+                  const label = meta ? (language === 'fr' ? meta.fr : meta.en) : field;
+                  return (
+                    <div key={field}>
+                      <label className="text-sm font-medium mb-1 block">{label}</label>
                       <Input
-                        placeholder="Ex: S:5, M:10, L:7"
+                        placeholder={meta?.placeholder || ''}
                         value={typeof form.adaptiveFields[field] === 'string' ? form.adaptiveFields[field] as string : ''}
                         onChange={(e) => setForm({ ...form, adaptiveFields: { ...form.adaptiveFields, [field]: e.target.value } })}
                       />
-                    ) : (
-                      <Input
-                        value={(form.adaptiveFields[field] as string) || ''}
-                        onChange={(e) => setForm({ ...form, adaptiveFields: { ...form.adaptiveFields, [field]: e.target.value } })}
-                      />
-                    )}
-                  </div>
-                ))}
+                    </div>
+                  );
+                })}
 
                 <div className="flex gap-3 pt-2">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">
@@ -321,7 +349,7 @@ export function ProductsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.sellingPrice')}</p>
-                      <p className="text-xs sm:text-sm font-bold text-kabrak-500">{formatCurrency(product.sellingPrice)}</p>
+                      <p className="text-xs sm:text-sm font-bold text-blue-600">{formatCurrency(product.sellingPrice)}</p>
                     </div>
                   </div>
 
