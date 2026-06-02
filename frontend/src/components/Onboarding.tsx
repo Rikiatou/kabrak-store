@@ -4,37 +4,131 @@ import { useAuthStore } from '@/stores/authStore';
 
 const ONBOARDING_KEY = 'kabrak_onboarding_done';
 
-const slides = [
-  {
-    icon: '🏪',
-    title: 'Bienvenue sur KABRAK Store',
-    description: 'Gère ta boutique, ton stock, tes commandes et tes factures en un seul endroit.',
-  },
-  {
-    icon: '📦',
-    title: 'Commence par les produits',
-    description: 'Ajoute tes produits avec leurs prix et stock. C\'est la base de ton catalogue.',
-  },
-  {
-    icon: '👥',
-    title: 'Enregistre tes clients',
-    description: 'Crée tes clients pour suivre leur historique d\'achats et les fidéliser.',
-  },
-  {
-    icon: '🛒',
-    title: 'Vends facilement',
-    description: 'Crée des commandes en quelques clics. Le stock se met à jour automatiquement.',
-  },
-  {
-    icon: '📄',
-    title: 'Factures professionnelles',
-    description: 'Envoie des factures par WhatsApp avec ton logo. Tes clients seront impressionnés.',
-  },
-];
+const getSlides = (plan: string, mode: string, language: string) => {
+  const fr = language === 'fr';
+
+  const baseSlides = [
+    {
+      icon: '🏪',
+      title: fr ? 'Bienvenue sur KABRAK Store' : 'Welcome to KABRAK Store',
+      description: fr
+        ? 'Gère ta boutique, ton stock, tes commandes et tes factures en un seul endroit.'
+        : 'Manage your store, stock, orders and invoices in one place.',
+    },
+  ];
+
+  if (mode === 'PRODUCT') {
+    baseSlides.push(
+      {
+        icon: '📦',
+        title: fr ? 'Commence par les produits' : 'Start with products',
+        description: fr
+          ? 'Ajoute tes produits avec leurs prix et stock. C\'est la base de ton catalogue.'
+          : 'Add your products with prices and stock. This is the base of your catalog.',
+      },
+      {
+        icon: '👥',
+        title: fr ? 'Enregistre tes clients' : 'Register your clients',
+        description: fr
+          ? 'Crée tes clients pour suivre leur historique d\'achats et les fidéliser.'
+          : 'Create your clients to track their purchase history and build loyalty.',
+      },
+      {
+        icon: '🛒',
+        title: fr ? 'Vends facilement' : 'Sell easily',
+        description: fr
+          ? 'Crée des commandes en quelques clics. Le stock se met à jour automatiquement.'
+          : 'Create orders in a few clicks. Stock updates automatically.',
+      },
+      {
+        icon: '📄',
+        title: fr ? 'Factures professionnelles' : 'Professional invoices',
+        description: fr
+          ? 'Envoie des factures par WhatsApp avec ton logo. Tes clients seront impressionnés.'
+          : 'Send invoices via WhatsApp with your logo. Your clients will be impressed.',
+      }
+    );
+
+    if (plan === 'SHOP' || plan === 'BUSINESS') {
+      baseSlides.push(
+        {
+          icon: '💻',
+          title: fr ? 'Caisse POS' : 'POS Cash Register',
+          description: fr
+            ? 'Utilise la caisse pour les ventes en magasin. Scan produit, monnaie automatique.'
+            : 'Use the cash register for in-store sales. Scan product, automatic change.',
+        },
+        {
+          icon: '📊',
+          title: fr ? 'Rapports détaillés' : 'Detailed reports',
+          description: fr
+            ? 'Analyse tes ventes, bénéfices, top clients et produits. Exporte en Excel.'
+            : 'Analyze your sales, profits, top clients and products. Export to Excel.',
+        }
+      );
+    }
+
+    if (plan === 'BUSINESS') {
+      baseSlides.push(
+        {
+          icon: '🏢',
+          title: fr ? 'Multi-boutiques' : 'Multi-stores',
+          description: fr
+            ? 'Gère plusieurs points de vente depuis un seul compte. Rapports par boutique.'
+            : 'Manage multiple points of sale from one account. Reports by store.',
+        },
+        {
+          icon: '🤖',
+          title: fr ? 'Rapports IA' : 'AI Reports',
+          description: fr
+            ? 'Analyse intelligente avec recommandations personnalisées. Pose des questions en langage naturel.'
+            : 'Intelligent analysis with personalized recommendations. Ask questions in natural language.',
+        }
+      );
+    }
+  } else {
+    // SERVICE mode
+    baseSlides.push(
+      {
+        icon: '📋',
+        title: fr ? 'Crée tes services' : 'Create your services',
+        description: fr
+          ? 'Définis tes offres de services avec prix, durée et type de facturation.'
+          : 'Define your service offerings with price, duration and billing type.',
+      },
+      {
+        icon: '📁',
+        title: fr ? 'Gère tes projets' : 'Manage your projects',
+        description: fr
+          ? 'Crée des projets clients avec budget, jalons et suivi de paiement.'
+          : 'Create client projects with budget, milestones and payment tracking.',
+      },
+      {
+        icon: '📄',
+        title: fr ? 'Facturation récurrente' : 'Recurring billing',
+        description: fr
+          ? 'Automatise les factures pour tes abonnements mensuels ou trimestriels.'
+          : 'Automate invoices for your monthly or quarterly subscriptions.',
+      },
+      {
+        icon: '👥',
+        title: fr ? 'Enregistre tes clients' : 'Register your clients',
+        description: fr
+          ? 'Crée tes clients pour suivre leur historique d\'achats et les fidéliser.'
+          : 'Create your clients to track their purchase history and build loyalty.',
+      }
+    );
+  }
+
+  return baseSlides;
+};
 
 export function Onboarding() {
-  const { language } = useAuthStore();
+  const { language, tenant } = useAuthStore();
   const fr = language === 'fr';
+  const plan = tenant?.plan || 'STORE';
+  const mode = tenant?.businessMode || 'PRODUCT';
+  const slides = getSlides(plan, mode, language);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
 
