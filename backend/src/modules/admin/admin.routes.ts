@@ -14,6 +14,7 @@ import {
   approvePayment,
   rejectPayment,
   getAnalytics,
+  deleteTenant,
 } from './admin.controller';
 
 const router = Router();
@@ -58,6 +59,7 @@ router.post('/tenants/:id/suspend', suspendTenant);
 router.post('/tenants/:id/reactivate', reactivateTenant);
 router.post('/tenants/:id/extend', extendSubscription);
 router.post('/tenants/:id/change-plan', changeTenantPlan);
+router.delete('/tenants/:id', deleteTenant);
 
 // Orange Money Payments
 router.get('/payments/pending', getPendingPayments);

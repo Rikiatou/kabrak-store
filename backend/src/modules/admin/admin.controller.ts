@@ -295,6 +295,46 @@ export const rejectPayment = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+export const deleteTenant = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tenantId = req.params.id as string;
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+    if (!tenant) {
+      res.status(404).json({ success: false, message: 'Tenant introuvable' });
+      return;
+    }
+
+    // Delete all tenant data in dependency order
+    await prisma.$transaction([
+      prisma.billingPayment.deleteMany({ where: { tenantId } }),
+      prisma.notification.deleteMany({ where: { tenantId } }),
+      prisma.loyaltyReward.deleteMany({ where: { tenantId } }),
+      prisma.orderItem.deleteMany({ where: { order: { tenantId } } }),
+      prisma.delivery.deleteMany({ where: { tenantId } }),
+      prisma.order.deleteMany({ where: { tenantId } }),
+      prisma.invoiceLineItem.deleteMany({ where: { invoice: { tenantId } } }),
+      prisma.invoice.deleteMany({ where: { tenantId } }),
+      prisma.product.deleteMany({ where: { tenantId } }),
+      prisma.category.deleteMany({ where: { tenantId } }),
+      prisma.supplier.deleteMany({ where: { tenantId } }),
+      prisma.client.deleteMany({ where: { tenantId } }),
+      prisma.expense.deleteMany({ where: { tenantId } }),
+      prisma.projectMilestone.deleteMany({ where: { project: { tenantId } } }),
+      prisma.project.deleteMany({ where: { tenantId } }),
+      prisma.recurringBilling.deleteMany({ where: { tenantId } }),
+      prisma.store.deleteMany({ where: { tenantId } }),
+      prisma.subscription.deleteMany({ where: { tenantId } }),
+      prisma.user.deleteMany({ where: { tenantId } }),
+      prisma.tenant.delete({ where: { id: tenantId } }),
+    ]);
+
+    res.json({ success: true, message: `Business "${tenant.name}" supprimé définitivement` });
+  } catch (error) {
+    console.error('[ADMIN] Delete tenant error:', error);
+    res.status(500).json({ success: false, message: 'Erreur suppression' });
+  }
+};
+
 export const getAnalytics = async (_req: Request, res: Response): Promise<void> => {
   try {
     const [byPlan, byMode, revenueByMonth] = await Promise.all([
