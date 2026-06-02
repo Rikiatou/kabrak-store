@@ -48,21 +48,21 @@ const SERVICE_CATEGORIES = [
 ];
 
 const PLANS = [
-  { value: 'STORE', price: '4 900', features: ['Commandes', 'Clients', 'Facturation', 'WhatsApp'] },
-  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Gestion stock', 'Caisse POS', 'Employés'] },
-  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Rapports avancés'] },
+  { value: 'STORE', price: '4 900', features: ['Produits & stock', 'Commandes', 'Clients', 'Facturation WhatsApp'] },
+  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Caisse POS', 'Livraisons', 'Employés & Rapports'] },
+  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
 ];
 
 const ORDER_BASED_PLANS = [
-  { value: 'STORE', price: '4 900', features: ['Commandes', 'Clients', 'Facturation', 'WhatsApp'] },
-  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Livraisons', 'Gestion stock', 'Employés'] },
-  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-employés', 'Rapports avancés', 'IA'] },
+  { value: 'STORE', price: '4 900', features: ['Commandes WhatsApp', 'Clients', 'Facturation', 'Dashboard'] },
+  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Livraisons', 'Employés', 'Rapports'] },
+  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
 ];
 
 const SERVICE_PLANS = [
-  { value: 'STORE', price: '4 900', features: ['Projets', 'Clients', 'Facturation', 'WhatsApp'] },
-  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Récurrent', 'Milestones', 'Employés'] },
-  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Rapports avancés'] },
+  { value: 'STORE', price: '4 900', features: ['Projets & milestones', 'Clients', 'Facturation WhatsApp', 'Dépenses'] },
+  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Facturation récurrente', 'Employés', 'Rapports'] },
+  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
 ];
 
 const ORDER_BASED_CATS = new Set([

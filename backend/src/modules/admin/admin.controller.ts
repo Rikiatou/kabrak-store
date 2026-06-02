@@ -129,10 +129,12 @@ export const reactivateTenant = async (req: Request, res: Response): Promise<voi
 export const extendSubscription = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.params.id as string;
-    const { months = 1 } = req.body;
-    const sub = await prisma.subscription.findUnique({
-      where: { tenantId },
-    });
+    const { months = 0, days = 0 } = req.body;
+    if (!months && !days) {
+      res.status(400).json({ success: false, message: 'Précisez months ou days' });
+      return;
+    }
+    const sub = await prisma.subscription.findUnique({ where: { tenantId } });
     if (!sub) {
       res.status(404).json({ success: false, message: 'Abonnement introuvable' });
       return;
@@ -141,14 +143,16 @@ export const extendSubscription = async (req: Request, res: Response): Promise<v
     const now = new Date();
     const base = sub.endDate > now ? sub.endDate : now;
     const newEnd = new Date(base);
-    newEnd.setMonth(newEnd.getMonth() + (months as number));
+    if (months) newEnd.setMonth(newEnd.getMonth() + (months as number));
+    if (days) newEnd.setDate(newEnd.getDate() + (days as number));
 
     await prisma.subscription.update({
       where: { tenantId },
-      data: { endDate: newEnd, status: 'ACTIVE' },
+      data: { endDate: newEnd, trialEndsAt: newEnd, status: 'ACTIVE' },
     });
 
-    res.json({ success: true, message: `Abonnement prolongé de ${months} mois` });
+    const label = months ? `${months} mois` : `${days} jours`;
+    res.json({ success: true, message: `Abonnement prolongé de ${label}`, newEndDate: newEnd });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Erreur extension' });
   }
