@@ -158,20 +158,18 @@ export function InvoicesPage() {
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl sm:text-2xl font-bold dark:text-white">{t('invoices.title')}</h1>
         <div className="flex gap-2">
-          {isService && (
-            <Button size="sm" onClick={() => setShowForm(!showForm)}>
-              <Plus className="w-4 h-4 mr-1" />
-              {language === 'fr' ? 'Nouvelle Facture' : 'New Invoice'}
-            </Button>
-          )}
+          <Button size="sm" onClick={() => setShowForm(!showForm)}>
+            <Plus className="w-4 h-4 mr-1" />
+            {language === 'fr' ? 'Nouvelle Facture' : 'New Invoice'}
+          </Button>
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" /> {t('common.export')} CSV
           </Button>
         </div>
       </div>
 
-      {/* Standalone Invoice Creation Form (SERVICE mode only) */}
-      {showForm && isService && (
+      {/* Standalone Invoice Creation Form */}
+      {showForm && (
         <Card className="border-2 border-violet-200 dark:border-violet-800">
           <CardContent className="p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -302,12 +300,10 @@ export function InvoicesPage() {
         <div className="text-center py-12">
           <FileText className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
           <p className="text-muted-foreground dark:text-gray-400">{t('common.noResults')}</p>
-          {isService && (
-            <Button className="mt-4" onClick={() => setShowForm(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              {language === 'fr' ? 'Créer votre première facture' : 'Create your first invoice'}
-            </Button>
-          )}
+          <Button className="mt-4" onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            {language === 'fr' ? 'Créer votre première facture' : 'Create your first invoice'}
+          </Button>
         </div>
       ) : (
         <div className="space-y-3">
