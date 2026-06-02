@@ -282,20 +282,29 @@ export const updateCategories = async (req: Request, res: Response): Promise<voi
 
 export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = req.body as { email: string };
-    if (!email) {
-      res.status(400).json({ success: false, message: 'Email requis' });
+    const { email, phone } = req.body as { email?: string; phone?: string };
+
+    if (!email && !phone) {
+      res.status(400).json({ success: false, message: 'Email ou téléphone requis' });
       return;
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { tenant: { select: { language: true } } },
-    });
+    let user;
+    if (email) {
+      user = await prisma.user.findUnique({
+        where: { email },
+        include: { tenant: { select: { language: true } } },
+      });
+    } else if (phone) {
+      user = await prisma.user.findFirst({
+        where: { phone },
+        include: { tenant: { select: { language: true } } },
+      });
+    }
 
     // Always respond OK to avoid user enumeration
     if (!user || !user.isActive) {
-      res.json({ success: true, message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+      res.json({ success: true, message: 'Si ce compte existe, un lien de réinitialisation a été généré.' });
       return;
     }
 
@@ -308,9 +317,19 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
     );
 
     const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
-    await sendPasswordResetEmail(email, resetUrl, user.tenant?.language || 'fr');
 
-    res.json({ success: true, message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+    // If email provided, send email
+    if (email) {
+      await sendPasswordResetEmail(email, resetUrl, user.tenant?.language || 'fr');
+      res.json({ success: true, message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+    } else {
+      // If phone only, return the reset link for WhatsApp/copy
+      res.json({
+        success: true,
+        resetUrl,
+        message: 'Lien de réinitialisation généré.',
+      });
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to process request';
     res.status(500).json({ success: false, message });
