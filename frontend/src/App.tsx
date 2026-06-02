@@ -28,6 +28,7 @@ import { SuppliersPage } from './pages/SuppliersPage';
 import { StorefrontPage } from './pages/StorefrontPage';
 import { PublicOrderPage } from './pages/PublicOrderPage';
 import { AIReportsPage } from './pages/AIReportsPage';
+import { GuidePage } from './pages/GuidePage';
 import { useAuthStore } from './stores/authStore';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -164,6 +165,7 @@ function App() {
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/suppliers" element={<PlanGuard plans={['SHOP','BUSINESS']}><SuppliersPage /></PlanGuard>} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/guide" element={<GuidePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

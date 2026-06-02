@@ -129,7 +129,8 @@ export function RegisterPage() {
       };
       const { data } = await api.post('/auth/register', payload);
       setAuth(data.data);
-      navigate('/dashboard');
+      localStorage.setItem('kabrak_new_user', '1');
+      navigate('/guide');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || "Erreur lors de l'inscription");
