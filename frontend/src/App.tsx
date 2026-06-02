@@ -145,7 +145,7 @@ function App() {
           {/* Product mode routes */}
           <Route path="/products" element={<ModeGuard mode="PRODUCT"><ProductsPage /></ModeGuard>} />
           <Route path="/orders" element={<ModeGuard mode="PRODUCT"><OrdersPage /></ModeGuard>} />
-          <Route path="/pos" element={<ModeGuard mode="PRODUCT"><POSPage /></ModeGuard>} />
+          <Route path="/pos" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><POSPage /></PlanGuard></ModeGuard>} />
           {/* SHOP+ only */}
           <Route path="/categories" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><CategoriesPage /></PlanGuard></ModeGuard>} />
           <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><DeliveriesGuard><DeliveriesPage /></DeliveriesGuard></ModeGuard>} />

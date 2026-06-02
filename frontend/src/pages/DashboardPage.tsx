@@ -39,6 +39,16 @@ interface ServiceDashboardData {
   }>;
 }
 
+interface StatCard {
+  key: string;
+  labelKey?: string;
+  label?: { fr: string; en: string };
+  icon: any;
+  gradient: string;
+  isCurrency?: boolean;
+  isProfit?: boolean;
+}
+
 const statusColors: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700',
   CONFIRMED: 'bg-blue-100 text-blue-700',
@@ -147,14 +157,28 @@ const categoryDashboards: Record<string, {
   },
 };
 
-const productStatCards = [
-  { key: 'todayOrders', labelKey: 'dashboard.todaySales', icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
-  { key: 'todayRevenue', labelKey: 'dashboard.todayRevenue', icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
-  { key: 'profit', labelKey: 'dashboard.profit', icon: TrendingDown, gradient: 'from-green-500 to-green-600', isCurrency: true, isProfit: true },
-  { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, gradient: 'from-violet-500 to-violet-600' },
+const productStatCards: StatCard[] = [
+  { key: 'todayOrders', labelKey: 'dashboard.todaySales', icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600', isProfit: false },
+  { key: 'todayRevenue', labelKey: 'dashboard.todayRevenue', icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true, isProfit: false },
+  { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, gradient: 'from-violet-500 to-violet-600', isProfit: false },
+  { key: 'totalProducts', labelKey: 'dashboard.totalProducts', icon: Package, gradient: 'from-emerald-500 to-emerald-600', isProfit: false },
 ];
 
-const serviceStatCards = [
+const shopStatCards: StatCard[] = [
+  { key: 'todayOrders', labelKey: 'dashboard.todaySales', icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600', isProfit: false },
+  { key: 'todayRevenue', labelKey: 'dashboard.todayRevenue', icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true, isProfit: false },
+  { key: 'profit', labelKey: 'dashboard.profit', icon: TrendingDown, gradient: 'from-green-500 to-green-600', isCurrency: true, isProfit: true },
+  { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, gradient: 'from-violet-500 to-violet-600', isProfit: false },
+];
+
+const businessStatCards: StatCard[] = [
+  { key: 'todayOrders', labelKey: 'dashboard.todaySales', icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600', isProfit: false },
+  { key: 'todayRevenue', labelKey: 'dashboard.todayRevenue', icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true, isProfit: false },
+  { key: 'profit', labelKey: 'dashboard.profit', icon: TrendingDown, gradient: 'from-green-500 to-green-600', isCurrency: true, isProfit: true },
+  { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, gradient: 'from-violet-500 to-violet-600', isProfit: false },
+];
+
+const serviceStatCards: StatCard[] = [
   { key: 'activeProjects', label: { fr: 'Projets actifs', en: 'Active Projects' }, icon: FolderKanban, gradient: 'from-violet-500 to-violet-600' },
   { key: 'totalRevenue', label: { fr: 'Revenus totaux', en: 'Total Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
   { key: 'totalProjects', label: { fr: 'Total projets', en: 'Total Projects' }, icon: FileText, gradient: 'from-blue-500 to-blue-600' },
@@ -165,6 +189,7 @@ export function DashboardPage() {
   const { t, language } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
+  const plan = tenant?.plan || 'STORE';
   const businessMode = tenant?.businessMode || 'PRODUCT';
   const businessCategories = tenant?.businessCategories || [];
 
@@ -326,7 +351,7 @@ export function DashboardPage() {
             );
           })
         ) : (
-          productStatCards.map((card) => {
+          (plan === 'SHOP' ? shopStatCards : plan === 'BUSINESS' ? businessStatCards : productStatCards).map((card) => {
             const Icon = card.icon;
             let value: number;
             if (card.key === 'profit') {

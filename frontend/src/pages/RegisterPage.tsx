@@ -97,6 +97,7 @@ export function RegisterPage() {
     storeName: '', plan: 'STORE' as string,
     businessMode: '' as BusinessMode | '',
     businessCategories: [] as string[],
+    customCategory: '',
   });
 
   const stepLabels = language === 'fr'
@@ -123,8 +124,13 @@ export function RegisterPage() {
     setError('');
     setLoading(true);
     try {
+      const finalCategories = [...form.businessCategories];
+      if (form.customCategory.trim()) {
+        finalCategories.push(form.customCategory.trim());
+      }
       const payload = {
         ...form,
+        businessCategories: finalCategories,
         businessMode: form.businessMode || 'PRODUCT',
       };
       const { data } = await api.post('/auth/register', payload);
@@ -391,6 +397,18 @@ export function RegisterPage() {
                   );
                 })}
               </div>
+              <div className="pt-2">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                  {language === 'fr' ? 'Autre catégorie (optionnel)' : 'Other category (optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={form.customCategory}
+                  onChange={(e) => setForm({ ...form, customCategory: e.target.value })}
+                  placeholder={language === 'fr' ? 'ex: Biscuits, Chaussures enfants...' : 'e.g. Biscuits, Kids shoes...'}
+                  className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-gray-50/50 dark:bg-gray-700"
+                />
+              </div>
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setStep(2)}
@@ -400,7 +418,7 @@ export function RegisterPage() {
                 </button>
                 <button
                   onClick={() => setStep(4)}
-                  disabled={form.businessCategories.length === 0}
+                  disabled={form.businessCategories.length === 0 && !form.customCategory}
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-200 disabled:opacity-40 flex items-center justify-center gap-1"
                 >
                   {language === 'fr' ? 'Continuer' : 'Continue'} <ChevronRight className="w-4 h-4" />
