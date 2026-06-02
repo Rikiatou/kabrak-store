@@ -295,6 +295,27 @@ export const rejectPayment = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+export const resetUserPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = req.params.userId as string;
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      res.status(400).json({ success: false, message: 'Mot de passe trop court (min 6 caractères)' });
+      return;
+    }
+    const bcrypt = await import('bcryptjs');
+    const hashed = await bcrypt.hash(password, 10);
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashed },
+      select: { id: true, email: true, firstName: true, lastName: true },
+    });
+    res.json({ success: true, message: `Mot de passe réinitialisé pour ${user.email}`, data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur reset mot de passe' });
+  }
+};
+
 export const deleteTenant = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.params.id as string;

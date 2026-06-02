@@ -15,6 +15,7 @@ import {
   rejectPayment,
   getAnalytics,
   deleteTenant,
+  resetUserPassword,
 } from './admin.controller';
 
 const router = Router();
@@ -60,6 +61,7 @@ router.post('/tenants/:id/reactivate', reactivateTenant);
 router.post('/tenants/:id/extend', extendSubscription);
 router.post('/tenants/:id/change-plan', changeTenantPlan);
 router.delete('/tenants/:id', deleteTenant);
+router.post('/users/:userId/reset-password', resetUserPassword);
 
 // Orange Money Payments
 router.get('/payments/pending', getPendingPayments);
