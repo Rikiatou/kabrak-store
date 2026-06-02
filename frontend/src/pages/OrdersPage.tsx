@@ -142,8 +142,9 @@ export function OrdersPage() {
     const phone = order.client?.phone?.replace(/\s+/g, '').replace('+', '');
     if (!phone) return;
     const items = order.items.map((i) => `${i.product.name} x${i.quantity} = ${formatCurrency(i.totalPrice)}`).join('\n');
+    const storeName = tenant?.name || 'KABRAK';
     const message = encodeURIComponent(
-      `*KABRAK - ${t('orders.whatsappMessage.invoice')}*\n\n${t('orders.whatsappMessage.ref')}: ${order.reference}\n\n${items}\n\n` +
+      `*${storeName} - ${t('orders.whatsappMessage.invoice')}*\n\n${t('orders.whatsappMessage.ref')}: ${order.reference}\n\n${items}\n\n` +
       `${t('orders.whatsappMessage.total')}: ${formatCurrency(order.finalAmount)}\n${t('orders.whatsappMessage.paid')}: ${formatCurrency(order.amountPaid)}\n` +
       `${t('orders.whatsappMessage.remaining')}: ${formatCurrency(order.amountRemaining)}\n\n${t('orders.whatsappMessage.thanks')}`
     );
