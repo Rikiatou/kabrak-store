@@ -24,7 +24,7 @@ export const registerSchema = z.object({
   storeName: z.string().min(1, 'Nom requis'),
   plan: z.enum(['STORE', 'SHOP', 'BUSINESS']).default('STORE'),
   businessMode: z.enum(['PRODUCT', 'SERVICE']).default('PRODUCT'),
-  businessCategories: z.array(z.enum(BUSINESS_CATEGORIES)).min(1, 'Sélectionnez au moins une catégorie'),
+  businessCategories: z.array(z.string()).min(1, 'Sélectionnez au moins une catégorie'),
   language: z.enum(['fr', 'en']).default('fr'),
 });
 
