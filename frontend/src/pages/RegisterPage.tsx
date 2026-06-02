@@ -323,7 +323,7 @@ export function RegisterPage() {
                   type="tel"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="6 XX XX XX XX"
+                  placeholder={language === 'fr' ? '+33 6 XX XX XX XX (optionnel)' : '+33 6 XX XX XX XX (optional)'}
                   className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-gray-50/50 dark:bg-gray-700 dark:text-white"
                 />
               </div>
