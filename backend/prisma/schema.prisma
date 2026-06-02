@@ -143,7 +143,7 @@ model Tenant {
   slug               String             @unique
   plan               PlanType           @default(STORE)
   businessMode       BusinessMode       @default(PRODUCT)
-  businessCategories BusinessCategory[]
+  businessCategories String[]
   phone              String?
   email              String?
   address            String?

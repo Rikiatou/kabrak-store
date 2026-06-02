@@ -43,7 +43,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           slug,
           plan: data.plan,
           businessMode: data.businessMode,
-          businessCategories: data.businessCategories as any,
+          businessCategories: data.businessCategories,
           phone: data.phone,
           email: data.email,
           language: data.language,
