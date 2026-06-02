@@ -21,6 +21,33 @@ interface GuideModule {
 
 const ALL_MODULES: GuideModule[] = [
   {
+    key: 'getting-started',
+    icon: Sparkles,
+    color: 'from-violet-500 to-violet-600',
+    title: { fr: 'Commencer', en: 'Getting Started' },
+    description: {
+      fr: 'Ordre recommandé pour bien démarrer : produits → clients → commandes.',
+      en: 'Recommended order to get started: products → clients → orders.',
+    },
+    steps: {
+      fr: [
+        '1️⃣ PRODUITS : Ajoute d\'abord tes produits avec leurs prix et stock. C\'est la base de ton catalogue.',
+        '2️⃣ CLIENTS : Enregistre tes clients pour suivre leur historique d\'achats et les fidéliser.',
+        '3️⃣ COMMANDES : Crée des commandes en quelques clics. Le stock se met à jour automatiquement.',
+        '💡 Tu peux créer une commande avec "Client anonyme" si tu n\'as pas encore enregistré de clients.',
+        '💡 Tu peux aussi créer des produits directement depuis une commande, mais c\'est moins pratique.',
+      ],
+      en: [
+        '1️⃣ PRODUCTS: Add your products first with prices and stock. This is the base of your catalog.',
+        '2️⃣ CLIENTS: Register your clients to track their purchase history and build loyalty.',
+        '3️⃣ ORDERS: Create orders in a few clicks. Stock updates automatically.',
+        '💡 You can create an order with "Anonymous client" if you haven\'t registered clients yet.',
+        '💡 You can also create products directly from an order, but it\'s less convenient.',
+      ],
+    },
+    link: '/products',
+  },
+  {
     key: 'dashboard',
     icon: LayoutDashboard,
     color: 'from-blue-500 to-blue-600',

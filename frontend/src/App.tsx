@@ -30,6 +30,7 @@ import { PublicOrderPage } from './pages/PublicOrderPage';
 import { AIReportsPage } from './pages/AIReportsPage';
 import { GuidePage } from './pages/GuidePage';
 import { InstallPrompt } from './components/InstallPrompt';
+import { Onboarding } from './components/Onboarding';
 import { useAuthStore } from './stores/authStore';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -128,6 +129,7 @@ function App() {
   return (
     <BrowserRouter>
       <InstallPrompt />
+      <Onboarding />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
