@@ -41,6 +41,7 @@ process.on('unhandledRejection', (err) => {
 console.log('[BOOT] Starting KABRAK server v1.2.0...');
 
 const app = express();
+app.set('trust proxy', 1);
 
 const allowedOrigins = [
   ...config.frontendUrl.split(',').map(o => o.trim()),
