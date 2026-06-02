@@ -81,8 +81,8 @@ export function OrdersPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [amountPaid, setAmountPaid] = useState(0);
-  const [discount, setDiscount] = useState(0);
+  const [amountPaid, setAmountPaid] = useState<number | ''>('');
+  const [discount, setDiscount] = useState<number | ''>('');
   const [deliveryDate, setDeliveryDate] = useState('');
 
   const fetchOrders = useCallback(async () => {
@@ -104,8 +104,8 @@ export function OrdersPage() {
     setClients(clientRes.data.data);
     setCart([]);
     setSelectedClient('');
-    setAmountPaid(0);
-    setDiscount(0);
+    setAmountPaid('');
+    setDiscount('');
     setDeliveryDate('');
     setShowForm(true);
   };
@@ -121,16 +121,16 @@ export function OrdersPage() {
   };
 
   const cartTotal = cart.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
-  const finalTotal = cartTotal - discount;
+  const finalTotal = cartTotal - (Number(discount) || 0);
 
   const handleCreateOrder = async () => {
     try {
       await api.post('/orders', {
         clientId: selectedClient || undefined,
         items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice, variant: i.variant })),
-        discount,
+        discount: Number(discount) || 0,
         paymentMethod,
-        amountPaid,
+        amountPaid: Number(amountPaid) || 0,
         deliveryDate: isOrderBased ? deliveryDate : undefined,
       });
       setShowForm(false);
@@ -212,7 +212,7 @@ export function OrdersPage() {
                     <div className="flex justify-between text-sm"><span>Sous-total</span><span>{formatCurrency(cartTotal)}</span></div>
                     <div className="flex justify-between items-center text-sm">
                       <span>Remise</span>
-                      <Input type="number" className="w-24 h-8 text-right" value={discount} onChange={(e) => setDiscount(+e.target.value)} />
+                      <Input type="number" className="w-24 h-8 text-right" value={discount} placeholder="0" onChange={(e) => setDiscount(e.target.value === '' ? '' : +e.target.value)} />
                     </div>
                     <div className="flex justify-between font-bold"><span>Total</span><span>{formatCurrency(finalTotal)}</span></div>
                   </div>
@@ -239,7 +239,7 @@ export function OrdersPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">{t('orders.paid')} (FCFA)</label>
-                  <Input type="number" value={amountPaid} onChange={(e) => setAmountPaid(+e.target.value)} />
+                  <Input type="number" value={amountPaid} placeholder="0" onChange={(e) => setAmountPaid(e.target.value === '' ? '' : +e.target.value)} />
                 </div>
               </div>
 
