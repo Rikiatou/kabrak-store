@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../../config/prisma';
 import { config } from '../../config';
 import { RegisterInput, LoginInput } from './auth.schema';
+import { sendPasswordResetEmail } from '../../services/mailer';
 
 function generateSlug(name: string): string {
   return name
@@ -275,6 +276,92 @@ export const updateCategories = async (req: Request, res: Response): Promise<voi
     res.json({ success: true, data: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Update failed';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email } = req.body as { email: string };
+    if (!email) {
+      res.status(400).json({ success: false, message: 'Email requis' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { tenant: { select: { language: true } } },
+    });
+
+    // Always respond OK to avoid user enumeration
+    if (!user || !user.isActive) {
+      res.json({ success: true, message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+      return;
+    }
+
+    // Token payload includes a hash of current password so it's invalidated after reset
+    const pwdFingerprint = user.password.slice(-8);
+    const token = jwt.sign(
+      { userId: user.id, type: 'pwd-reset', pwdFingerprint },
+      config.jwtSecret,
+      { expiresIn: '1h' }
+    );
+
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${token}`;
+    await sendPasswordResetEmail(email, resetUrl, user.tenant?.language || 'fr');
+
+    res.json({ success: true, message: 'Si cet email existe, un lien de réinitialisation a été envoyé.' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to process request';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { token, newPassword } = req.body as { token: string; newPassword: string };
+
+    if (!token || !newPassword) {
+      res.status(400).json({ success: false, message: 'Token et nouveau mot de passe requis' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({ success: false, message: 'Le mot de passe doit contenir au moins 6 caractères' });
+      return;
+    }
+
+    let payload: { userId: string; type: string; pwdFingerprint: string };
+    try {
+      payload = jwt.verify(token, config.jwtSecret) as typeof payload;
+    } catch {
+      res.status(400).json({ success: false, message: 'Lien invalide ou expiré' });
+      return;
+    }
+
+    if (payload.type !== 'pwd-reset') {
+      res.status(400).json({ success: false, message: 'Token invalide' });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    if (!user || !user.isActive) {
+      res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
+      return;
+    }
+
+    // Verify fingerprint matches — invalidates token after password change
+    if (user.password.slice(-8) !== payload.pwdFingerprint) {
+      res.status(400).json({ success: false, message: 'Lien déjà utilisé ou invalide' });
+      return;
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
+
+    res.json({ success: true, message: 'Mot de passe réinitialisé avec succès' });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to reset password';
     res.status(500).json({ success: false, message });
   }
 };

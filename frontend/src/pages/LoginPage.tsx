@@ -87,6 +87,11 @@ export function LoginPage() {
             >
               {loading ? (language === 'fr' ? 'Connexion...' : 'Signing in...') : t('auth.login')}
             </button>
+            <div className="text-center">
+              <Link to="/forgot-password" className="text-sm text-gray-400 hover:text-blue-600 transition-colors">
+                {language === 'fr' ? 'Mot de passe oublié ?' : 'Forgot your password?'}
+              </Link>
+            </div>
           </form>
           <p className="text-center text-sm text-gray-400 mt-6">
             {t('auth.noAccount')}{' '}
