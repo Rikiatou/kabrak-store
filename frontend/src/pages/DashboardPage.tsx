@@ -370,7 +370,7 @@ export function DashboardPage() {
                 <p className={`text-lg sm:text-2xl font-bold truncate ${isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
                   {card.isCurrency ? formatCurrency(value) : value}
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{t(card.labelKey)}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] ?? '')}</p>
               </div>
             );
           })
