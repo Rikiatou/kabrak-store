@@ -1,12 +1,16 @@
-const CACHE_NAME = 'kabrak-v2';
+const CACHE_NAME = 'kabrak-v3';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
   '/',
   '/offline.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/logo.png',
 ];
 
-// Install: cache offline page
+// Install: cache offline page + shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))

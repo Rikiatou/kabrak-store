@@ -29,6 +29,7 @@ import { StorefrontPage } from './pages/StorefrontPage';
 import { PublicOrderPage } from './pages/PublicOrderPage';
 import { AIReportsPage } from './pages/AIReportsPage';
 import { GuidePage } from './pages/GuidePage';
+import { InstallPrompt } from './components/InstallPrompt';
 import { useAuthStore } from './stores/authStore';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -126,6 +127,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <InstallPrompt />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
