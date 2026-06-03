@@ -109,12 +109,21 @@ export function InvoiceModal({ invoice, onClose }: Props) {
     try {
       const el = printRef.current;
       if (!el) return;
+      // Temporarily remove max-height to capture full content
+      const parent = el.parentElement;
+      const originalMaxHeight = parent?.style.maxHeight;
+      if (parent) parent.style.maxHeight = 'none';
+      
       const canvas = await html2canvas(el, {
         scale: 2.5,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
       });
+      
+      // Restore original max-height
+      if (parent && originalMaxHeight) parent.style.maxHeight = originalMaxHeight;
+      
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         const file = new File([blob], `facture-${invoice.invoiceNumber}.png`, { type: 'image/png' });
@@ -144,12 +153,21 @@ export function InvoiceModal({ invoice, onClose }: Props) {
     try {
       const el = printRef.current;
       if (!el) return;
+      // Temporarily remove max-height to capture full content
+      const parent = el.parentElement;
+      const originalMaxHeight = parent?.style.maxHeight;
+      if (parent) parent.style.maxHeight = 'none';
+      
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
       });
+      
+      // Restore original max-height
+      if (parent && originalMaxHeight) parent.style.maxHeight = originalMaxHeight;
+      
       const imgData = canvas.toDataURL('image/png');
       const imgWidth = 210; // A4 width in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
