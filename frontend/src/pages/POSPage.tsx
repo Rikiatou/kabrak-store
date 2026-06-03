@@ -267,9 +267,9 @@ export function POSPage() {
       </div>
 
       {/* Right: Cart */}
-      <div className="w-full lg:w-80 xl:w-96 flex flex-col bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm min-h-0 max-h-[50vh] lg:max-h-full">
+      <div className="w-full lg:w-80 xl:w-96 flex flex-col bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm min-h-0 max-h-[70vh] lg:max-h-full">
         {/* Cart header */}
-        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-blue-500" />
@@ -317,7 +317,7 @@ export function POSPage() {
         </div>
 
         {/* Cart items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
           {cart.length === 0 ? (
             <div className="text-center text-gray-400 py-12">
               <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-30" />
@@ -352,7 +352,7 @@ export function POSPage() {
         </div>
 
         {/* Totals + Payment */}
-        <div className="p-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
+        <div className="p-4 border-t border-gray-100 dark:border-gray-700 space-y-3 flex-shrink-0">
           <div className="space-y-1">
             <div className="flex justify-between text-sm text-gray-500">
               <span>{language === 'fr' ? 'Sous-total' : 'Subtotal'}</span>
