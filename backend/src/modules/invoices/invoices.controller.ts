@@ -51,7 +51,7 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
 
     const order = await prisma.order.findFirst({
       where: { id: orderId, tenantId: req.user!.tenantId },
-      include: { invoice: true },
+      include: { invoice: true, payments: true },
     });
 
     if (!order) {
@@ -75,10 +75,19 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
         orderId: order.id,
         clientId: order.clientId,
         createdById: req.user!.id,
+        payments: {
+          create: order.payments.map((payment: any) => ({
+            amount: payment.amount,
+            method: payment.method,
+            reference: payment.reference,
+            notes: payment.notes,
+          })),
+        },
       },
       include: {
         client: true,
         order: { include: { items: { include: { product: true } } } },
+        payments: true,
         createdBy: { select: { id: true, firstName: true, lastName: true } },
       },
     });
