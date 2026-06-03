@@ -67,7 +67,7 @@ export function DeliveriesPage() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await api.patch(`/deliveries/${id}`, { status });
+      await api.patch(`/deliveries/${id}/status`, { status });
       fetchDeliveries();
     } catch (err) {
       console.error(err);
