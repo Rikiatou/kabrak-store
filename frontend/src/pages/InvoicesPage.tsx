@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { FileText, MessageCircle, Eye, Download, Plus, Trash2, X } from 'lucide-react';
+import { FileText, MessageCircle, Eye, Download, Plus, Trash2, X, DollarSign } from 'lucide-react';
 import { InvoiceModal } from '@/components/InvoiceModal';
 import api from '@/lib/api';
 
@@ -60,6 +60,13 @@ export function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [addingPayment, setAddingPayment] = useState(false);
   const mountedRef = useRef(true);
 
   // Standalone invoice form state
@@ -151,6 +158,39 @@ export function InvoicesPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleAddPayment = async () => {
+    if (!paymentInvoice || !paymentAmount || parseFloat(paymentAmount) <= 0) return;
+
+    setAddingPayment(true);
+    try {
+      await api.post(`/invoices/${paymentInvoice.id}/payments`, {
+        amount: parseFloat(paymentAmount),
+        method: paymentMethod,
+        reference: paymentReference || undefined,
+        notes: paymentNotes || undefined,
+      });
+      setShowPaymentModal(false);
+      setPaymentInvoice(null);
+      setPaymentAmount('');
+      setPaymentMethod('CASH');
+      setPaymentReference('');
+      setPaymentNotes('');
+      setLoading(true);
+      loadInvoices();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAddingPayment(false);
+    }
+  };
+
+  const openPaymentModal = (invoice: Invoice) => {
+    if (invoice.paymentStatus === 'PAID') return;
+    setPaymentInvoice(invoice);
+    setPaymentAmount(invoice.amountDue > 0 ? invoice.amountDue.toString() : '');
+    setShowPaymentModal(true);
   };
 
   return (
@@ -331,7 +371,23 @@ export function InvoicesPage() {
                     <Badge variant={statusColors[inv.paymentStatus]}>
                       {t(`status.${inv.paymentStatus.toLowerCase()}`)}
                     </Badge>
+                    {inv.paymentStatus === 'PARTIAL' && (
+                      <p className="text-xs text-muted-foreground dark:text-gray-400">
+                        {formatCurrency(inv.amountPaid)} / {formatCurrency(inv.totalAmount)}
+                      </p>
+                    )}
                   </div>
+                  {inv.paymentStatus !== 'PAID' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openPaymentModal(inv)}
+                      className="text-violet-600 dark:text-violet-400"
+                      title="Ajouter paiement"
+                    >
+                      <DollarSign className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => setSelectedInvoice(inv)} title="Voir">
                     <Eye className="w-4 h-4" />
                   </Button>
@@ -355,6 +411,123 @@ export function InvoicesPage() {
 
       {selectedInvoice && (
         <InvoiceModal invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} />
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentModal && paymentInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <Card className="w-full max-w-md bg-white dark:bg-gray-800">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold dark:text-white">
+                  {language === 'fr' ? 'Ajouter un paiement' : 'Add Payment'}
+                </h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowPaymentModal(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 space-y-2">
+                <p className="text-sm font-medium dark:text-white">{paymentInvoice.invoiceNumber}</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground dark:text-gray-400">
+                    {language === 'fr' ? 'Total' : 'Total'}
+                  </span>
+                  <span className="font-bold dark:text-white">{formatCurrency(paymentInvoice.totalAmount)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground dark:text-gray-400">
+                    {language === 'fr' ? 'Déjà payé' : 'Already paid'}
+                  </span>
+                  <span className="font-bold dark:text-white">{formatCurrency(paymentInvoice.amountPaid)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground dark:text-gray-400">
+                    {language === 'fr' ? 'Reste à payer' : 'Amount due'}
+                  </span>
+                  <span className="font-bold text-violet-600 dark:text-violet-400">
+                    {formatCurrency(paymentInvoice.amountDue)}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                  {language === 'fr' ? 'Montant du paiement' : 'Payment amount'}
+                </label>
+                <input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                  placeholder={language === 'fr' ? 'Montant en FCFA' : 'Amount in FCFA'}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                  {language === 'fr' ? 'Méthode de paiement' : 'Payment method'}
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                >
+                  <option value="CASH">{language === 'fr' ? 'Espèces' : 'Cash'}</option>
+                  <option value="ORANGE_MONEY">Orange Money</option>
+                  <option value="MTN_MOMO">MTN Mobile Money</option>
+                  <option value="BANK_TRANSFER">{language === 'fr' ? 'Virement bancaire' : 'Bank transfer'}</option>
+                  <option value="OTHER">{language === 'fr' ? 'Autre' : 'Other'}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                  {language === 'fr' ? 'Référence (optionnel)' : 'Reference (optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={paymentReference}
+                  onChange={(e) => setPaymentReference(e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                  placeholder={language === 'fr' ? 'Numéro de transaction' : 'Transaction number'}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 dark:text-gray-300">
+                  {language === 'fr' ? 'Notes (optionnel)' : 'Notes (optional)'}
+                </label>
+                <input
+                  type="text"
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                  placeholder={language === 'fr' ? 'Détails du paiement' : 'Payment details'}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowPaymentModal(false)}
+                >
+                  {language === 'fr' ? 'Annuler' : 'Cancel'}
+                </Button>
+                <Button
+                  className="flex-1 bg-violet-600 hover:bg-violet-700 text-white"
+                  onClick={handleAddPayment}
+                  disabled={addingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0}
+                >
+                  {addingPayment
+                    ? (language === 'fr' ? 'Ajout...' : 'Adding...')
+                    : (language === 'fr' ? 'Ajouter' : 'Add')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );

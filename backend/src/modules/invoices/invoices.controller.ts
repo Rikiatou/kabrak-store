@@ -234,3 +234,97 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ success: false, message });
   }
 };
+
+export const addPayment = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { amount, method, reference, notes } = req.body;
+
+    if (!amount || amount <= 0) {
+      res.status(400).json({ success: false, message: 'Montant invalide' });
+      return;
+    }
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, tenantId: req.user!.tenantId },
+      include: { payments: true },
+    });
+
+    if (!invoice) {
+      res.status(404).json({ success: false, message: 'Facture non trouvée' });
+      return;
+    }
+
+    if (invoice.paymentStatus === 'PAID') {
+      res.status(400).json({ success: false, message: 'Facture déjà payée' });
+      return;
+    }
+
+    const newAmountPaid = invoice.amountPaid + amount;
+    const amountDue = invoice.totalAmount - newAmountPaid;
+    const paymentStatus = amountDue <= 0 ? 'PAID' : 'PARTIAL';
+
+    const updatedInvoice = await prisma.invoice.update({
+      where: { id },
+      data: {
+        amountPaid: newAmountPaid,
+        amountDue: Math.max(0, amountDue),
+        paymentStatus,
+        payments: {
+          create: {
+            amount,
+            method: method || 'CASH',
+            reference: reference || null,
+            notes: notes || null,
+          },
+        },
+      },
+      include: {
+        client: true,
+        order: { include: { items: { include: { product: true } } } },
+        lineItems: true,
+        payments: true,
+        createdBy: { select: { id: true, firstName: true, lastName: true } },
+      },
+    });
+
+    // Update loyalty points if payment is now complete
+    if (paymentStatus === 'PAID' && invoice.clientId) {
+      try {
+        const pointsPerXFCFA = parseInt(process.env.LOYALTY_POINTS_PER_FCFA || '1000');
+        const pointsEarned = Math.floor(invoice.totalAmount / pointsPerXFCFA);
+        if (pointsEarned > 0) {
+          const client = await prisma.client.update({
+            where: { id: invoice.clientId },
+            data: {
+              loyaltyPoints: { increment: pointsEarned },
+              totalSpent: { increment: invoice.totalAmount },
+              totalOrders: { increment: 1 },
+              lastVisit: new Date(),
+            },
+          });
+          const TIERS = [
+            { name: 'PLATINUM', min: 1000 },
+            { name: 'GOLD', min: 500 },
+            { name: 'SILVER', min: 100 },
+            { name: 'BRONZE', min: 0 },
+          ];
+          const newTier = TIERS.find((t) => client.loyaltyPoints >= t.min)?.name || 'BRONZE';
+          if (newTier !== client.loyaltyTier) {
+            await prisma.client.update({
+              where: { id: invoice.clientId },
+              data: { loyaltyTier: newTier },
+            });
+          }
+        }
+      } catch (loyaltyErr) {
+        console.warn('Loyalty update skipped:', (loyaltyErr as Error).message);
+      }
+    }
+
+    res.json({ success: true, data: updatedInvoice });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to add payment';
+    res.status(500).json({ success: false, message });
+  }
+};
