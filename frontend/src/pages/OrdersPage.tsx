@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { Plus, ShoppingCart, X, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { Plus, ShoppingCart, X, MessageCircle } from 'lucide-react';
 import api from '@/lib/api';
 
 interface OrderItem {
