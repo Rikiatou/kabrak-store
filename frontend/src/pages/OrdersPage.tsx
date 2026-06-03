@@ -135,7 +135,11 @@ export function OrdersPage() {
       });
       setShowForm(false);
       fetchOrders();
-    } catch (err) { console.error(err); }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      alert(axiosErr.response?.data?.message || "Erreur lors de la création de la commande");
+      console.error(err);
+    }
   };
 
   const handleWhatsApp = (order: Order) => {
