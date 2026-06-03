@@ -435,7 +435,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white hover:opacity-90 transition-opacity"
             style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' }}
           >
-            <Printer className="w-4 h-4" /> 📄 Télécharger PDF / Imprimer
+            <Printer className="w-4 h-4" /> 📄 Télécharger PDF
           </button>
           <button
             onClick={shareAsImage}
@@ -446,7 +446,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
             {sharing ? (
               <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Génération image...</>
             ) : (
-              <><Share2 className="w-4 h-4" /> 📸 Partager la facture (image)</>
+              <><Share2 className="w-4 h-4" /> 📸 Partager la facture (image PNG)</>
             )}
           </button>
           {fullPhone && (
