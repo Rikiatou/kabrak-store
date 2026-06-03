@@ -431,6 +431,13 @@ export function InvoiceModal({ invoice, onClose }: Props) {
         {/* Bottom action buttons */}
         <div className="px-4 pb-4 pt-3 space-y-2 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
           <button
+            onClick={() => window.print()}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white hover:opacity-90 transition-opacity"
+            style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' }}
+          >
+            <Printer className="w-4 h-4" /> 📄 Télécharger PDF / Imprimer
+          </button>
+          <button
             onClick={shareAsImage}
             disabled={sharing}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
