@@ -246,7 +246,7 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
     }
 
     const invoice = await prisma.invoice.findFirst({
-      where: { id, tenantId: req.user!.tenantId },
+      where: { id: id as string, tenantId: req.user!.tenantId },
       include: { payments: true },
     });
 
@@ -265,7 +265,7 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
     const paymentStatus = amountDue <= 0 ? 'PAID' : 'PARTIAL';
 
     const updatedInvoice = await prisma.invoice.update({
-      where: { id },
+      where: { id: id as string },
       data: {
         amountPaid: newAmountPaid,
         amountDue: Math.max(0, amountDue),
