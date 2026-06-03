@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { Plus, ShoppingCart, X, MessageCircle } from 'lucide-react';
+import { Plus, ShoppingCart, X, MessageCircle, MoreHorizontal } from 'lucide-react';
 import api from '@/lib/api';
 
 interface OrderItem {
@@ -155,6 +155,16 @@ export function OrdersPage() {
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
 
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      await api.patch(`/orders/${orderId}/status`, { status: newStatus });
+      fetchOrders();
+    } catch (err) {
+      console.error(err);
+      alert('Erreur lors de la mise à jour du statut');
+    }
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
@@ -287,11 +297,26 @@ export function OrdersPage() {
                         <Badge variant={statusColors[order.paymentStatus]} className="text-[10px]">{t(`status.${order.paymentStatus.toLowerCase()}`)}</Badge>
                       </div>
                     </div>
-                    {order.client?.phone && (
-                      <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleWhatsApp(order)} title={t('orders.sendWhatsApp')}>
-                        <MessageCircle className="w-4 h-4 text-green-500" />
-                      </Button>
-                    )}
+                    <div className="flex gap-1">
+                      <select
+                        value={order.status}
+                        onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                        className="text-xs border rounded px-1 py-1 bg-background"
+                      >
+                        <option value="PENDING">En attente</option>
+                        <option value="CONFIRMED">Confirmée</option>
+                        <option value="PREPARING">En préparation</option>
+                        <option value="READY">Prête</option>
+                        <option value="DELIVERING">En livraison</option>
+                        <option value="DELIVERED">Livrée</option>
+                        <option value="CANCELLED">Annulée</option>
+                      </select>
+                      {order.client?.phone && (
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleWhatsApp(order)} title={t('orders.sendWhatsApp')}>
+                          <MessageCircle className="w-4 h-4 text-green-500" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1">
