@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
-import { X, Printer, Share2, MessageCircle } from 'lucide-react';
+import { X, Printer, Share2, MessageCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
 import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface InvoiceItem {
   product: { name: string };
@@ -131,6 +132,30 @@ export function InvoiceModal({ invoice, onClose }: Props) {
           URL.revokeObjectURL(url);
         }
       }, 'image/png');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const downloadAsPDF = async () => {
+    setSharing(true);
+    try {
+      const el = printRef.current;
+      if (!el) return;
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`facture-${invoice.invoiceNumber}.pdf`);
     } catch (e) {
       console.error(e);
     } finally {
@@ -431,11 +456,16 @@ export function InvoiceModal({ invoice, onClose }: Props) {
         {/* Bottom action buttons */}
         <div className="px-4 pb-4 pt-3 space-y-2 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
           <button
-            onClick={() => window.print()}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white hover:opacity-90 transition-opacity"
+            onClick={downloadAsPDF}
+            disabled={sharing}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
             style={{ background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' }}
           >
-            <Printer className="w-4 h-4" /> 📄 Télécharger PDF
+            {sharing ? (
+              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Génération PDF...</>
+            ) : (
+              <><Download className="w-4 h-4" /> 📄 Télécharger PDF</>
+            )}
           </button>
           <button
             onClick={shareAsImage}
