@@ -288,6 +288,18 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
       },
     });
 
+    // Update associated order if exists
+    if (invoice.orderId) {
+      await prisma.order.update({
+        where: { id: invoice.orderId },
+        data: {
+          amountPaid: newAmountPaid,
+          amountRemaining: Math.max(0, amountDue),
+          paymentStatus,
+        },
+      });
+    }
+
     // Update loyalty points if payment is now complete
     if (paymentStatus === 'PAID' && invoice.clientId) {
       try {
