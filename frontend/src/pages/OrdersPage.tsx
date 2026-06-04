@@ -24,15 +24,19 @@ interface Order {
   status: string;
   totalAmount: number;
   finalAmount: number;
-  amountPaid: number;
-  amountRemaining: number;
-  paymentMethod: string;
-  paymentStatus: string;
   notes?: string;
   createdAt: string;
   client?: { id: string; name: string; phone?: string } | null;
   items: OrderItem[];
   createdBy: { firstName: string; lastName: string };
+  invoice?: {
+    id: string;
+    invoiceNumber: string;
+    totalAmount: number;
+    amountPaid: number;
+    amountDue: number;
+    paymentStatus: string;
+  };
 }
 
 interface Product {
@@ -80,10 +84,11 @@ export function OrdersPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedClient, setSelectedClient] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('CASH');
-  const [amountPaid, setAmountPaid] = useState<number | ''>('');
   const [discount, setDiscount] = useState<number | ''>('');
   const [deliveryDate, setDeliveryDate] = useState('');
+  // Initial payment (optional, goes to invoice)
+  const [initialPaymentMethod, setInitialPaymentMethod] = useState('CASH');
+  const [initialAmountPaid, setInitialAmountPaid] = useState<number | ''>('');
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -104,9 +109,10 @@ export function OrdersPage() {
     setClients(clientRes.data.data);
     setCart([]);
     setSelectedClient('');
-    setAmountPaid('');
+    setInitialAmountPaid('');
     setDiscount('');
     setDeliveryDate('');
+    setInitialPaymentMethod('CASH');
     setShowForm(true);
   };
 
@@ -129,8 +135,8 @@ export function OrdersPage() {
         clientId: selectedClient || undefined,
         items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice, variant: i.variant })),
         discount: Number(discount) || 0,
-        paymentMethod,
-        amountPaid: Number(amountPaid) || 0,
+        paymentMethod: initialPaymentMethod,
+        amountPaid: Number(initialAmountPaid) || 0,
         deliveryDate: isOrderBased ? deliveryDate : undefined,
       });
       setShowForm(false);
@@ -147,10 +153,12 @@ export function OrdersPage() {
     if (!phone) return;
     const items = order.items.map((i) => `${i.product.name} x${i.quantity} = ${formatCurrency(i.totalPrice)}`).join('\n');
     const storeName = tenant?.name || 'KABRAK';
+    const invoice = order.invoice;
     const message = encodeURIComponent(
       `*${storeName} - ${t('orders.whatsappMessage.invoice')}*\n\n${t('orders.whatsappMessage.ref')}: ${order.reference}\n\n${items}\n\n` +
-      `${t('orders.whatsappMessage.total')}: ${formatCurrency(order.finalAmount)}\n${t('orders.whatsappMessage.paid')}: ${formatCurrency(order.amountPaid)}\n` +
-      `${t('orders.whatsappMessage.remaining')}: ${formatCurrency(order.amountRemaining)}\n\n${t('orders.whatsappMessage.thanks')}`
+      `${t('orders.whatsappMessage.total')}: ${formatCurrency(order.finalAmount)}\n` +
+      (invoice ? `${t('orders.whatsappMessage.paid')}: ${formatCurrency(invoice.amountPaid)}\n${t('orders.whatsappMessage.remaining')}: ${formatCurrency(invoice.amountDue)}\n` : '') +
+      `\n${t('orders.whatsappMessage.thanks')}`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
   };
@@ -245,7 +253,7 @@ export function OrdersPage() {
                 <div>
                   <label className="text-sm font-medium mb-1 block">{t('orders.paymentMethod')}</label>
                   <select className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                    value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                    value={initialPaymentMethod} onChange={(e) => setInitialPaymentMethod(e.target.value)}>
                     <option value="CASH">Cash</option>
                     <option value="MOBILE_MONEY">Mobile Money</option>
                     <option value="BANK_TRANSFER">Virement bancaire</option>
@@ -254,7 +262,7 @@ export function OrdersPage() {
                 </div>
                 <div>
                   <label className="text-sm font-medium mb-1 block">{t('orders.paid')} (FCFA)</label>
-                  <Input type="number" value={amountPaid} placeholder="0" onChange={(e) => setAmountPaid(e.target.value === '' ? '' : +e.target.value)} />
+                  <Input type="number" value={initialAmountPaid} placeholder="0" onChange={(e) => setInitialAmountPaid(e.target.value === '' ? '' : +e.target.value)} />
                 </div>
               </div>
 
@@ -294,7 +302,9 @@ export function OrdersPage() {
                       <p className="font-bold text-sm sm:text-base">{formatCurrency(order.finalAmount)}</p>
                       <div className="flex gap-1">
                         <Badge variant={statusColors[order.status]} className="text-[10px]">{t(`status.${order.status.toLowerCase()}`)}</Badge>
-                        <Badge variant={statusColors[order.paymentStatus]} className="text-[10px]">{t(`status.${order.paymentStatus.toLowerCase()}`)}</Badge>
+                        {order.invoice && (
+                          <Badge variant={statusColors[order.invoice.paymentStatus]} className="text-[10px]">{t(`status.${order.invoice.paymentStatus.toLowerCase()}`)}</Badge>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-1">

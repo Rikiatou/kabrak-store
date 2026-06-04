@@ -89,8 +89,6 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 
     const totalAmount = data.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const finalAmount = Math.max(0, totalAmount - data.discount);
-    const amountRemaining = finalAmount - data.amountPaid;
-    const paymentStatus = data.amountPaid >= finalAmount ? 'PAID' : data.amountPaid > 0 ? 'PARTIAL' : 'PENDING';
 
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
@@ -99,10 +97,6 @@ export const create = async (req: Request, res: Response): Promise<void> => {
           totalAmount,
           discount: data.discount,
           finalAmount,
-          amountPaid: data.amountPaid,
-          amountRemaining: amountRemaining < 0 ? 0 : amountRemaining,
-          paymentMethod: data.paymentMethod,
-          paymentStatus,
           notes: data.notes,
           tenantId: req.user!.tenantId,
           clientId: data.clientId ?? undefined,
@@ -146,35 +140,54 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         });
       }
 
-      // Update client stats
+      // Update client stats (orders count only, payment stats handled by invoice)
       if (data.clientId) {
         await tx.client.update({
           where: { id: data.clientId },
           data: {
-            totalSpent: { increment: data.amountPaid },
             totalOrders: { increment: 1 },
           },
         });
       }
 
-      // Auto-create invoice when payment is made at order creation
-      if (data.amountPaid > 0) {
-        const invDate = new Date();
-        const invDateStr = invDate.toISOString().slice(2, 10).replace(/-/g, '');
-        const invRand = Math.random().toString(36).substring(2, 6).toUpperCase();
-        const invoiceNumber = `INV-${invDateStr}-${invRand}`;
-        await tx.invoice.create({
+      // Always create invoice
+      const invDate = new Date();
+      const invDateStr = invDate.toISOString().slice(2, 10).replace(/-/g, '');
+      const invRand = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const invoiceNumber = `INV-${invDateStr}-${invRand}`;
+
+      const paymentStatus = data.amountPaid >= finalAmount ? 'PAID' : data.amountPaid > 0 ? 'PARTIAL' : 'PENDING';
+      const amountDue = Math.max(0, finalAmount - data.amountPaid);
+
+      const invoice = await tx.invoice.create({
+        data: {
+          invoiceNumber,
+          totalAmount: finalAmount,
+          amountPaid: data.amountPaid,
+          amountDue,
+          paymentStatus,
+          paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
+          orderId: newOrder.id,
+          clientId: data.clientId ?? undefined,
+          tenantId: req.user!.tenantId,
+          createdById: req.user!.id,
+          payments: data.amountPaid > 0 ? {
+            create: {
+              amount: data.amountPaid,
+              method: data.paymentMethod || 'CASH',
+              reference: data.paymentReference || null,
+              notes: data.paymentNotes || null,
+            },
+          } : undefined,
+        },
+      });
+
+      // Update client spent amount when payment is made
+      if (data.clientId && data.amountPaid > 0) {
+        await tx.client.update({
+          where: { id: data.clientId },
           data: {
-            invoiceNumber,
-            totalAmount: finalAmount,
-            amountPaid: data.amountPaid,
-            amountDue: Math.max(0, amountRemaining),
-            paymentStatus,
-            paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
-            orderId: newOrder.id,
-            clientId: data.clientId ?? undefined,
-            tenantId: req.user!.tenantId,
-            createdById: req.user!.id,
+            totalSpent: { increment: data.amountPaid },
           },
         });
       }
@@ -225,96 +238,6 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
     res.json({ success: true, data: order });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update order';
-    res.status(500).json({ success: false, message });
-  }
-};
-
-export const addPayment = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const id = req.params.id as string;
-    const { amount, method = 'CASH', reference, notes } = req.body;
-
-    const order = await prisma.order.findFirst({
-      where: { id, tenantId: req.user!.tenantId },
-    });
-
-    if (!order) {
-      res.status(404).json({ success: false, message: 'Commande non trouvée' });
-      return;
-    }
-
-    const newPaid = order.amountPaid + amount;
-    const newRemaining = order.finalAmount - newPaid;
-    const paymentStatus = newPaid >= order.finalAmount ? 'PAID' : 'PARTIAL';
-
-    const updatedOrder = await prisma.$transaction(async (tx) => {
-      const updated = await tx.order.update({
-        where: { id },
-        data: {
-          amountPaid: newPaid,
-          amountRemaining: newRemaining < 0 ? 0 : newRemaining,
-          paymentStatus,
-        },
-      });
-
-      if (order.clientId) {
-        await tx.client.update({
-          where: { id: order.clientId },
-          data: { totalSpent: { increment: amount } },
-        });
-      }
-
-      // Auto-create invoice if it doesn't exist (on first payment)
-      let invoice = await tx.invoice.findUnique({ where: { orderId: order.id } });
-      if (!invoice) {
-        // Generate invoice number
-        const date = new Date();
-        const dateStr = date.toISOString().slice(2, 10).replace(/-/g, '');
-        const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-        const invoiceNumber = `INV-${dateStr}-${rand}`;
-
-        invoice = await tx.invoice.create({
-          data: {
-            invoiceNumber,
-            totalAmount: order.finalAmount,
-            amountPaid: amount,
-            amountDue: order.finalAmount - amount,
-            paymentStatus,
-            paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
-            orderId: order.id,
-            clientId: order.clientId,
-            tenantId: req.user!.tenantId,
-            createdById: req.user!.id,
-          },
-        });
-      }
-
-      // Create payment and update invoice
-      await tx.payment.create({
-        data: { amount, method, reference, notes, invoiceId: invoice.id },
-      });
-      await tx.invoice.update({
-        where: { id: invoice.id },
-        data: {
-          amountPaid: { increment: amount },
-          amountDue: { decrement: amount },
-          paymentStatus,
-          paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
-        },
-      });
-
-      // Ensure amountDue doesn't go negative
-      await tx.invoice.update({
-        where: { id: invoice.id },
-        data: { amountDue: { set: Math.max(0, invoice.amountDue - amount) } },
-      });
-
-      return updated;
-    });
-
-    res.json({ success: true, data: updatedOrder });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to add payment';
     res.status(500).json({ success: false, message });
   }
 };

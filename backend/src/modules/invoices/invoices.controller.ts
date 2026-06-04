@@ -51,7 +51,7 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
 
     const order = await prisma.order.findFirst({
       where: { id: orderId, tenantId: req.user!.tenantId },
-      include: { invoice: true, payments: true },
+      include: { invoice: true },
     });
 
     if (!order) {
@@ -68,21 +68,13 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
       data: {
         invoiceNumber: generateInvoiceNumber(),
         totalAmount: order.finalAmount,
-        amountPaid: order.amountPaid,
-        amountDue: order.amountRemaining,
-        paymentStatus: order.paymentStatus,
+        amountPaid: 0,
+        amountDue: order.finalAmount,
+        paymentStatus: 'PENDING',
         tenantId: req.user!.tenantId,
         orderId: order.id,
         clientId: order.clientId,
         createdById: req.user!.id,
-        payments: {
-          create: order.payments.map((payment: any) => ({
-            amount: payment.amount,
-            method: payment.method,
-            reference: payment.reference,
-            notes: payment.notes,
-          })),
-        },
       },
       include: {
         client: true,
@@ -92,40 +84,8 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
       },
     });
 
-    // Update loyalty points (from Beauty Spa Pro pattern)
-    if (order.clientId && order.paymentStatus === 'PAID') {
-      try {
-        const pointsPerXFCFA = parseInt(process.env.LOYALTY_POINTS_PER_FCFA || '1000');
-        const pointsEarned = Math.floor(order.finalAmount / pointsPerXFCFA);
-        if (pointsEarned > 0) {
-          const client = await prisma.client.update({
-            where: { id: order.clientId },
-            data: {
-              loyaltyPoints: { increment: pointsEarned },
-              totalSpent: { increment: order.finalAmount },
-              totalOrders: { increment: 1 },
-              lastVisit: new Date(),
-            },
-          });
-          // Auto-upgrade loyalty tier
-          const TIERS = [
-            { name: 'PLATINUM', min: 1000 },
-            { name: 'GOLD', min: 500 },
-            { name: 'SILVER', min: 100 },
-            { name: 'BRONZE', min: 0 },
-          ];
-          const newTier = TIERS.find((t) => client.loyaltyPoints >= t.min)?.name || 'BRONZE';
-          if (newTier !== client.loyaltyTier) {
-            await prisma.client.update({
-              where: { id: order.clientId },
-              data: { loyaltyTier: newTier },
-            });
-          }
-        }
-      } catch (loyaltyErr) {
-        console.warn('Loyalty update skipped:', (loyaltyErr as Error).message);
-      }
-    }
+    // Note: Loyalty points are now handled when invoice is paid, not here
+    // Orders no longer have payment status - Invoice is the source of truth
 
     // Create stock alert notifications for low stock
     try {
@@ -279,6 +239,7 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
         amountPaid: newAmountPaid,
         amountDue: Math.max(0, amountDue),
         paymentStatus,
+        paidAt: paymentStatus === 'PAID' ? new Date() : undefined,
         payments: {
           create: {
             amount,
@@ -297,17 +258,7 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
       },
     });
 
-    // Update associated order if exists
-    if (invoice.orderId) {
-      await prisma.order.update({
-        where: { id: invoice.orderId },
-        data: {
-          amountPaid: newAmountPaid,
-          amountRemaining: Math.max(0, amountDue),
-          paymentStatus,
-        },
-      });
-    }
+    // Note: Order no longer has payment fields - Invoice is the single source of truth for payments
 
     // Update loyalty points if payment is now complete
     if (paymentStatus === 'PAID' && invoice.clientId) {

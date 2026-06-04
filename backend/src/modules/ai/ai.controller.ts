@@ -19,7 +19,7 @@ export const generateReport = async (req: Request, res: Response): Promise<void>
     const [orders, expenses, products, clients] = await Promise.all([
       prisma.order.findMany({
         where: { tenantId, ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}) },
-        include: { items: { include: { product: true } }, client: true },
+        include: { items: { include: { product: true } }, client: true, invoice: true },
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
@@ -32,7 +32,7 @@ export const generateReport = async (req: Request, res: Response): Promise<void>
       prisma.client.findMany({ where: { tenantId }, orderBy: { totalSpent: 'desc' }, take: 20 }),
     ]);
 
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.amountPaid || 0), 0);
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.invoice?.amountPaid || 0), 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const profit = totalRevenue - totalExpenses;
     const margin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0;

@@ -86,6 +86,7 @@ export const exportOrders = async (req: Request, res: Response): Promise<void> =
       include: {
         client: { select: { name: true } },
         items: { include: { product: { select: { name: true } } } },
+        invoice: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -96,10 +97,10 @@ export const exportOrders = async (req: Request, res: Response): Promise<void> =
         o.reference,
         o.client?.name || 'Anonyme',
         o.finalAmount,
-        o.amountPaid,
-        o.amountRemaining,
+        o.invoice?.amountPaid || 0,
+        o.invoice?.amountDue || o.finalAmount,
         o.status,
-        o.paymentMethod,
+        o.invoice?.paymentStatus || 'PENDING',
         o.createdAt.toISOString().split('T')[0],
       ])
     );

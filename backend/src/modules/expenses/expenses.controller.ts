@@ -54,7 +54,7 @@ export const getSummary = async (req: Request, res: Response): Promise<void> => 
         where: { tenantId, ...(hasDateFilter ? { date: dateFilter } : {}) },
         _sum: { amount: true },
       }),
-      prisma.order.aggregate({
+      prisma.invoice.aggregate({
         where: { tenantId, paymentStatus: { in: ['PAID', 'PARTIAL'] }, ...(hasDateFilter ? { createdAt: dateFilter } : {}) },
         _sum: { amountPaid: true },
       }),

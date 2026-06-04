@@ -26,7 +26,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       prisma.order.count({
         where: { tenantId, createdAt: { gte: startDate, lt: endDate } },
       }),
-      prisma.order.aggregate({
+      prisma.invoice.aggregate({
         where: { tenantId, createdAt: { gte: startDate, lt: endDate } },
         _sum: { amountPaid: true },
       }),
@@ -42,6 +42,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
         include: {
           client: true,
           items: { include: { product: true } },
+          invoice: true,
           createdBy: { select: { firstName: true, lastName: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -115,6 +116,7 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       include: {
         items: { include: { product: true } },
         seller: { select: { id: true, firstName: true, lastName: true } },
+        invoice: true,
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -136,7 +138,7 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       }
 
       if (!salesByPeriod[key]) salesByPeriod[key] = { revenue: 0, orders: 0, profit: 0 };
-      salesByPeriod[key].revenue += order.amountPaid;
+      salesByPeriod[key].revenue += order.invoice?.amountPaid || 0;
       salesByPeriod[key].orders += 1;
 
       for (const item of order.items) {
@@ -152,12 +154,12 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
         if (!sellerStats[key]) {
           sellerStats[key] = { name: `${order.seller.firstName} ${order.seller.lastName}`, revenue: 0, orders: 0 };
         }
-        sellerStats[key].revenue += order.amountPaid;
+        sellerStats[key].revenue += order.invoice?.amountPaid || 0;
         sellerStats[key].orders += 1;
       }
     }
 
-    const totalRevenue = orders.reduce((sum, o) => sum + o.amountPaid, 0);
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.invoice?.amountPaid || 0), 0);
     const totalProfit = Object.values(salesByPeriod).reduce((sum, p) => sum + p.profit, 0);
 
     res.json({
