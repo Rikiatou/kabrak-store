@@ -411,7 +411,7 @@ export function DashboardPage() {
                     <div className="text-right">
                       <p className="font-semibold text-sm text-gray-900 dark:text-white">{formatCurrency(project.totalBudget)}</p>
                       <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 ${statusColors[project.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {t(`status.${project.status.toLowerCase()}`)}
+                        {t(`status.${(project.status || '').toLowerCase()}`)}
                       </span>
                     </div>
                   </div>
@@ -465,7 +465,7 @@ export function DashboardPage() {
                     <div className="text-right">
                       <p className="font-semibold text-sm text-gray-900 dark:text-white">{formatCurrency(order.finalAmount)}</p>
                       <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 ${statusColors[order.paymentStatus] || 'bg-gray-100 text-gray-600'}`}>
-                        {t(`status.${order.paymentStatus.toLowerCase()}`)}
+                        {t(`status.${(order.paymentStatus || '').toLowerCase()}`)}
                       </span>
                     </div>
                   </div>
