@@ -81,15 +81,15 @@ export function LandingPage() {
           </h1>
           <p className="text-base sm:text-lg text-gray-500 mb-8 max-w-xl mx-auto leading-relaxed">
             {fr
-              ? 'Ventes, stock, clients, acomptes, factures WhatsApp et revenus — depuis votre téléphone ou ordinateur.'
-              : 'Sales, stock, clients, deposits, WhatsApp invoices and revenue — from your phone or computer.'}
+              ? 'Ventes, stock, clients, acomptes, factures WhatsApp et revenus — depuis votre téléphone ou ordinateur. Disponible au Cameroun, Sénégal, Côte d\'Ivoire et toute l\'Afrique.'
+              : 'Sales, stock, clients, deposits, WhatsApp invoices and revenue — from your phone or computer. Available in Cameroon, Senegal, Ivory Coast and across Africa.'}
           </p>
 
           {/* Quick business tags */}
           <div className="flex flex-wrap justify-center gap-2 mb-8">
             {(fr
-              ? ['🛍️ Boutique & Commerce', '📦 Vente en Ligne', '🚚 Commandes & Livraison', '🏪 Commerce Général', '💼 Services & Prestations', '📈 Grossistes']
-              : ['🛍️ Retail & Commerce', '📦 Online Selling', '🚚 Orders & Delivery', '🏪 General Store', '💼 Services & Clients', '📈 Wholesale']
+              ? ['🛍️ Boutique & Commerce', '📦 Vente en Ligne', '🚚 Commandes & Livraison', '🏪 Commerce Général', '💼 Services & Prestations', '📈 Grossistes', '🌍 Cameroun · Sénégal · Côte d\'Ivoire']
+              : ['🛍️ Retail & Commerce', '📦 Online Selling', '🚚 Orders & Delivery', '🏪 General Store', '💼 Services & Clients', '📈 Wholesale', '🌍 Cameroon · Senegal · Ivory Coast']
             ).map(tag => (
               <span key={tag} className="px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs sm:text-sm font-medium text-gray-600 shadow-sm">
                 {tag}
