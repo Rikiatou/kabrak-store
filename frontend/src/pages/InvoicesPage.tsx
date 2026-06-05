@@ -69,6 +69,11 @@ export function InvoicesPage() {
   const [addingPayment, setAddingPayment] = useState(false);
   const mountedRef = useRef(true);
 
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   // Standalone invoice form state
   const [clients, setClients] = useState<Client[]>([]);
   const [formClientId, setFormClientId] = useState('');
@@ -79,7 +84,11 @@ export function InvoicesPage() {
 
   const loadInvoices = async () => {
     try {
-      const { data } = await api.get('/invoices', { params: { limit: 50 } });
+      const params: any = { limit: 50 };
+      if (searchQuery) params.search = searchQuery;
+      if (dateFrom) params.from = dateFrom;
+      if (dateTo) params.to = dateTo;
+      const { data } = await api.get('/invoices', { params });
       if (mountedRef.current) setInvoices(data.data);
     } catch (err) {
       console.error(err);
@@ -97,7 +106,7 @@ export function InvoicesPage() {
       }).catch(() => {});
     }
     return () => { mountedRef.current = false; };
-  }, [isService]);
+  }, [isService, searchQuery, dateFrom, dateTo]);
 
   const handleExport = async () => {
     try {
@@ -208,6 +217,50 @@ export function InvoicesPage() {
             <Download className="w-4 h-4 mr-2" /> {t('common.export')} CSV
           </Button>
         </div>
+      </div>
+
+      {/* Search and Filter Bar */}
+      <div className="flex flex-wrap gap-3 items-center bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+        <div className="flex-1 min-w-[200px]">
+          <input
+            type="text"
+            placeholder={language === 'fr' ? 'Rechercher par nom client, numéro facture...' : 'Search by client name, invoice number...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full rounded-lg border px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+        <div>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+        <div>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="rounded-lg border px-3 py-2 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+        {(searchQuery || dateFrom || dateTo) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearchQuery('');
+              setDateFrom('');
+              setDateTo('');
+            }}
+            className="text-red-500"
+          >
+            <X className="w-4 h-4 mr-1" />
+            {language === 'fr' ? 'Effacer' : 'Clear'}
+          </Button>
+        )}
       </div>
 
       {/* Standalone Invoice Creation Form (SERVICE mode only) */}

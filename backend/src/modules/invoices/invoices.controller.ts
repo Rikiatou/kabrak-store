@@ -11,11 +11,30 @@ function generateInvoiceNumber(): string {
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = '1', limit = '20', status } = req.query;
+    const { page = '1', limit = '20', status, search, from, to } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const where: Record<string, unknown> = { tenantId: req.user!.tenantId };
     if (status) where.paymentStatus = status as string;
+
+    // Search by client name or invoice number
+    if (search) {
+      where.OR = [
+        { invoiceNumber: { contains: search as string, mode: 'insensitive' } },
+        { client: { name: { contains: search as string, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Date range filter
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(from as string);
+      if (to) {
+        const toDate = new Date(to as string);
+        toDate.setHours(23, 59, 59, 999);
+        where.createdAt.lte = toDate;
+      }
+    }
 
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({

@@ -12,16 +12,30 @@ function generateReference(): string {
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = '1', limit = '20', status, clientId, from, to } = req.query;
+    const { page = '1', limit = '20', status, clientId, from, to, search } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const where: Record<string, unknown> = { tenantId: req.user!.tenantId };
     if (status) where.status = status as string;
     if (clientId) where.clientId = clientId as string;
+
+    // Search by reference or client name
+    if (search) {
+      where.OR = [
+        { reference: { contains: search as string, mode: 'insensitive' } },
+        { client: { name: { contains: search as string, mode: 'insensitive' } } },
+      ];
+    }
+
+    // Date range filter
     if (from || to) {
-      where.createdAt = {};
-      if (from) (where.createdAt as Record<string, unknown>).gte = new Date(from as string);
-      if (to) (where.createdAt as Record<string, unknown>).lte = new Date(to as string);
+      where.createdAt = {} as { gte?: Date; lte?: Date };
+      if (from) (where.createdAt as { gte?: Date; lte?: Date }).gte = new Date(from as string);
+      if (to) {
+        const toDate = new Date(to as string);
+        toDate.setHours(23, 59, 59, 999);
+        (where.createdAt as { gte?: Date; lte?: Date }).lte = toDate;
+      }
     }
 
     const [orders, total] = await Promise.all([

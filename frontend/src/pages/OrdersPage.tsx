@@ -90,13 +90,22 @@ export function OrdersPage() {
   const [initialPaymentMethod, setInitialPaymentMethod] = useState('CASH');
   const [initialAmountPaid, setInitialAmountPaid] = useState<number | ''>('');
 
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   const fetchOrders = useCallback(async () => {
     try {
-      const { data } = await api.get('/orders', { params: { limit: 50 } });
+      const params: any = { limit: 50 };
+      if (searchQuery) params.search = searchQuery;
+      if (dateFrom) params.from = dateFrom;
+      if (dateTo) params.to = dateTo;
+      const { data } = await api.get('/orders', { params });
       setOrders(data.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, []);
+  }, [searchQuery, dateFrom, dateTo]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -180,6 +189,46 @@ export function OrdersPage() {
         <Button size="sm" onClick={openNewOrder}>
           <Plus className="w-4 h-4 mr-1" /> {t('orders.newOrder')}
         </Button>
+      </div>
+
+      {/* Search and Filter Bar */}
+      <div className="flex flex-wrap gap-3 items-center bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+        <div className="flex-1 min-w-[200px]">
+          <Input
+            placeholder={t('common.search')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+        </div>
+        <div>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
+        </div>
+        {(searchQuery || dateFrom || dateTo) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearchQuery('');
+              setDateFrom('');
+              setDateTo('');
+            }}
+            className="text-red-500"
+          >
+            <X className="w-4 h-4 mr-1" />
+            {t('common.clear')}
+          </Button>
+        )}
       </div>
 
       {/* New Order Modal */}
