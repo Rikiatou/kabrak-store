@@ -12,13 +12,13 @@ import api from '@/lib/api';
 const PLANS = [
   { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & stock', 'Commandes', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats', 'Logo & couleur facture'], quote: false },
   { value: 'SHOP', price: 7900, icon: Zap, features: ['Tout STORE +', 'Caisse POS', 'Catégories & organisation', 'Livraisons & suivi', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés'], quote: false },
-  { value: 'BUSINESS', price: 0, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: true },
+  { value: 'BUSINESS', price: 12900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: false },
 ];
 
 const ORDER_BASED_PLANS = [
   { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & stock', 'Commandes WhatsApp', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats'], quote: false },
   { value: 'SHOP', price: 7900, icon: Zap, features: ['Tout STORE +', 'Livraisons & suivi', 'Catégories & organisation', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés'], quote: false },
-  { value: 'BUSINESS', price: 0, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: true },
+  { value: 'BUSINESS', price: 12900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: false },
 ];
 
 const ORDER_BASED_CATS = new Set([
