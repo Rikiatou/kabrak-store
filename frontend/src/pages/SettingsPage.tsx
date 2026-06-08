@@ -378,6 +378,48 @@ export function SettingsPage() {
               className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
             />
           </div>
+
+          {/* Public Storefront Link */}
+          {tenant?.slug && (
+            <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-100 dark:border-blue-800 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                  {language === 'fr' ? 'Vitrine publique en ligne' : 'Public Online Storefront'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={`${window.location.origin}/storefront/${tenant.slug}`}
+                  className="flex-1 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded-lg px-3 py-2 text-xs text-gray-700 dark:text-gray-300"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/storefront/${tenant.slug}`);
+                    alert(language === 'fr' ? 'Lien copié !' : 'Link copied!');
+                  }}
+                  className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
+                >
+                  {language === 'fr' ? 'Copier' : 'Copy'}
+                </button>
+                <a
+                  href={`/storefront/${tenant.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 border border-blue-600 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                >
+                  {language === 'fr' ? 'Voir' : 'View'}
+                </a>
+              </div>
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-2">
+                {language === 'fr' ? 'Partagez ce lien pour que vos clients parcourent votre catalogue et commandent via WhatsApp.' : 'Share this link for clients to browse your catalog and order via WhatsApp.'}
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-muted-foreground mb-1 flex items-center gap-1">
