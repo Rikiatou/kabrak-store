@@ -115,21 +115,21 @@ Format de réponse:
 4. Recommandations concrètes (3-5 actions)
 5. Prévision pour le mois prochain (1-2 lignes)`;
 
-    // Call OpenAI
-    const apiKey = process.env.OPENAI_API_KEY;
+    // Call Groq (free, fast Llama 3)
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      res.status(500).json({ success: false, message: 'OpenAI API key not configured' });
+      res.status(500).json({ success: false, message: 'Groq API key not configured' });
       return;
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama3-70b-8192',
         messages: [
           { role: 'system', content: 'Tu es un expert business analyst pour les PME en Afrique. Donne des rapports concis, actionnables et adaptés au contexte local.' },
           { role: 'user', content: prompt },
@@ -141,7 +141,7 @@ Format de réponse:
 
     if (!response.ok) {
       const error = await response.text();
-      res.status(500).json({ success: false, message: 'OpenAI API error', details: error });
+      res.status(500).json({ success: false, message: 'Groq API error', details: error });
       return;
     }
 
