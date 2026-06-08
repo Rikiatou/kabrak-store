@@ -27,13 +27,14 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
 
     // Date range filter
     if (from || to) {
-      where.createdAt = {};
-      if (from) where.createdAt.gte = new Date(from as string);
+      const createdAtFilter: Record<string, unknown> = {};
+      if (from) createdAtFilter.gte = new Date(from as string);
       if (to) {
         const toDate = new Date(to as string);
         toDate.setHours(23, 59, 59, 999);
-        where.createdAt.lte = toDate;
+        createdAtFilter.lte = toDate;
       }
+      where.createdAt = createdAtFilter;
     }
 
     const [invoices, total] = await Promise.all([
