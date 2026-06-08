@@ -313,46 +313,42 @@ export function LandingPage() {
               {fr ? 'Pourquoi choisir KABRAK ?' : 'Why choose KABRAK?'}
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3">
-              {fr ? 'Tout inclus. Mensuel. Sans surprise.' : 'All-inclusive. Monthly. No surprises.'}
+              {fr ? 'Gagnez du temps, vendez plus, perdez moins.' : 'Save time, sell more, lose less.'}
             </h2>
             <p className="text-sm text-gray-400 max-w-xl mx-auto">
-              {fr ? 'Dès 4 900 FCFA/mois, tout ce qu\'il vous faut pour gérer votre boutique, vos clients et votre croissance — WhatsApp, factures, stock, caisse, livraisons.' : 'From 4,900 FCFA/month, everything you need to run your store, manage clients and grow — WhatsApp, invoices, stock, POS, deliveries.'}
+              {fr ? 'KABRAK centralise vos ventes, clients, stock et dépenses en un seul endroit. WhatsApp, factures PDF, caisse POS, livraisons — tout inclus, pas de frais cachés.' : 'KABRAK centralizes your sales, clients, stock and expenses in one place. WhatsApp, PDF invoices, POS register, deliveries — all included, no hidden fees.'}
             </p>
           </div>
 
-          {/* Comparison table */}
+          {/* Features list */}
           <div className="overflow-hidden rounded-2xl border-2 border-blue-100 shadow-xl shadow-blue-50 mb-10">
-            <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+            <div className="grid grid-cols-2 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
               <div className="p-4">{fr ? 'Fonctionnalité' : 'Feature'}</div>
               <div className="p-4 text-center bg-blue-600 text-white rounded-t-none">KABRAK</div>
-              <div className="p-4 text-center text-gray-400">{fr ? 'Autres solutions' : 'Other solutions'}</div>
             </div>
             {(fr ? [
-              ['Paiement mensuel (sans engagement)', true, false],
-              ['WhatsApp inclus dans le prix', true, false],
-              ['Caisse POS incluse', true, false],
-              ['Programme fidélité intégré', true, false],
-              ['Livraisons & suivi inclus', true, false],
-              ['Rapports IA (GPT-4o)', true, false],
-              ['Paiement Orange Money', true, false],
-              ['14 jours gratuits sans appel', true, false],
+              ['Paiement mensuel (sans engagement)', true],
+              ['WhatsApp inclus dans le prix', true],
+              ['Caisse POS incluse', true],
+              ['Programme fidélité intégré', true],
+              ['Livraisons & suivi inclus', true],
+              ['Rapports IA (GPT-4o)', true],
+              ['Paiement Orange Money', true],
+              ['14 jours gratuits sans appel', true],
             ] : [
-              ['Monthly billing (no commitment)', true, false],
-              ['WhatsApp included in price', true, false],
-              ['POS register included', true, false],
-              ['Built-in loyalty program', true, false],
-              ['Delivery tracking included', true, false],
-              ['AI Reports (GPT-4o)', true, false],
-              ['Orange Money payment', true, false],
-              ['14-day free trial, no call needed', true, false],
-            ]).map(([label, kabrak, other], i) => (
-              <div key={i} className={`grid grid-cols-3 border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+              ['Monthly billing (no commitment)', true],
+              ['WhatsApp included in price', true],
+              ['POS register included', true],
+              ['Built-in loyalty program', true],
+              ['Delivery tracking included', true],
+              ['AI Reports (GPT-4o)', true],
+              ['Orange Money payment', true],
+              ['14-day free trial, no call needed', true],
+            ]).map(([label, kabrak], i) => (
+              <div key={i} className={`grid grid-cols-2 border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
                 <div className="p-3.5 sm:p-4 text-xs sm:text-sm text-gray-700 font-medium flex items-center">{label as string}</div>
                 <div className="p-3.5 sm:p-4 flex items-center justify-center bg-blue-50/40">
                   {kabrak ? <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center"><CheckCircle className="w-3.5 h-3.5 text-white" /></span> : <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center"><X className="w-3 h-3 text-red-400" /></span>}
-                </div>
-                <div className="p-3.5 sm:p-4 flex items-center justify-center">
-                  {other ? <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center"><CheckCircle className="w-3.5 h-3.5 text-white" /></span> : <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center"><X className="w-3 h-3 text-red-400" /></span>}
                 </div>
               </div>
             ))}
@@ -545,7 +541,7 @@ export function LandingPage() {
         <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-8">
           <div>
             <div className="mb-3">
-              <img src="/logo.png" alt="KABRAK Store" className="h-12 object-contain brightness-0 invert" />
+              <img src="/logo.png" alt="KABRAK Store" className="h-12 object-contain" />
             </div>
             <p className="text-gray-400 text-xs leading-relaxed">{fr ? 'Le logiciel de gestion qui s\'adapte à votre business.' : 'The management software that adapts to your business.'}</p>
             <p className="text-gray-500 text-[10px] mt-2 font-medium">KABRAK ENG</p>
