@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
 import { Plus, Search, Package, Pencil, Trash2, X, ScanLine, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
+import { ImageUpload } from '@/components/ImageUpload';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -76,6 +77,7 @@ const defaultForm = {
   name: '', businessType: 'OTHER', costPrice: 0, sellingPrice: 0,
   totalStock: 0, lowStockAlert: 5, categoryId: null as string | null,
   adaptiveFields: {} as Record<string, unknown>,
+  image: '' as string,
 };
 
 export function ProductsPage() {
@@ -92,6 +94,7 @@ export function ProductsPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
+  const [formImage, setFormImage] = useState('');
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -122,14 +125,16 @@ export function ProductsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = { ...form, image: formImage };
       if (editingId) {
-        await api.put(`/products/${editingId}`, form);
+        await api.put(`/products/${editingId}`, payload);
       } else {
-        await api.post('/products', form);
+        await api.post('/products', payload);
       }
       setShowForm(false);
       setEditingId(null);
       setForm(defaultForm);
+      setFormImage('');
       fetchProducts();
     } catch (err) { console.error(err); }
   };
@@ -142,9 +147,11 @@ export function ProductsPage() {
       sellingPrice: product.sellingPrice,
       totalStock: product.totalStock,
       lowStockAlert: product.lowStockAlert,
-      categoryId: product.category?.id || null,
+      categoryId: product.category?.id ?? null,
       adaptiveFields: (product.adaptiveFields || {}) as Record<string, unknown>,
+      image: product.image || '',
     });
+    setFormImage(product.image || '');
     setEditingId(product.id);
     setShowForm(true);
   };
@@ -199,7 +206,7 @@ export function ProductsPage() {
               <ScanLine className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Scanner</span>
             </Button>
           )}
-          <Button size="sm" onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}>
+          <Button size="sm" onClick={() => { setForm(defaultForm); setFormImage(''); setEditingId(null); setShowForm(true); }}>
             <Plus className="w-4 h-4 mr-1" /> {t('products.addProduct')}
           </Button>
         </div>
@@ -230,6 +237,12 @@ export function ProductsPage() {
                   <label className="text-sm font-medium mb-1 block">{t('products.name')}</label>
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
                 </div>
+
+                <ImageUpload
+                  value={formImage}
+                  onChange={setFormImage}
+                  label={language === 'fr' ? 'Image du produit' : 'Product image'}
+                />
 
                 <div>
                   <label className="text-sm font-medium mb-1 block">{t('products.category')}</label>
