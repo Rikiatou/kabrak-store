@@ -195,7 +195,7 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
 
 export const updateStore = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, phone, logo, invoiceColor } = req.body;
+    const { name, phone, logo, invoiceColor, address, currency, language } = req.body;
     const tenantId = req.user!.tenantId;
 
     // Validate logo size (max 500KB base64)
@@ -211,6 +211,9 @@ export const updateStore = async (req: Request, res: Response): Promise<void> =>
         ...(phone !== undefined && { phone }),
         ...(logo !== undefined && { logo }),
         ...(invoiceColor && { invoiceColor }),
+        ...(address !== undefined && { address }),
+        ...(currency && { currency }),
+        ...(language && { language }),
       },
     });
 
@@ -431,5 +434,38 @@ export const me = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch user';
     res.status(500).json({ success: false, message });
+  }
+};
+
+export const getSuggestedCategories = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const mode = (req.query.mode as string) || 'PRODUCT';
+    const suggestions = await (prisma as any).suggestedCategory.findMany({
+      where: { mode },
+      orderBy: { usageCount: 'desc' },
+      take: 20,
+    });
+    res.json({ success: true, data: suggestions.map((s: any) => s.name) });
+  } catch {
+    res.json({ success: true, data: [] });
+  }
+};
+
+export const saveSuggestedCategory = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { name, mode } = req.body as { name: string; mode: string };
+    if (!name || name.trim().length < 2) {
+      res.status(400).json({ success: false, message: 'Nom trop court' });
+      return;
+    }
+    const clean = name.trim().toLowerCase();
+    await (prisma as any).suggestedCategory.upsert({
+      where: { name_mode: { name: clean, mode: mode || 'PRODUCT' } },
+      update: { usageCount: { increment: 1 } },
+      create: { name: clean, mode: mode || 'PRODUCT' },
+    });
+    res.json({ success: true });
+  } catch {
+    res.json({ success: true });
   }
 };

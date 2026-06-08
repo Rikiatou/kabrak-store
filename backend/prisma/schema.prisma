@@ -644,6 +644,20 @@ model Expense {
   @@map("expenses")
 }
 
+// ─── SUGGESTED CATEGORY (custom categories shared across users) ──
+
+model SuggestedCategory {
+  id         String   @id @default(uuid())
+  name       String
+  mode       String   @default("PRODUCT")
+  usageCount Int      @default(1)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([name, mode])
+  @@map("suggested_categories")
+}
+
 // ─── DATA EXPORT ─────────────────────────────────────────
 
 model DataExport {

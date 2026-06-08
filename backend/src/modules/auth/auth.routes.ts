@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, me, updateProfile, changePassword, updateStore, updateCategories, forgotPassword, resetPassword } from './auth.controller';
+import { register, login, me, updateProfile, changePassword, updateStore, updateCategories, forgotPassword, resetPassword, getSuggestedCategories, saveSuggestedCategory } from './auth.controller';
 import { validate } from '../../middleware/validate';
 import { authenticate } from '../../middleware/auth';
 import { registerSchema, loginSchema } from './auth.schema';
@@ -15,5 +15,7 @@ router.put('/profile', authenticate, updateProfile);
 router.put('/password', authenticate, changePassword);
 router.put('/store', authenticate, updateStore);
 router.put('/categories', authenticate, updateCategories);
+router.get('/suggested-categories', getSuggestedCategories);
+router.post('/suggested-categories', authenticate, saveSuggestedCategory);
 
 export default router;

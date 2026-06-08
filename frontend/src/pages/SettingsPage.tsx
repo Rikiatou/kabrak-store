@@ -1,8 +1,9 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
-import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, Check } from 'lucide-react';
+import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, Check, Globe, CreditCard, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const PRODUCT_CATEGORIES = [
   { value: 'CLOTHING', icon: '👗' },
@@ -47,6 +48,7 @@ const SERVICE_CATEGORIES = [
 export function SettingsPage() {
   const { language } = useTranslation();
   const { user, tenant, fetchMe } = useAuthStore();
+  const navigate = useNavigate();
 
   const [profile, setProfile] = useState({
     firstName: user?.firstName || '',
@@ -59,9 +61,22 @@ export function SettingsPage() {
   const [store, setStore] = useState({
     name: tenant?.name || '',
     phone: tenant?.phone || '',
+    address: tenant?.address || '',
     logo: tenant?.logo || '',
     invoiceColor: tenant?.invoiceColor || '#2563eb',
+    currency: tenant?.currency || 'XAF',
+    language: tenant?.language || 'fr',
   });
+  const [suggestedCats, setSuggestedCats] = useState<string[]>([]);
+  const [customCatInput, setCustomCatInput] = useState('');
+
+  useEffect(() => {
+    if (tenant?.businessMode) {
+      api.get(`/auth/suggested-categories?mode=${tenant.businessMode}`)
+        .then(r => setSuggestedCats(r.data.data || []))
+        .catch(() => {});
+    }
+  }, [tenant?.businessMode]);
 
   const [passwords, setPasswords] = useState({
     currentPassword: '',
@@ -85,6 +100,14 @@ export function SettingsPage() {
     setSelectedCategories((prev) =>
       prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
     );
+  };
+
+  const handleAddCustomCat = () => {
+    const val = customCatInput.trim();
+    if (!val || selectedCategories.includes(val)) return;
+    setSelectedCategories(prev => [...prev, val]);
+    setCustomCatInput('');
+    api.post('/auth/suggested-categories', { name: val, mode: tenant?.businessMode || 'PRODUCT' }).catch(() => {});
   };
 
   const handleCategoriesSubmit = async () => {
@@ -207,6 +230,23 @@ export function SettingsPage() {
         {language === 'fr' ? 'Paramètres' : 'Settings'}
       </h1>
 
+      {/* Subscription quick card */}
+      <button
+        onClick={() => navigate('/billing')}
+        className="w-full flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl px-5 py-4 shadow-lg shadow-blue-200 hover:opacity-90 transition-opacity"
+      >
+        <div className="flex items-center gap-3">
+          <CreditCard className="w-5 h-5" />
+          <div className="text-left">
+            <p className="font-bold text-sm">{language === 'fr' ? 'Mon abonnement' : 'My Subscription'}</p>
+            <p className="text-blue-200 text-xs">
+              KABRAK {tenant?.plan} &mdash; {language === 'fr' ? 'Voir & gérer' : 'View & manage'}
+            </p>
+          </div>
+        </div>
+        <span className="text-blue-200 text-xs font-medium">{language === 'fr' ? 'Voir →' : 'View →'}</span>
+      </button>
+
       {/* Profile Section */}
       <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-5">
@@ -324,6 +364,49 @@ export function SettingsPage() {
                 placeholder="+237 6XX XXX XXX"
                 className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
               />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">
+              {language === 'fr' ? 'Adresse / Ville' : 'Address / City'}
+            </label>
+            <input
+              type="text"
+              value={store.address}
+              onChange={(e) => setStore({ ...store, address: e.target.value })}
+              placeholder={language === 'fr' ? 'Ex: Yaoundé, Douala...' : 'Ex: Yaounde, Douala...'}
+              className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400"
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5" />{language === 'fr' ? 'Devise' : 'Currency'}
+              </label>
+              <select
+                value={store.currency}
+                onChange={(e) => setStore({ ...store, currency: e.target.value })}
+                className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-200"
+              >
+                <option value="XAF">FCFA (XAF)</option>
+                <option value="EUR">€ Euro</option>
+                <option value="USD">$ USD</option>
+                <option value="GHS">GHS Cedi</option>
+                <option value="NGN">₦ Naira</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1 flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5" />{language === 'fr' ? 'Langue de l\'app' : 'App Language'}
+              </label>
+              <select
+                value={store.language}
+                onChange={(e) => setStore({ ...store, language: e.target.value })}
+                className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-violet-200"
+              >
+                <option value="fr">Français</option>
+                <option value="en">English</option>
+              </select>
             </div>
           </div>
 
@@ -459,14 +542,64 @@ export function SettingsPage() {
                 >
                   <span className="text-xl">{cat.icon}</span>
                   <span className="text-[11px] font-medium text-center text-gray-600 dark:text-gray-300 leading-tight">
-                    {language === 'fr'
-                      ? cat.value.replace(/_/g, ' ')
-                      : cat.value.replace(/_/g, ' ')}
+                    {cat.value.replace(/_/g, ' ')}
                   </span>
                   {isSelected && <Check className={`w-3.5 h-3.5 ${tenant?.businessMode === 'SERVICE' ? 'text-violet-500' : 'text-blue-500'}`} />}
                 </button>
               );
             })}
+            {selectedCategories.filter(c => !categories.some(cat => cat.value === c)).map(custom => (
+              <button
+                key={custom}
+                onClick={() => toggleCategory(custom)}
+                className="flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm cursor-pointer transition-all"
+              >
+                <span className="text-xl">🏷️</span>
+                <span className="text-[11px] font-medium text-center text-blue-700 dark:text-blue-300 leading-tight capitalize">{custom}</span>
+                <Check className="w-3.5 h-3.5 text-blue-500" />
+              </button>
+            ))}
+          </div>
+          {suggestedCats.length > 0 && (
+            <div>
+              <p className="text-[10px] text-gray-400 mb-1.5">{language === 'fr' ? '💡 Proposées par d\'autres utilisateurs' : '💡 Suggested by other users'}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {suggestedCats.filter(s => !selectedCategories.includes(s)).map(s => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => { setSelectedCategories(prev => [...prev, s]); }}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium border bg-gray-50 border-gray-200 text-gray-500 hover:border-blue-300 transition-all capitalize"
+                  >
+                    + {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
+              <Plus className="w-3 h-3" />{language === 'fr' ? 'Ajouter une catégorie personnalisée' : 'Add custom category'}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customCatInput}
+                onChange={(e) => setCustomCatInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddCustomCat()}
+                placeholder={language === 'fr' ? 'ex: Biscuits artisanaux...' : 'e.g. Artisan biscuits...'}
+                className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomCat}
+                disabled={!customCatInput.trim()}
+                className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-40 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">{language === 'fr' ? 'Sera proposée aux futurs utilisateurs.' : 'Will be suggested to future users.'}</p>
           </div>
 
           <button

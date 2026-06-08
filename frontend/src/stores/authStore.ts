@@ -20,6 +20,7 @@ interface Tenant {
   language?: string;
   logo?: string;
   phone?: string;
+  address?: string;
   invoiceColor?: string;
 }
 

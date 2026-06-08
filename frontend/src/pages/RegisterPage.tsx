@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
-import { ArrowLeft, Check, Eye, EyeOff, ChevronRight, ChevronLeft, ShoppingBag, Briefcase } from 'lucide-react';
+import { ArrowLeft, Check, Eye, EyeOff, ChevronRight, ChevronLeft, ShoppingBag, Briefcase, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type BusinessMode = 'PRODUCT' | 'SERVICE';
@@ -49,20 +49,20 @@ const SERVICE_CATEGORIES = [
 
 const PLANS = [
   { value: 'STORE', price: '4 900', features: ['Produits & stock', 'Commandes', 'Clients', 'Facturation WhatsApp'] },
-  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Caisse POS', 'Livraisons', 'Employés & Rapports'] },
-  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
+  { value: 'SHOP', price: '9 900', features: ['Tout STORE +', 'Caisse POS', 'Livraisons', 'Employés & Rapports'] },
+  { value: 'BUSINESS', price: '14 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
 ];
 
 const ORDER_BASED_PLANS = [
   { value: 'STORE', price: '4 900', features: ['Commandes WhatsApp', 'Clients', 'Facturation', 'Dashboard'] },
-  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Livraisons', 'Employés', 'Rapports'] },
-  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
+  { value: 'SHOP', price: '9 900', features: ['Tout STORE +', 'Livraisons', 'Employés', 'Rapports'] },
+  { value: 'BUSINESS', price: '14 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
 ];
 
 const SERVICE_PLANS = [
   { value: 'STORE', price: '4 900', features: ['Projets & milestones', 'Clients', 'Facturation WhatsApp', 'Dépenses'] },
-  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Facturation récurrente', 'Employés', 'Rapports'] },
-  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
+  { value: 'SHOP', price: '9 900', features: ['Tout STORE +', 'Facturation récurrente', 'Employés', 'Rapports'] },
+  { value: 'BUSINESS', price: '14 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
 ];
 
 const ORDER_BASED_CATS = new Set([
@@ -92,6 +92,7 @@ export function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPass, setShowPass] = useState(false);
+  const [suggestedCats, setSuggestedCats] = useState<string[]>([]);
   const [form, setForm] = useState({
     email: '', password: '', firstName: '', lastName: '', phone: '',
     storeName: '', plan: 'STORE' as string,
@@ -99,6 +100,14 @@ export function RegisterPage() {
     businessCategories: [] as string[],
     customCategory: '',
   });
+
+  useEffect(() => {
+    if (form.businessMode) {
+      api.get(`/auth/suggested-categories?mode=${form.businessMode}`)
+        .then(r => setSuggestedCats(r.data.data || []))
+        .catch(() => {});
+    }
+  }, [form.businessMode]);
 
   const stepLabels = language === 'fr'
     ? ['Votre activité', 'Informations', 'Catégories', 'Plan']
@@ -125,9 +134,8 @@ export function RegisterPage() {
     setLoading(true);
     try {
       const finalCategories = [...form.businessCategories];
-      if (form.customCategory.trim()) {
-        finalCategories.push(form.customCategory.trim());
-      }
+      const custom = form.customCategory.trim();
+      if (custom) finalCategories.push(custom);
       const payload = {
         ...form,
         businessCategories: finalCategories,
@@ -136,6 +144,9 @@ export function RegisterPage() {
       const { data } = await api.post('/auth/register', payload);
       setAuth(data.data);
       localStorage.setItem('kabrak_new_user', '1');
+      if (custom) {
+        api.post('/auth/suggested-categories', { name: custom, mode: form.businessMode || 'PRODUCT' }).catch(() => {});
+      }
       navigate('/guide');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
@@ -397,17 +408,42 @@ export function RegisterPage() {
                   );
                 })}
               </div>
+              {suggestedCats.length > 0 && (
+                <div className="pt-1">
+                  <p className="text-[10px] text-gray-400 mb-1.5">{language === 'fr' ? '💡 Suggérées par d\'autres utilisateurs' : '💡 Suggested by other users'}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {suggestedCats.map(s => {
+                      const key = `__custom__${s}`;
+                      const isSelected = form.businessCategories.includes(key);
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => toggleCategory(key)}
+                          className={cn(
+                            'px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all capitalize',
+                            isSelected ? 'bg-blue-100 border-blue-400 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-blue-300'
+                          )}
+                        >
+                          {isSelected && <Check className="w-2.5 h-2.5 inline mr-1" />}{s}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="pt-2">
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5">
-                  {language === 'fr' ? 'Autre catégorie (optionnel)' : 'Other category (optional)'}
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1.5 flex items-center gap-1">
+                  <Plus className="w-3 h-3" />{language === 'fr' ? 'Ajouter ma propre catégorie' : 'Add my own category'}
                 </label>
                 <input
                   type="text"
                   value={form.customCategory}
                   onChange={(e) => setForm({ ...form, customCategory: e.target.value })}
-                  placeholder={language === 'fr' ? 'ex: Biscuits, Chaussures enfants...' : 'e.g. Biscuits, Kids shoes...'}
+                  placeholder={language === 'fr' ? 'ex: Biscuits artisanaux, Chaussures enfants...' : 'e.g. Artisan biscuits, Kids shoes...'}
                   className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-gray-50/50 dark:bg-gray-700"
                 />
+                <p className="text-[10px] text-gray-400 mt-1">{language === 'fr' ? 'Elle sera proposée aux futurs utilisateurs.' : 'It will be suggested to future users.'}</p>
               </div>
               <div className="flex gap-3 pt-2">
                 <button
