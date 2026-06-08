@@ -4,7 +4,7 @@ import { prisma } from '../../config/prisma';
 export const generateReport = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.user!.tenantId;
-    const { period = 'month' } = req.query;
+    const { period = 'month' } = req.body;
 
     // Fetch data
     const dateFilter: Record<string, unknown> = {};
