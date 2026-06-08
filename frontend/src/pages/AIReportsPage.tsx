@@ -20,14 +20,22 @@ export function AIReportsPage() {
   const [period, setPeriod] = useState<'week' | 'month'>('month');
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<ReportData | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const generateReport = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.post('/ai/report', { period });
-      setReport(res.data.data);
-    } catch (error) {
-      console.error(error);
+      if (res.data.success) {
+        setReport(res.data.data);
+      } else {
+        setError(res.data.message || 'Erreur inconnue');
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Erreur de connexion';
+      setError(msg);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -109,6 +117,17 @@ export function AIReportsPage() {
             <p className={`font-bold text-lg ${report.metrics.margin >= 0 ? 'text-green-600' : 'text-red-500'}`}>
               {report.metrics.margin}%
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Error display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-red-700 text-sm">{language === 'fr' ? 'Erreur' : 'Error'}</p>
+            <p className="text-red-600 text-sm mt-0.5">{error}</p>
           </div>
         </div>
       )}
