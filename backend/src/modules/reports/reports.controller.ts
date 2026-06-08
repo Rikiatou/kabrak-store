@@ -22,6 +22,8 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       lowStockProducts,
       recentOrders,
       topProducts,
+      upcomingDeliveries,
+      unpaidInvoices,
     ] = await Promise.all([
       prisma.order.count({
         where: { tenantId, createdAt: { gte: startDate, lt: endDate } },
@@ -54,6 +56,14 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
         _sum: { quantity: true, totalPrice: true },
         orderBy: { _sum: { totalPrice: 'desc' } },
         take: 5,
+      }),
+      prisma.delivery.count({
+        where: { tenantId, status: { in: ['PENDING', 'PICKED_UP', 'IN_TRANSIT'] } },
+      }),
+      prisma.invoice.aggregate({
+        where: { tenantId, paymentStatus: { in: ['PENDING', 'PARTIAL'] } },
+        _sum: { amountDue: true },
+        _count: true,
       }),
     ]);
 
@@ -92,6 +102,9 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
         recentOrders,
         topProducts: topProductsWithDetails,
         totalGrossMargin,
+        upcomingDeliveries,
+        unpaidInvoices: unpaidInvoices._count,
+        unpaidAmount: unpaidInvoices._sum.amountDue || 0,
       },
     });
   } catch (error) {

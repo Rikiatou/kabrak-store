@@ -8,7 +8,7 @@ const LOYALTY_TIERS = [
   { name: 'PLATINUM', minPoints: 1000, discountPercent: 15 },
 ];
 
-const POINTS_PER_FCFA = 1000; // 1 point per 1000 FCFA spent
+const POINTS_PER_FCFA = parseInt(process.env.LOYALTY_POINTS_PER_FCFA || '1000', 10); // 1 point per 1000 FCFA spent
 
 function calculateTier(points: number): string {
   for (let i = LOYALTY_TIERS.length - 1; i >= 0; i--) {

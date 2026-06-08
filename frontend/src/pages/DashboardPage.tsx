@@ -23,8 +23,8 @@ interface DashboardData {
   }>;
   totalGrossMargin?: number;
   upcomingDeliveries?: number;
-  pendingDeposits?: number;
   unpaidInvoices?: number;
+  unpaidAmount?: number;
 }
 
 interface ServiceDashboardData {
@@ -477,6 +477,31 @@ export function DashboardPage() {
           </div>
 
           <div className="space-y-6">
+            {/* Alertes livraisons & factures impayées */}
+            {((productData?.upcomingDeliveries ?? 0) > 0 || (productData?.unpaidInvoices ?? 0) > 0) && (
+              <div className="grid grid-cols-2 gap-3">
+                {(productData?.upcomingDeliveries ?? 0) > 0 && (
+                  <a href="/deliveries" className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 flex flex-col gap-1 hover:bg-blue-100 transition-colors">
+                    <div className="flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-blue-500" />
+                      <span className="text-xs font-medium text-blue-700 dark:text-blue-300">{language === 'fr' ? 'Livraisons' : 'Deliveries'}</span>
+                    </div>
+                    <span className="text-xl font-bold text-blue-700 dark:text-blue-300">{productData?.upcomingDeliveries}</span>
+                    <span className="text-[10px] text-blue-500">{language === 'fr' ? 'en cours' : 'in progress'}</span>
+                  </a>
+                )}
+                {(productData?.unpaidInvoices ?? 0) > 0 && (
+                  <a href="/invoices" className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 flex flex-col gap-1 hover:bg-amber-100 transition-colors">
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-amber-500" />
+                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{language === 'fr' ? 'Impayées' : 'Unpaid'}</span>
+                    </div>
+                    <span className="text-xl font-bold text-amber-700 dark:text-amber-300">{productData?.unpaidInvoices}</span>
+                    <span className="text-[10px] text-amber-500">{formatCurrency(productData?.unpaidAmount ?? 0)}</span>
+                  </a>
+                )}
+              </div>
+            )}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
               <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
                 <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
