@@ -105,7 +105,7 @@ function PlanGuard({ plans, children }: { plans: string[]; children: React.React
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-green-500 text-white font-bold hover:bg-green-600 transition-colors"
         >
-          💬 Passer à SHOP — 7 900 FCFA/mois
+          💬 Passer à SHOP — 9 900 FCFA/mois
         </a>
         <a href="/billing" className="block w-full py-2.5 rounded-xl border border-border text-sm text-muted-foreground text-center hover:bg-accent transition-colors">
           Voir mon abonnement
@@ -163,7 +163,7 @@ function App() {
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/employees" element={<PlanGuard plans={['SHOP','BUSINESS']}><EmployeesPage /></PlanGuard>} />
           <Route path="/reports" element={<PlanGuard plans={['SHOP','BUSINESS']}><ReportsPage /></PlanGuard>} />
-          <Route path="/ai-reports" element={<PlanGuard plans={['BUSINESS']}><AIReportsPage /></PlanGuard>} />
+          <Route path="/ai-reports" element={<PlanGuard plans={['SHOP','BUSINESS']}><AIReportsPage /></PlanGuard>} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/stores" element={<StoresPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />

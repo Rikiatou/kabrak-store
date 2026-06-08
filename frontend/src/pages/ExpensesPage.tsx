@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Trash2, TrendingDown, TrendingUp, Minus as MinusIcon, X, ShoppingCart, Users, Home, Truck, Megaphone, Zap, Wrench, HelpCircle } from 'lucide-react';
+import { Plus, Trash2, TrendingDown, TrendingUp, Minus as MinusIcon, X, ShoppingCart, Users, Home, Truck, Megaphone, Zap, Wrench, HelpCircle, Pencil } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
 import api from '@/lib/api';
@@ -43,7 +43,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   BANK_TRANSFER: 'Virement', OTHER: 'Autre',
 };
 
-const emptyForm = { amount: '', category: 'STOCK', description: '', date: new Date().toISOString().slice(0, 10), paymentMethod: 'CASH', supplierId: '' };
+const emptyForm = { amount: '', category: 'STOCK', description: '', reference: '', date: new Date().toISOString().slice(0, 10), paymentMethod: 'CASH', supplierId: '' };
 
 export function ExpensesPage() {
   const { language } = useTranslation();
@@ -51,9 +51,11 @@ export function ExpensesPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [periodFilter, setPeriodFilter] = useState<'month' | 'week' | 'all'>('month');
+  const [catFilter, setCatFilter] = useState<string>('ALL');
 
   const getDateRange = () => {
     const now = new Date();
@@ -82,14 +84,24 @@ export function ExpensesPage() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  const openNew = () => { setEditId(null); setForm(emptyForm); setShowForm(true); };
+  const openEdit = (exp: Expense) => {
+    setEditId(exp.id);
+    setForm({ amount: String(exp.amount), category: exp.category, description: exp.description || '', reference: (exp as any).reference || '', date: exp.date.slice(0, 10), paymentMethod: exp.paymentMethod, supplierId: exp.supplier?.id || '' });
+    setShowForm(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.amount) return;
     setSaving(true);
     try {
-      await api.post('/expenses', { ...form, supplierId: form.supplierId || undefined });
-      setShowForm(false);
-      setForm(emptyForm);
+      if (editId) {
+        await api.put(`/expenses/${editId}`, { ...form, supplierId: form.supplierId || undefined });
+      } else {
+        await api.post('/expenses', { ...form, supplierId: form.supplierId || undefined });
+      }
+      setShowForm(false); setEditId(null); setForm(emptyForm);
       fetchAll();
     } catch { /* ignore */ }
     setSaving(false);
@@ -110,7 +122,7 @@ export function ExpensesPage() {
           {language === 'fr' ? '💰 Dépenses & Bénéfice' : '💰 Expenses & Profit'}
         </h1>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={openNew}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors text-sm"
         >
           <Plus className="w-4 h-4" />
@@ -119,11 +131,23 @@ export function ExpensesPage() {
       </div>
 
       {/* Period filter */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {(['week', 'month', 'all'] as const).map((p) => (
           <button key={p} onClick={() => setPeriodFilter(p)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${periodFilter === p ? 'bg-foreground text-background' : 'bg-card border border-border text-muted-foreground hover:bg-accent'}`}>
             {p === 'week' ? '7 jours' : p === 'month' ? 'Ce mois' : 'Tout'}
+          </button>
+        ))}
+        <div className="w-px bg-border mx-1" />
+        <button onClick={() => setCatFilter('ALL')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${catFilter === 'ALL' ? 'bg-foreground text-background' : 'bg-card border border-border text-muted-foreground hover:bg-accent'}`}>
+          {language === 'fr' ? 'Toutes' : 'All'}
+        </button>
+        {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
+          <button key={key} onClick={() => setCatFilter(key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${catFilter === key ? 'bg-foreground text-background' : 'bg-card border border-border text-muted-foreground hover:bg-accent'}`}
+            style={catFilter === key ? {} : { borderColor: cfg.color + '40' }}>
+            {cfg.label}
           </button>
         ))}
       </div>
@@ -193,13 +217,13 @@ export function ExpensesPage() {
         <div className="px-4 py-3 border-b border-border">
           <h3 className="font-semibold text-foreground text-sm">{language === 'fr' ? 'Historique des dépenses' : 'Expense history'}</h3>
         </div>
-        {expenses.length === 0 ? (
+        {expenses.filter(e => catFilter === 'ALL' || e.category === catFilter).length === 0 ? (
           <div className="p-8 text-center text-muted-foreground text-sm">
             {language === 'fr' ? 'Aucune dépense enregistrée' : 'No expenses recorded'}
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {expenses.map((exp) => {
+            {expenses.filter(e => catFilter === 'ALL' || e.category === catFilter).map((exp) => {
               const cfg = CATEGORY_CONFIG[exp.category] || CATEGORY_CONFIG.OTHER;
               const Icon = cfg.icon;
               return (
@@ -217,6 +241,9 @@ export function ExpensesPage() {
                     </p>
                   </div>
                   <p className="font-bold text-red-500 text-sm">-{formatCurrency(exp.amount)}</p>
+                  <button onClick={() => openEdit(exp)} className="text-muted-foreground hover:text-blue-500 p-1 transition-colors">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
                   <button onClick={() => handleDelete(exp.id)} className="text-muted-foreground hover:text-red-500 p-1 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -232,7 +259,7 @@ export function ExpensesPage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h3 className="font-bold text-foreground">{language === 'fr' ? 'Nouvelle dépense' : 'New expense'}</h3>
+              <h3 className="font-bold text-foreground">{editId ? (language === 'fr' ? 'Modifier la dépense' : 'Edit expense') : (language === 'fr' ? 'Nouvelle dépense' : 'New expense')}</h3>
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
@@ -264,11 +291,19 @@ export function ExpensesPage() {
                   })}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Description (optionnel)</label>
-                <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
-                  placeholder="Ex: Achat tissu Douala"
-                  className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Description' : 'Description'} (optionnel)</label>
+                  <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })}
+                    placeholder={language === 'fr' ? 'Ex: Achat tissu Douala' : 'Ex: Fabric purchase'}
+                    className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Référence' : 'Reference'} (optionnel)</label>
+                  <input type="text" value={(form as any).reference || ''} onChange={e => setForm({ ...form, reference: e.target.value } as any)}
+                    placeholder={language === 'fr' ? 'Ex: FAC-2024-001' : 'Ex: INV-2024-001'}
+                    className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -294,7 +329,7 @@ export function ExpensesPage() {
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-accent transition-colors">Annuler</button>
                 <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-colors">
-                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                  {saving ? (language === 'fr' ? 'Enregistrement...' : 'Saving...') : editId ? (language === 'fr' ? 'Modifier' : 'Update') : (language === 'fr' ? 'Enregistrer' : 'Save')}
                 </button>
               </div>
             </form>

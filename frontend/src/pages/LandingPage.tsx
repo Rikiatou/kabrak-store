@@ -313,10 +313,10 @@ export function LandingPage() {
               {fr ? 'Pourquoi choisir KABRAK ?' : 'Why choose KABRAK?'}
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3">
-              {fr ? 'Plus complet. Moins cher. Sans engagement annuel.' : 'More complete. Cheaper. No annual commitment.'}
+              {fr ? 'Tout inclus. Mensuel. Sans surprise.' : 'All-inclusive. Monthly. No surprises.'}
             </h2>
             <p className="text-sm text-gray-400 max-w-xl mx-auto">
-              {fr ? 'Les autres solutions vous font payer à l\'année et rajoutent des frais cachés. KABRAK, c\'est mensuel, tout inclus, sans surprise.' : 'Other solutions charge annually and add hidden fees. KABRAK is monthly, all-inclusive, no surprises.'}
+              {fr ? 'Dès 4 900 FCFA/mois, tout ce qu\'il vous faut pour gérer votre boutique, vos clients et votre croissance — WhatsApp, factures, stock, caisse, livraisons.' : 'From 4,900 FCFA/month, everything you need to run your store, manage clients and grow — WhatsApp, invoices, stock, POS, deliveries.'}
             </p>
           </div>
 

@@ -207,16 +207,16 @@ const ALL_MODULES: GuideModule[] = [
     },
     steps: {
       fr: [
-        'Une livraison est créée automatiquement depuis une commande.',
-        'Renseigne l\'adresse et le numéro du client.',
-        'Change le statut : En attente → Récupéré → En route → Livré.',
-        'Le client est notifié à chaque changement de statut.',
+        'Lors de la création d\'une commande, active l\'option livraison.',
+        'Renseigne l\'adresse et le numéro de téléphone du destinataire.',
+        'Change le statut manuellement : En attente → Récupéré → En route → Livré.',
+        'Envoie le statut de livraison directement par WhatsApp au client.',
       ],
       en: [
-        'A delivery is automatically created from an order.',
-        'Enter the client\'s address and phone number.',
-        'Change status: Pending → Picked up → In transit → Delivered.',
-        'The client is notified at each status change.',
+        'When creating an order, enable the delivery option.',
+        'Enter the recipient\'s address and phone number.',
+        'Manually update the status: Pending → Picked up → In transit → Delivered.',
+        'Send the delivery status directly via WhatsApp to the client.',
       ],
     },
     link: '/deliveries',
@@ -235,15 +235,15 @@ const ALL_MODULES: GuideModule[] = [
     steps: {
       fr: [
         'Crée des récompenses : ex. "10% de remise pour 500 points".',
-        'Les points sont attribués automatiquement aux clients à chaque commande.',
+        'Attribue des points manuellement depuis la fiche client.',
         'Consulte le niveau de fidélité de chaque client (Bronze/Silver/Gold).',
-        'Applique une récompense lors d\'une commande.',
+        'Applique une récompense lors d\'une commande en sélectionnant le client.',
       ],
       en: [
         'Create rewards: e.g. "10% discount for 500 points".',
-        'Points are automatically assigned to clients with each order.',
+        'Manually assign points from the client profile.',
         'View each client\'s loyalty tier (Bronze/Silver/Gold).',
-        'Apply a reward when creating an order.',
+        'Apply a reward when creating an order by selecting the client.',
       ],
     },
     link: '/loyalty',
@@ -444,20 +444,22 @@ const ALL_MODULES: GuideModule[] = [
     },
     steps: {
       fr: [
-        'Accède aux rapports IA depuis la sidebar.',
-        'L\'IA analyse tes ventes, stocks et dépenses.',
-        'Reçois des recommandations : produits à valoriser, périodes creuses, etc.',
-        'Pose des questions en langage naturel sur ton activité.',
+        'Accède aux Rapports IA depuis la sidebar (éclair violet).',
+        'Choisis la période : 7 jours ou ce mois.',
+        'Clique sur "Générer le rapport" — l\'IA analyse tes ventes, dépenses et stock.',
+        'Tu reçois des recommandations concrètes : produits à valoriser, périodes creuses, alertes.',
+        'Plan SHOP : 3 rapports IA inclus par mois. Plan BUSINESS : illimité.',
       ],
       en: [
-        'Access AI reports from the sidebar.',
-        'AI analyzes your sales, stock and expenses.',
-        'Receive recommendations: products to promote, slow periods, etc.',
-        'Ask questions in natural language about your activity.',
+        'Access AI Reports from the sidebar (purple spark icon).',
+        'Choose the period: 7 days or this month.',
+        'Click "Generate report" — AI analyzes your sales, expenses and stock.',
+        'You receive concrete recommendations: products to promote, slow periods, alerts.',
+        'SHOP plan: 3 AI reports/month included. BUSINESS plan: unlimited.',
       ],
     },
     link: '/ai-reports',
-    plans: ['BUSINESS'],
+    plans: ['SHOP', 'BUSINESS'],
   },
   // SERVICE mode
   {
@@ -704,6 +706,17 @@ export function GuidePage() {
                     </li>
                   ))}
                 </ol>
+              </div>
+
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 p-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                  <span className="text-lg">🎥</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{fr ? 'Tutoriel vidéo' : 'Video tutorial'}</p>
+                  <p className="text-[11px] text-gray-400">{fr ? 'Bientôt disponible sur YouTube' : 'Coming soon on YouTube'}</p>
+                </div>
+                <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-600 font-medium">{fr ? 'Bientôt' : 'Soon'}</span>
               </div>
 
               <div className="flex gap-2 pt-2">

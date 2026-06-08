@@ -47,7 +47,7 @@ const navItems: NavItem[] = [
   { key: 'employees', icon: UserCog, path: '/employees', plans: ['SHOP', 'BUSINESS'] },
   { key: 'stores', icon: Store, path: '/stores', plans: ['BUSINESS'] },
   { key: 'reports', icon: BarChart3, path: '/reports', plans: ['SHOP', 'BUSINESS'] },
-  { key: 'ai-reports', icon: Sparkles, path: '/ai-reports', plans: ['BUSINESS'] },
+  { key: 'ai-reports', icon: Sparkles, path: '/ai-reports', plans: ['SHOP', 'BUSINESS'] },
   { key: 'billing', icon: CreditCard, path: '/billing' },
   { key: 'settings', icon: Settings, path: '/settings' },
   { key: 'guide', icon: BookOpen, path: '/guide' },
