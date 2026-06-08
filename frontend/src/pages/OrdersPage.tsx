@@ -200,16 +200,18 @@ export function OrdersPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[140px]">
           <Input
             type="date"
+            placeholder={t('common.from')}
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[140px]">
           <Input
             type="date"
+            placeholder={t('common.to')}
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
           />
@@ -294,7 +296,7 @@ export function OrdersPage() {
               {isOrderBased && (
                 <div>
                   <label className="text-sm font-medium mb-1 block">{t('delivery.deliveryDate')}</label>
-                  <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+                  <Input type="date" placeholder="YYYY-MM-DD" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
                 </div>
               )}
 

@@ -74,6 +74,18 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         },
       });
 
+      // Create categories from businessCategories
+      if (data.businessCategories && data.businessCategories.length > 0) {
+        for (const catName of data.businessCategories) {
+          await tx.category.create({
+            data: {
+              name: catName,
+              tenantId: tenant.id,
+            },
+          });
+        }
+      }
+
       return { tenant, user };
     });
 

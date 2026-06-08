@@ -3,7 +3,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
 import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, Check, Globe, CreditCard, Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const PRODUCT_CATEGORIES = [
   { value: 'CLOTHING', icon: '👗' },
@@ -538,123 +538,33 @@ export function SettingsPage() {
         </form>
       </div>
 
-      {/* Categories Section */}
+      {/* Categories Section - Simplified */}
       <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-            <Store className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-foreground">
-            {language === 'fr' ? 'Catégories d\'activité' : 'Business Categories'}
-          </h2>
-        </div>
-
-        {categoriesMsg && (
-          <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${
-            categoriesMsg.type === 'success'
-              ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-              : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-          }`}>
-            {categoriesMsg.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-            {categoriesMsg.text}
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {language === 'fr'
-              ? 'Sélectionnez les catégories qui décrivent votre activité. Vous pouvez les modifier à tout moment.'
-              : 'Select the categories that describe your business. You can change them at any time.'}
-          </p>
-
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-[320px] overflow-y-auto pr-1">
-            {categories.map((cat) => {
-              const isSelected = selectedCategories.includes(cat.value);
-              return (
-                <button
-                  key={cat.value}
-                  onClick={() => toggleCategory(cat.value)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all cursor-pointer ${
-                    isSelected
-                      ? tenant?.businessMode === 'SERVICE'
-                        ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-sm'
-                        : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                      : 'border-gray-100 dark:border-gray-600 hover:border-gray-200 bg-gray-50/50 dark:bg-gray-700'
-                  }`}
-                >
-                  <span className="text-xl">{cat.icon}</span>
-                  <span className="text-[11px] font-medium text-center text-gray-600 dark:text-gray-300 leading-tight">
-                    {cat.value.replace(/_/g, ' ')}
-                  </span>
-                  {isSelected && <Check className={`w-3.5 h-3.5 ${tenant?.businessMode === 'SERVICE' ? 'text-violet-500' : 'text-blue-500'}`} />}
-                </button>
-              );
-            })}
-            {selectedCategories.filter(c => !categories.some(cat => cat.value === c)).map(custom => (
-              <button
-                key={custom}
-                onClick={() => toggleCategory(custom)}
-                className="flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm cursor-pointer transition-all"
-              >
-                <span className="text-xl">🏷️</span>
-                <span className="text-[11px] font-medium text-center text-blue-700 dark:text-blue-300 leading-tight capitalize">{custom}</span>
-                <Check className="w-3.5 h-3.5 text-blue-500" />
-              </button>
-            ))}
-          </div>
-          {suggestedCats.length > 0 && (
-            <div>
-              <p className="text-[10px] text-gray-400 mb-1.5">{language === 'fr' ? '💡 Proposées par d\'autres utilisateurs' : '💡 Suggested by other users'}</p>
-              <div className="flex flex-wrap gap-1.5">
-                {suggestedCats.filter(s => !selectedCategories.includes(s)).map(s => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => { setSelectedCategories(prev => [...prev, s]); }}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium border bg-gray-50 border-gray-200 text-gray-500 hover:border-blue-300 transition-all capitalize"
-                  >
-                    + {s}
-                  </button>
-                ))}
-              </div>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <Store className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
-          )}
-          <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-              <Plus className="w-3 h-3" />{language === 'fr' ? 'Ajouter une catégorie personnalisée' : 'Add custom category'}
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={customCatInput}
-                onChange={(e) => setCustomCatInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddCustomCat()}
-                placeholder={language === 'fr' ? 'ex: Biscuits artisanaux...' : 'e.g. Artisan biscuits...'}
-                className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-emerald-200"
-              />
-              <button
-                type="button"
-                onClick={handleAddCustomCat}
-                disabled={!customCatInput.trim()}
-                className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-40 transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1">{language === 'fr' ? 'Sera proposée aux futurs utilisateurs.' : 'Will be suggested to future users.'}</p>
+            <h2 className="text-lg font-semibold text-foreground">
+              {language === 'fr' ? 'Catégories d\'activité' : 'Business Categories'}
+            </h2>
           </div>
-
-          <button
-            onClick={handleCategoriesSubmit}
-            disabled={categoriesLoading || selectedCategories.length === 0}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            {categoriesLoading
-              ? (language === 'fr' ? 'Enregistrement...' : 'Saving...')
-              : (language === 'fr' ? 'Enregistrer les catégories' : 'Save Categories')}
-          </button>
+          <Link to="/categories" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+            {language === 'fr' ? 'Gérer les catégories produits →' : 'Manage product categories →'}
+          </Link>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {(tenant?.businessCategories || []).map((cat) => (
+            <span key={cat} className="px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-xs font-medium border border-emerald-200 dark:border-emerald-800">
+              {cat.replace(/_/g, ' ')}
+            </span>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          {language === 'fr'
+            ? 'Ces catégories définissent votre type d\'activité. Pour gérer les catégories de produits (sous-catégories), utilisez le module Catégories.'
+            : 'These categories define your business type. To manage product categories (sub-categories), use the Categories module.'}
+        </p>
       </div>
 
       {/* Password Section */}
