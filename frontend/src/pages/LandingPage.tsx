@@ -53,7 +53,7 @@ export function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img src="/logo.png" alt="KABRAK Store" className="h-10 sm:h-14 object-contain" />
+            <img src="/logo.png" alt="KABRAK Store" className="h-14 sm:h-20 object-contain" />
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
             <button onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all">
