@@ -1,10 +1,45 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 
+// ─── Monthly usage counter for SHOP plan (3 AI reports/month) ──────────────
+const aiUsage = new Map<string, { count: number; monthKey: string }>();
+function getMonthKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()}`;
+}
+function checkAndIncrementUsage(tenantId: string, plan: string): { allowed: boolean; remaining: number } {
+  const LIMIT = 3;
+  if (plan !== 'SHOP') return { allowed: true, remaining: 999 };
+  const monthKey = getMonthKey();
+  const entry = aiUsage.get(tenantId);
+  if (!entry || entry.monthKey !== monthKey) {
+    aiUsage.set(tenantId, { count: 1, monthKey });
+    return { allowed: true, remaining: LIMIT - 1 };
+  }
+  if (entry.count >= LIMIT) return { allowed: false, remaining: 0 };
+  entry.count++;
+  return { allowed: true, remaining: LIMIT - entry.count };
+}
+// ────────────────────────────────────────────────────────────────────────────
+
 export const generateReport = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.user!.tenantId;
     const { period = 'month' } = req.body;
+
+    // Fetch tenant plan for SHOP limit check
+    const tenantInfo = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { plan: true } });
+    const userPlan = tenantInfo?.plan || 'STORE';
+
+    // Check monthly limit for SHOP plan
+    const usage = checkAndIncrementUsage(tenantId, userPlan);
+    if (!usage.allowed) {
+      res.status(429).json({
+        success: false,
+        message: 'Limite mensuelle atteinte. Le plan SHOP inclut 3 rapports IA par mois. Passez au plan BUSINESS pour des rapports illimités.',
+      });
+      return;
+    }
 
     // Fetch data
     const dateFilter: Record<string, unknown> = {};

@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText, UserCog, Truck,
   BarChart3, Tags, Heart, Store, FolderKanban, RefreshCw, Monitor, TrendingDown,
   Building2, Sparkles, Briefcase, ChevronRight, CheckCircle, BookOpen, X,
+  MessageCircle, Globe,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -17,6 +18,7 @@ interface GuideModule {
   link: string;
   plans?: string[];
   modes?: ('PRODUCT' | 'SERVICE')[];
+  videoUrl?: string;
 }
 
 const ALL_MODULES: GuideModule[] = [
@@ -305,6 +307,67 @@ const ALL_MODULES: GuideModule[] = [
       ],
     },
     link: '/invoices',
+  },
+  {
+    key: 'whatsapp-order',
+    icon: MessageCircle,
+    color: 'from-green-500 to-green-600',
+    title: { fr: 'Lien commande WhatsApp', en: 'WhatsApp Order Link' },
+    description: {
+      fr: 'Chaque commande génère un lien unique que le client peut ouvrir pour voir le détail et confirmer directement sur WhatsApp.',
+      en: 'Each order generates a unique link the client can open to view details and confirm directly on WhatsApp.',
+    },
+    steps: {
+      fr: [
+        'Crée une commande et enregistre-la.',
+        'Bouton 💬 Texte : Envoie un résumé texte rapide (réf., montant, statut) — idéal pour confirmer vite.',
+        'Bouton 📤 Partager : Génère une image PDF professionnelle avec ton logo et l\'envoie sur WhatsApp.',
+        'Le lien de commande (/order/...) est une page web publique que le client peut consulter à tout moment.',
+        'Le client voit les articles, le montant payé, le reste à payer et le statut de la commande.',
+        'Il peut cliquer “Confirmer sur WhatsApp” pour te contacter directement depuis la page.',
+      ],
+      en: [
+        'Create an order and save it.',
+        '💬 Text button: Sends a quick text summary (ref, amount, status) — ideal for fast confirmation.',
+        '📤 Share button: Generates a professional PDF image with your logo and sends via WhatsApp.',
+        'The order link (/order/...) is a public web page the client can view at any time.',
+        'The client sees items, amount paid, remaining balance and order status.',
+        'They can click “Confirm on WhatsApp” to contact you directly from the page.',
+      ],
+    },
+    link: '/orders',
+    modes: ['PRODUCT'],
+  },
+  {
+    key: 'storefront',
+    icon: Globe,
+    color: 'from-blue-500 to-indigo-600',
+    title: { fr: 'Vitrine publique en ligne', en: 'Public Online Storefront' },
+    description: {
+      fr: 'Une page web publique avec tout ton catalogue. Tu partages le lien — les clients parcourent et commandent via WhatsApp.',
+      en: 'A public web page with your full catalog. Share the link — clients browse and order via WhatsApp.',
+    },
+    steps: {
+      fr: [
+        'Ton lien de boutique est kabrak.com/storefront/TON-SLUG (visible dans les Paramètres).',
+        'Partage ce lien sur WhatsApp, Instagram, Facebook ou par SMS.',
+        'Le client voit tous tes produits avec photos, prix et description.',
+        'Il clique “Commander sur WhatsApp” et ça t\'ouvre directement en discussion.',
+        'La page filtre par catégorie et a une barre de recherche.',
+        'Les produits en rupture de stock affichent automatiquement “Rupture”.',
+        'Différence avec le lien commande : la vitrine montre TOUT le catalogue. Le lien commande montre UNE commande précise.',
+      ],
+      en: [
+        'Your store link is kabrak.com/storefront/YOUR-SLUG (visible in Settings).',
+        'Share this link on WhatsApp, Instagram, Facebook or SMS.',
+        'The client sees all your products with photos, prices and descriptions.',
+        'They click “Order on WhatsApp” and it opens directly as a chat.',
+        'The page has category filters and a search bar.',
+        'Out-of-stock products automatically show “Out of stock”.',
+        'Difference from order link: storefront shows the FULL catalog. Order link shows ONE specific order.',
+      ],
+    },
+    link: '/settings',
   },
   {
     key: 'expenses',
@@ -708,16 +771,34 @@ export function GuidePage() {
                 </ol>
               </div>
 
-              <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 p-3 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                  <span className="text-lg">🎥</span>
+              {selectedModule.videoUrl ? (
+                <a
+                  href={selectedModule.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 p-3 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-red-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg">▶️</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-red-700 dark:text-red-300">{fr ? 'Voir la démo vidéo' : 'Watch video demo'}</p>
+                    <p className="text-[11px] text-red-400">{fr ? 'Cliquez pour regarder' : 'Click to watch'}</p>
+                  </div>
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-red-100 text-red-600 font-medium">{fr ? 'Vidéo' : 'Video'}</span>
+                </a>
+              ) : (
+                <div className="rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-100 dark:border-gray-600 p-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                    <span className="text-lg">🎥</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{fr ? 'Démo vidéo' : 'Video demo'}</p>
+                    <p className="text-[11px] text-gray-400">{fr ? 'Bientôt disponible' : 'Coming soon'}</p>
+                  </div>
+                  <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-600 font-medium">{fr ? 'Bientôt' : 'Soon'}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{fr ? 'Tutoriel vidéo' : 'Video tutorial'}</p>
-                  <p className="text-[11px] text-gray-400">{fr ? 'Bientôt disponible sur YouTube' : 'Coming soon on YouTube'}</p>
-                </div>
-                <span className="text-[10px] px-2 py-1 rounded-full bg-amber-100 text-amber-600 font-medium">{fr ? 'Bientôt' : 'Soon'}</span>
-              </div>
+              )}
 
               <div className="flex gap-2 pt-2">
                 <Link
