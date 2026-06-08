@@ -7,11 +7,12 @@ import {
   createReward,
   redeemReward,
 } from './loyalty.controller';
-import { authorize, requireMode } from '../../middleware/auth';
+import { authorize, requireMode, requirePlan } from '../../middleware/auth';
 
 const router = Router();
 
 router.use(requireMode('PRODUCT'));
+router.use(requirePlan('SHOP', 'BUSINESS'));
 router.get('/config', getLoyaltyConfig);
 router.get('/client/:clientId', getClientLoyalty);
 router.post('/add-points', addPoints);
