@@ -15,8 +15,8 @@ function generateSlug(name: string): string {
 
 function getPlanPrice(plan: string): number {
   switch (plan) {
-    case 'BUSINESS': return 12900;
-    case 'SHOP': return 7900;
+    case 'BUSINESS': return 14900;
+    case 'SHOP': return 9900;
     default: return 4900;
   }
 }

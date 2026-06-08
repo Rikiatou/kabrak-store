@@ -304,6 +304,84 @@ export function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════
+          SECTION 5B — KABRAK VS CONCURRENCE (convaincant)
+          ═══════════════════════════════════════════════ */}
+      <section className="py-14 sm:py-20 px-5 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-bold uppercase tracking-widest mb-4">
+              {fr ? 'Pourquoi choisir KABRAK ?' : 'Why choose KABRAK?'}
+            </span>
+            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3">
+              {fr ? 'Plus complet. Moins cher. Sans engagement annuel.' : 'More complete. Cheaper. No annual commitment.'}
+            </h2>
+            <p className="text-sm text-gray-400 max-w-xl mx-auto">
+              {fr ? 'Les autres solutions vous font payer à l\'année et rajoutent des frais cachés. KABRAK, c\'est mensuel, tout inclus, sans surprise.' : 'Other solutions charge annually and add hidden fees. KABRAK is monthly, all-inclusive, no surprises.'}
+            </p>
+          </div>
+
+          {/* Comparison table */}
+          <div className="overflow-hidden rounded-2xl border-2 border-blue-100 shadow-xl shadow-blue-50 mb-10">
+            <div className="grid grid-cols-3 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+              <div className="p-4">{fr ? 'Fonctionnalité' : 'Feature'}</div>
+              <div className="p-4 text-center bg-blue-600 text-white rounded-t-none">KABRAK</div>
+              <div className="p-4 text-center text-gray-400">{fr ? 'Autres solutions' : 'Other solutions'}</div>
+            </div>
+            {(fr ? [
+              ['Paiement mensuel (sans engagement)', true, false],
+              ['WhatsApp inclus dans le prix', true, false],
+              ['Caisse POS incluse', true, false],
+              ['Programme fidélité intégré', true, false],
+              ['Livraisons & suivi inclus', true, false],
+              ['Rapports IA (GPT-4o)', true, false],
+              ['Paiement Orange Money', true, false],
+              ['14 jours gratuits sans appel', true, false],
+            ] : [
+              ['Monthly billing (no commitment)', true, false],
+              ['WhatsApp included in price', true, false],
+              ['POS register included', true, false],
+              ['Built-in loyalty program', true, false],
+              ['Delivery tracking included', true, false],
+              ['AI Reports (GPT-4o)', true, false],
+              ['Orange Money payment', true, false],
+              ['14-day free trial, no call needed', true, false],
+            ]).map(([label, kabrak, other], i) => (
+              <div key={i} className={`grid grid-cols-3 border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                <div className="p-3.5 sm:p-4 text-xs sm:text-sm text-gray-700 font-medium flex items-center">{label as string}</div>
+                <div className="p-3.5 sm:p-4 flex items-center justify-center bg-blue-50/40">
+                  {kabrak ? <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center"><CheckCircle className="w-3.5 h-3.5 text-white" /></span> : <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center"><X className="w-3 h-3 text-red-400" /></span>}
+                </div>
+                <div className="p-3.5 sm:p-4 flex items-center justify-center">
+                  {other ? <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center"><CheckCircle className="w-3.5 h-3.5 text-white" /></span> : <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center"><X className="w-3 h-3 text-red-400" /></span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Key stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {(fr ? [
+              { value: '163', unit: 'FCFA/jour', label: 'Plan STORE · moins qu\'un café' },
+              { value: '14j', unit: fr ? 'gratuits' : 'free', label: fr ? 'Sans carte · Sans appel' : 'No card · No call' },
+              { value: '0', unit: fr ? 'frais cachés' : 'hidden fees', label: fr ? 'WhatsApp, PDF, POS inclus' : 'WhatsApp, PDF, POS included' },
+              { value: '1', unit: fr ? 'compte' : 'account', label: fr ? 'Pour toutes vos boutiques' : 'For all your stores' },
+            ] : [
+              { value: '163', unit: 'FCFA/day', label: 'STORE plan · less than a coffee' },
+              { value: '14d', unit: 'free', label: 'No card · No call' },
+              { value: '0', unit: 'hidden fees', label: 'WhatsApp, PDF, POS included' },
+              { value: '1', unit: 'account', label: 'For all your stores' },
+            ]).map((s, i) => (
+              <div key={i} className="text-center p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-blue-50 to-white border border-blue-100">
+                <p className="text-2xl sm:text-3xl font-black text-blue-600">{s.value}</p>
+                <p className="text-xs font-bold text-blue-500 mb-1">{s.unit}</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 leading-tight">{s.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════
           SECTION 6 — PRICING (mensuel + annuel, WhatsApp inclus)
           ═══════════════════════════════════════════════ */}
       <section className="py-14 sm:py-20 px-5 bg-gray-50">
@@ -318,12 +396,12 @@ export function LandingPage() {
           <div className="grid sm:grid-cols-3 gap-5 sm:gap-6">
             {(fr ? [
               { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Boutique · Vente en ligne · Commandes', users: '1 utilisateur', features: ['Produits & gestion stock', 'Ventes & commandes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', '💰 Dépenses & Bénéfice net', '🎨 Logo & couleur facture'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '7 900', tag: 'Commerce général · Services · Boutique+', users: '3 utilisateurs', features: ['Tout STORE +', '🖥️ Caisse POS', 'Catégories & organisation', 'Livraisons & suivi', 'Programme fidélité', 'Employés & permissions', 'Rapports avancés', '🏪 Fournisseurs'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '12 900', tag: 'Grossistes · Multi-magasins · Équipe', users: '10+ utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire dédié', '🌐 Vitrine publique', '✨ Rapports IA (GPT-4o)', '💬 Lien WhatsApp commande'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK SHOP', priceMonth: '9 900', tag: 'Commerce général · Services · Boutique+', users: '3 utilisateurs', features: ['Tout STORE +', '🖥️ Caisse POS', 'Catégories & organisation', 'Livraisons & suivi', 'Programme fidélité', 'Employés & permissions', 'Rapports avancés', '🏪 Fournisseurs'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '14 900', tag: 'Grossistes · Multi-magasins · Équipe', users: '10+ utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire dédié', '🌐 Vitrine publique', '✨ Rapports IA (GPT-4o)', '💬 Lien WhatsApp commande'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ] : [
               { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Retail · Online selling · Orders', users: '1 user', features: ['Products & stock management', 'Sales & orders', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', '💰 Expenses & Net Profit', '🎨 Logo & invoice color'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '7 900', tag: 'General store · Services · Growing biz', users: '3 users', features: ['Everything in STORE +', '🖥️ POS Cash Register', 'Categories & organization', 'Deliveries & tracking', 'Loyalty program', 'Employees & roles', 'Advanced reports', '🏪 Suppliers'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '12 900', tag: 'Wholesale · Multi-store · Team', users: '10+ users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Dedicated priority support', '🌐 Public storefront', '✨ AI Reports (GPT-4o)', '💬 WhatsApp order link'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
+              { name: 'KABRAK SHOP', priceMonth: '9 900', tag: 'General store · Services · Growing biz', users: '3 users', features: ['Everything in STORE +', '🖥️ POS Cash Register', 'Categories & organization', 'Deliveries & tracking', 'Loyalty program', 'Employees & roles', 'Advanced reports', '🏪 Suppliers'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
+              { name: 'KABRAK BUSINESS', priceMonth: '14 900', tag: 'Wholesale · Multi-store · Team', users: '10+ users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Dedicated priority support', '🌐 Public storefront', '✨ AI Reports (GPT-4o)', '💬 WhatsApp order link'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
             ]).map(plan => (
               <div key={plan.name} className={`bg-white rounded-2xl border-2 p-5 sm:p-6 relative flex flex-col ${plan.color}`}>
                 {plan.popular && (

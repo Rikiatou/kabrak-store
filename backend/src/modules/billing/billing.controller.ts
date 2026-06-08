@@ -4,8 +4,8 @@ import { omService } from '../../services/orangeMoneyService';
 
 const PLAN_PRICES: Record<string, number> = {
   STORE: 4900,
-  SHOP: 7900,
-  BUSINESS: 12900,
+  SHOP: 9900,
+  BUSINESS: 14900,
 };
 
 export const getSubscription = async (req: Request, res: Response): Promise<void> => {
