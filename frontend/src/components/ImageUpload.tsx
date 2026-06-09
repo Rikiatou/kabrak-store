@@ -19,8 +19,10 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
       const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
       const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
+      console.log('Cloudinary config:', { cloudName, uploadPreset });
+
       if (!cloudName || !uploadPreset) {
-        alert('Configuration Cloudinary manquante. Contactez l\'administrateur.');
+        alert('Configuration Cloudinary manquante. Vérifiez les variables VITE_CLOUDINARY_CLOUD_NAME et VITE_CLOUDINARY_UPLOAD_PRESET.');
         return;
       }
 
@@ -35,8 +37,8 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error('Cloudinary error:', data);
-        alert(`Erreur upload: ${data.error?.message || 'Erreur inconnue'}`);
+        console.error('Cloudinary error full:', JSON.stringify(data));
+        alert(`Erreur upload: ${data.error?.message || JSON.stringify(data)}`);
         return;
       }
 
