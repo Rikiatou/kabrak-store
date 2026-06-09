@@ -343,7 +343,16 @@ export function ProductsPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
             {products.map((product) => (
-              <Card key={product.id} className="hover:shadow-md transition-shadow">
+              <Card key={product.id} className="hover:shadow-md transition-shadow overflow-hidden">
+                {product.image ? (
+                  <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <Package className="w-10 h-10 text-muted-foreground/30" />
+                  </div>
+                )}
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-start justify-between mb-2 sm:mb-3">
                     <div className="min-w-0 flex-1 mr-2">
