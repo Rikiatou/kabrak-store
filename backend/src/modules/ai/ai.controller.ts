@@ -140,8 +140,9 @@ Format de réponse:
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      res.status(500).json({ success: false, message: 'Groq API error', details: error });
+      const errorText = await response.text();
+      console.error('Groq API error:', errorText);
+      res.status(500).json({ success: false, message: 'Groq API error', details: errorText });
       return;
     }
 

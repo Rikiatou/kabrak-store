@@ -16,15 +16,30 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
 
     setUploading(true);
     try {
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+      if (!cloudName || !uploadPreset) {
+        alert('Configuration Cloudinary manquante. Contactez l\'administrateur.');
+        return;
+      }
+
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'unsigned_preset');
+      formData.append('upload_preset', uploadPreset);
 
       const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your-cloud-name'}/image/upload`,
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: 'POST', body: formData }
       );
       const data = await res.json();
+
+      if (!res.ok) {
+        console.error('Cloudinary error:', data);
+        alert(`Erreur upload: ${data.error?.message || 'Erreur inconnue'}`);
+        return;
+      }
+
       if (data.secure_url) {
         onChange(data.secure_url);
       }
