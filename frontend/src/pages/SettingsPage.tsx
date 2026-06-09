@@ -1,48 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
-import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, Check, Globe, CreditCard, Plus } from 'lucide-react';
+import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, Globe, CreditCard } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-
-const PRODUCT_CATEGORIES = [
-  { value: 'CLOTHING', icon: '👗' },
-  { value: 'SHOES', icon: '👟' },
-  { value: 'PERFUMES', icon: '🧴' },
-  { value: 'COSMETICS', icon: '💄' },
-  { value: 'HIJABS_ABAYAS', icon: '🧕' },
-  { value: 'JEWELRY', icon: '💍' },
-  { value: 'BAGS', icon: '👜' },
-  { value: 'ELECTRONICS', icon: '📱' },
-  { value: 'HOUSE_PRODUCTS', icon: '🏠' },
-  { value: 'KITCHEN_PRODUCTS', icon: '🍳' },
-  { value: 'DECORATION', icon: '🪴' },
-  { value: 'EVENT_DECORATION', icon: '🎉' },
-  { value: 'CATERING', icon: '🍽️' },
-  { value: 'MINI_MARKET', icon: '🏪' },
-  { value: 'WHOLESALE', icon: '📦' },
-  { value: 'MIXED_SHOP', icon: '🛒' },
-  { value: 'CAKES', icon: '🎂' },
-  { value: 'FOOD_BUSINESS', icon: '🍽️' },
-  { value: 'FOOD_DELIVERY', icon: '🛵' },
-  { value: 'HOME_COOKING', icon: '🥘' },
-  { value: 'WHATSAPP_SELLER', icon: '💬' },
-  { value: 'MADE_TO_ORDER', icon: '✂️' },
-  { value: 'OTHER', icon: '📋' },
-];
-
-const SERVICE_CATEGORIES = [
-  { value: 'DIGITAL_MARKETING', icon: '📈' },
-  { value: 'FREELANCER', icon: '💻' },
-  { value: 'AGENCY', icon: '🏢' },
-  { value: 'CONSULTANT', icon: '🎯' },
-  { value: 'DESIGNER', icon: '🎨' },
-  { value: 'DEVELOPER', icon: '⚙️' },
-  { value: 'SOCIAL_MEDIA', icon: '📱' },
-  { value: 'PRINTING', icon: '🖨️' },
-  { value: 'BUSINESS_SERVICES', icon: '💼' },
-  { value: 'OTHER', icon: '📋' },
-];
 
 
 export function SettingsPage() {
@@ -67,16 +28,6 @@ export function SettingsPage() {
     currency: tenant?.currency || 'XAF',
     language: tenant?.language || 'fr',
   });
-  const [suggestedCats, setSuggestedCats] = useState<string[]>([]);
-  const [customCatInput, setCustomCatInput] = useState('');
-
-  useEffect(() => {
-    if (tenant?.businessMode) {
-      api.get(`/auth/suggested-categories?mode=${tenant.businessMode}`)
-        .then(r => setSuggestedCats(r.data.data || []))
-        .catch(() => {});
-    }
-  }, [tenant?.businessMode]);
 
   const [passwords, setPasswords] = useState({
     currentPassword: '',
@@ -90,53 +41,6 @@ export function SettingsPage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [storeLoading, setStoreLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
-  const [categoriesMsg, setCategoriesMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(tenant?.businessCategories || []);
-
-  const categories = tenant?.businessMode === 'SERVICE' ? SERVICE_CATEGORIES : PRODUCT_CATEGORIES;
-
-  const toggleCategory = (cat: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
-    );
-  };
-
-  const handleAddCustomCat = () => {
-    const val = customCatInput.trim();
-    if (!val || selectedCategories.includes(val)) return;
-    setSelectedCategories(prev => [...prev, val]);
-    setCustomCatInput('');
-    api.post('/auth/suggested-categories', { name: val, mode: tenant?.businessMode || 'PRODUCT' }).catch(() => {});
-  };
-
-  const handleCategoriesSubmit = async () => {
-    if (selectedCategories.length === 0) {
-      setCategoriesMsg({
-        type: 'error',
-        text: language === 'fr' ? 'Sélectionnez au moins une catégorie' : 'Select at least one category',
-      });
-      return;
-    }
-    setCategoriesMsg(null);
-    setCategoriesLoading(true);
-    try {
-      await api.put('/auth/categories', { businessCategories: selectedCategories });
-      await fetchMe();
-      setCategoriesMsg({
-        type: 'success',
-        text: language === 'fr' ? 'Catégories mises à jour avec succès' : 'Categories updated successfully',
-      });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setCategoriesMsg({
-        type: 'error',
-        text: axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur de mise à jour' : 'Update failed'),
-      });
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
