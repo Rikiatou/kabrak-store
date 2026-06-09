@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown } from 'lucide-react';
+import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown, Globe, Copy } from 'lucide-react';
 import api from '@/lib/api';
 
 interface DashboardData {
@@ -289,6 +289,30 @@ export function DashboardPage() {
               </p>
             </div>
           </div>
+          {tenant?.slug && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/storefront/${tenant.slug}`);
+                  alert(language === 'fr' ? 'Lien vitrine copié !' : 'Storefront link copied!');
+                }}
+                className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                title={language === 'fr' ? 'Copier le lien vitrine' : 'Copy storefront link'}
+              >
+                <Copy className="w-3.5 h-3.5" />
+                {language === 'fr' ? 'Copier lien' : 'Copy link'}
+              </button>
+              <a
+                href={`/storefront/${tenant.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-white text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                {language === 'fr' ? 'Voir ma vitrine' : 'View Storefront'}
+              </a>
+            </div>
+          )}
           {!isService && (
             <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
               {(['today', 'week', 'month', 'year'] as const).map((p) => (

@@ -44,6 +44,7 @@ interface Product {
   name: string;
   sellingPrice: number;
   totalStock: number;
+  image?: string;
 }
 
 interface Client {
@@ -255,12 +256,21 @@ export function OrdersPage() {
               {/* Product selection */}
               <div>
                 <label className="text-sm font-medium mb-1 block">{t('products.title')}</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                   {products.map((p) => (
                     <button key={p.id} onClick={() => addToCart(p)} type="button"
-                      className="text-left p-2 border rounded-lg hover:border-kabrak-500 transition-colors cursor-pointer text-xs">
-                      <p className="font-medium truncate">{p.name}</p>
-                      <p className="text-muted-foreground">{formatCurrency(p.sellingPrice)} · Stock: {p.totalStock}</p>
+                      className="text-left border rounded-lg hover:border-kabrak-500 transition-colors cursor-pointer text-xs overflow-hidden">
+                      {p.image ? (
+                        <img src={p.image} alt={p.name} className="w-full h-16 object-cover" />
+                      ) : (
+                        <div className="w-full h-16 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          <ShoppingCart className="w-5 h-5 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      <div className="p-1.5">
+                        <p className="font-medium truncate">{p.name}</p>
+                        <p className="text-muted-foreground">{formatCurrency(p.sellingPrice)} · {p.totalStock}</p>
+                      </div>
                     </button>
                   ))}
                 </div>
