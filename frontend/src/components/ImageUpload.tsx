@@ -16,8 +16,8 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
 
     setUploading(true);
     try {
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+      const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
+      const uploadPreset = (import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '').trim();
 
       console.log('Cloudinary config:', { cloudName, uploadPreset });
 
