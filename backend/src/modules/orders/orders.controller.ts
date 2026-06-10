@@ -196,12 +196,24 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         },
       });
 
-      // Update client spent amount when payment is made
+      // Update client spent amount + loyalty points when payment is made
       if (data.clientId && data.amountPaid > 0) {
+        const pointsEarned = Math.floor(data.amountPaid / 1000); // 1 point per 1000 FCFA
+        const currentClient = await tx.client.findUnique({
+          where: { id: data.clientId },
+          select: { loyaltyPoints: true },
+        });
+        const newPoints = (currentClient?.loyaltyPoints || 0) + pointsEarned;
+        const newTier =
+          newPoints >= 1000 ? 'PLATINUM' :
+          newPoints >= 500  ? 'GOLD' :
+          newPoints >= 100  ? 'SILVER' : 'BRONZE';
         await tx.client.update({
           where: { id: data.clientId },
           data: {
             totalSpent: { increment: data.amountPaid },
+            loyaltyPoints: { increment: pointsEarned },
+            loyaltyTier: newTier,
           },
         });
       }

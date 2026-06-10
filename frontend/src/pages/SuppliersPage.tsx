@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Trash2, Phone, Mail, MapPin, X, Search } from 'lucide-react';
+import { Plus, Trash2, Phone, Mail, MapPin, X, Search, Pencil } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
 
@@ -20,6 +20,7 @@ export function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -35,12 +36,23 @@ export function SuppliersPage() {
     if (!form.name) return;
     setSaving(true);
     try {
-      await api.post('/suppliers', form);
+      if (editingId) {
+        await api.put(`/suppliers/${editingId}`, form);
+      } else {
+        await api.post('/suppliers', form);
+      }
       setShowForm(false);
+      setEditingId(null);
       setForm(emptyForm);
       fetchSuppliers();
     } catch { /* ignore */ }
     setSaving(false);
+  };
+
+  const handleEdit = (sup: Supplier) => {
+    setForm({ name: sup.name, phone: sup.phone || '', email: sup.email || '', address: sup.address || '', notes: sup.notes || '' });
+    setEditingId(sup.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -56,7 +68,7 @@ export function SuppliersPage() {
           {language === 'fr' ? '📦 Fournisseurs' : '📦 Suppliers'}
         </h1>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setForm(emptyForm); setEditingId(null); setShowForm(true); }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors text-sm"
         >
           <Plus className="w-4 h-4" />
@@ -113,9 +125,14 @@ export function SuppliersPage() {
                       )}
                     </div>
                   </div>
-                  <button onClick={() => handleDelete(sup.id)} className="text-muted-foreground hover:text-red-500 p-1 transition-colors flex-shrink-0">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button onClick={() => handleEdit(sup)} className="text-muted-foreground hover:text-blue-500 p-1 transition-colors">
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(sup.id)} className="text-muted-foreground hover:text-red-500 p-1 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -128,7 +145,7 @@ export function SuppliersPage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-card rounded-2xl shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h3 className="font-bold text-foreground">{language === 'fr' ? 'Nouveau fournisseur' : 'New supplier'}</h3>
+              <h3 className="font-bold text-foreground">{editingId ? (language === 'fr' ? 'Modifier fournisseur' : 'Edit supplier') : (language === 'fr' ? 'Nouveau fournisseur' : 'New supplier')}</h3>
               <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-muted-foreground" /></button>
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
