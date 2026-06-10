@@ -4,12 +4,17 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Search, Users, Pencil, Trash2, X, Download } from 'lucide-react';
+import { Plus, Search, Users, Pencil, Trash2, X, Download, ShoppingCart, ChevronRight } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Client {
   id: string; name: string; phone?: string; email?: string;
   address?: string; loyaltyPoints: number; totalSpent: number; totalOrders: number;
+}
+
+interface Order {
+  id: string; reference: string; finalAmount: number;
+  paymentStatus: string; status: string; createdAt: string;
 }
 
 export function ClientsPage() {
@@ -20,6 +25,19 @@ export function ClientsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' });
+  const [historyClient, setHistoryClient] = useState<Client | null>(null);
+  const [clientOrders, setClientOrders] = useState<Order[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const openHistory = async (client: Client) => {
+    setHistoryClient(client);
+    setHistoryLoading(true);
+    try {
+      const { data } = await api.get('/orders', { params: { clientId: client.id, limit: 50 } });
+      setClientOrders(data.data || []);
+    } catch { setClientOrders([]); }
+    finally { setHistoryLoading(false); }
+  };
 
   const fetchClients = useCallback(async () => {
     try {
@@ -134,6 +152,9 @@ export function ClientsPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => openHistory(client)} title="Historique">
+                    <ShoppingCart className="w-3 h-3" />
+                  </Button>
                   <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(client)}>
                     <Pencil className="w-3 h-3 mr-1" /> {t('common.edit')}
                   </Button>
@@ -144,6 +165,45 @@ export function ClientsPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+      {/* Client order history modal */}
+      {historyClient && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-lg max-h-[80vh] flex flex-col">
+            <CardHeader className="flex flex-row items-center justify-between shrink-0">
+              <CardTitle className="text-base">
+                <ShoppingCart className="w-4 h-4 inline mr-2" />{historyClient.name}
+              </CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setHistoryClient(null)}><X className="w-4 h-4" /></Button>
+            </CardHeader>
+            <CardContent className="overflow-y-auto">
+              {historyLoading ? (
+                <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
+              ) : clientOrders.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">Aucune commande</p>
+              ) : (
+                <div className="space-y-2">
+                  {clientOrders.map(order => (
+                    <div key={order.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-muted/50">
+                      <div>
+                        <p className="font-medium text-sm">{order.reference}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-sm">{order.finalAmount?.toLocaleString()} XAF</p>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          order.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' :
+                          order.paymentStatus === 'PARTIAL' ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>{order.paymentStatus}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

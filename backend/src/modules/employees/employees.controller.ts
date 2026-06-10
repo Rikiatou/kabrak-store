@@ -80,6 +80,25 @@ export const update = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+export const resetPassword = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      res.status(400).json({ success: false, message: 'Mot de passe trop court (min 6 caractères)' });
+      return;
+    }
+    const existing = await prisma.user.findFirst({ where: { id, tenantId: req.user!.tenantId } });
+    if (!existing) { res.status(404).json({ success: false, message: 'Employé non trouvé' }); return; }
+    if (existing.role === 'OWNER') { res.status(403).json({ success: false, message: 'Impossible de modifier le propriétaire' }); return; }
+    const hashedPassword = await bcrypt.hash(password, 12);
+    await prisma.user.update({ where: { id }, data: { password: hashedPassword } });
+    res.json({ success: true, message: 'Mot de passe mis à jour' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
+  }
+};
+
 export const remove = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
-import { Plus, UserCog, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, UserCog, Pencil, Trash2, X, KeyRound } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Employee {
@@ -19,6 +19,20 @@ export function EmployeesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', phone: '', role: 'EMPLOYEE' });
+  const [resetId, setResetId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+
+  const handleResetPassword = async () => {
+    if (!resetId || !newPassword) return;
+    setResetLoading(true);
+    try {
+      await api.put(`/employees/${resetId}/password`, { password: newPassword });
+      setResetId(null); setNewPassword('');
+      alert('Mot de passe mis à jour');
+    } catch { alert('Erreur'); }
+    finally { setResetLoading(false); }
+  };
 
   const fetchEmployees = useCallback(async () => {
     try { const { data } = await api.get('/employees'); setEmployees(data.data); }
@@ -113,7 +127,10 @@ export function EmployeesPage() {
                 </div>
                 <Badge variant="outline" className="mb-3">{roleLabel(emp.role)}</Badge>
                 {emp.role !== 'OWNER' && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-3">
+                    <Button variant="outline" size="sm" onClick={() => { setNewPassword(''); setResetId(emp.id); }} title="Reset password">
+                      <KeyRound className="w-3 h-3" />
+                    </Button>
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => { setForm({ ...form, firstName: emp.firstName, lastName: emp.lastName, phone: emp.phone || '', role: emp.role }); setEditingId(emp.id); setShowForm(true); }}>
                       <Pencil className="w-3 h-3 mr-1" /> {t('common.edit')}
                     </Button>
@@ -125,6 +142,32 @@ export function EmployeesPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+      {/* Reset password modal */}
+      {resetId && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base"><KeyRound className="w-4 h-4 inline mr-2" />Nouveau mot de passe</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setResetId(null)}><X className="w-4 h-4" /></Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                type="password"
+                placeholder="Nouveau mot de passe"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                minLength={6}
+              />
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setResetId(null)}>Annuler</Button>
+                <Button className="flex-1" onClick={handleResetPassword} disabled={resetLoading || newPassword.length < 6}>
+                  {resetLoading ? '...' : 'Confirmer'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>
