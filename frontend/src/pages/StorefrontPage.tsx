@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Phone, Mail, Search, Heart, Share2 } from 'lucide-react';
+import { ShoppingCart, Phone, Mail, Search, Share2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import axios from 'axios';
 
@@ -10,6 +10,7 @@ interface Tenant {
   logo?: string;
   invoiceColor?: string;
   phone?: string;
+  email?: string;
   businessMode: string;
   businessCategories: string[];
 }
@@ -83,6 +84,24 @@ export function StorefrontPage() {
 
   const accentColor = tenant.invoiceColor || '#2563eb';
 
+  const cleanPhone = (tenant.phone || '').replace(/[^\d]/g, '');
+
+  const openWhatsApp = (message: string) => {
+    if (!cleanPhone) { alert('Numéro WhatsApp non configuré'); return; }
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: tenant.name, text: `Découvrez ${tenant.name}`, url }); }
+      catch { /* cancelled */ }
+    } else {
+      navigator.clipboard.writeText(url);
+      alert('Lien copié !');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -98,10 +117,14 @@ export function StorefrontPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <button onClick={handleShare} className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Partager">
               <Share2 className="w-5 h-5 text-gray-600" />
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors" style={{ background: accentColor, color: 'white' }}>
+            <button
+              onClick={() => openWhatsApp(`Bonjour ${tenant.name} ! Je voudrais passer une commande.`)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors"
+              style={{ background: accentColor, color: 'white' }}
+            >
               <ShoppingCart className="w-4 h-4" />
               <span>Commander sur WhatsApp</span>
             </button>
@@ -185,11 +208,17 @@ export function StorefrontPage() {
                   {product.description && (
                     <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
                   )}
-                  <div className="mt-2 flex items-center justify-between">
+                  <div className="mt-2 flex items-center justify-between gap-2">
                     <span className="font-bold text-base" style={{ color: accentColor }}>{formatCurrency(product.sellingPrice)}</span>
-                    <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                      <Heart className="w-4 h-4 text-gray-400" />
-                    </button>
+                    {product.totalStock > 0 && (
+                      <button
+                        onClick={() => openWhatsApp(`Bonjour ! Je veux commander *${product.name}* à ${product.sellingPrice.toLocaleString()} FCFA.`)}
+                        className="text-xs px-2 py-1 rounded-lg font-medium text-white whitespace-nowrap"
+                        style={{ background: accentColor }}
+                      >
+                        Commander
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -214,10 +243,12 @@ export function StorefrontPage() {
                   <span>{tenant.phone}</span>
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Mail className="w-4 h-4" />
-                <span>contact@kabrak.com</span>
-              </div>
+              {tenant.email && (
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Mail className="w-4 h-4" />
+                  <span>{tenant.email}</span>
+                </div>
+              )}
             </div>
             <div>
               <h3 className="font-bold text-gray-900 mb-3">Powered by</h3>

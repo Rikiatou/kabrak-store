@@ -6,7 +6,7 @@ export const getTenantBySlug = async (req: Request, res: Response): Promise<void
     const { slug } = req.params;
     const tenant = await prisma.tenant.findUnique({
       where: { slug: slug as string },
-      select: { id: true, name: true, logo: true, invoiceColor: true, phone: true, businessMode: true, businessCategories: true },
+      select: { id: true, name: true, logo: true, invoiceColor: true, phone: true, email: true, businessMode: true, businessCategories: true },
     });
     if (!tenant) { res.status(404).json({ success: false, message: 'Tenant not found' }); return; }
     res.json({ success: true, data: tenant });
