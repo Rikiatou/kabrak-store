@@ -72,7 +72,7 @@ const ORDER_BASED_CATS = new Set([
 ]);
 
 export function OrdersPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const businessCategories = tenant?.businessCategories || [];
   const isOrderBased = !!(businessCategories.length &&
@@ -95,6 +95,7 @@ export function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [filterPayment, setFilterPayment] = useState('');
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -190,6 +191,16 @@ export function OrdersPage() {
         <Button size="sm" onClick={openNewOrder}>
           <Plus className="w-4 h-4 mr-1" /> {t('orders.newOrder')}
         </Button>
+      </div>
+
+      {/* Payment filter chips */}
+      <div className="flex gap-2 flex-wrap">
+        {[{ v: '', l: language === 'fr' ? 'Toutes' : 'All' }, { v: 'PAID', l: language === 'fr' ? 'Payées' : 'Paid' }, { v: 'PARTIAL', l: language === 'fr' ? 'Partielles' : 'Partial' }, { v: 'PENDING', l: language === 'fr' ? 'Impayées' : 'Unpaid' }].map(({ v, l }) => (
+          <button key={v} onClick={() => setFilterPayment(v)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              filterPayment === v ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 dark:border-gray-600 dark:text-gray-400 hover:border-blue-300'
+            }`}>{l}</button>
+        ))}
       </div>
 
       {/* Search and Filter Bar */}
@@ -348,7 +359,7 @@ export function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-2 sm:space-y-3">
-          {orders.map((order) => (
+          {orders.filter(o => !filterPayment || o.invoice?.paymentStatus === filterPayment).map((order) => (
             <Card key={order.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

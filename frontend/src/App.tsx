@@ -29,6 +29,7 @@ import { StorefrontPage } from './pages/StorefrontPage';
 import { PublicOrderPage } from './pages/PublicOrderPage';
 import { AIReportsPage } from './pages/AIReportsPage';
 import { GuidePage } from './pages/GuidePage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { InstallPrompt } from './components/InstallPrompt';
 import { Onboarding } from './components/Onboarding';
 import { useAuthStore } from './stores/authStore';
@@ -171,6 +172,7 @@ function App() {
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/guide" element={<GuidePage />} />
         </Route>
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );

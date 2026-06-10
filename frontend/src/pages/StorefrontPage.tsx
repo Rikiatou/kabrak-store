@@ -104,116 +104,122 @@ export function StorefrontPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {tenant.logo && (
-              <img src={tenant.logo} alt={tenant.name} className="w-10 h-10 rounded-full object-cover border-2" style={{ borderColor: accentColor }} />
+
+      {/* Sticky header */}
+      <header className="bg-white/90 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-20 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {tenant.logo ? (
+              <img src={tenant.logo} alt={tenant.name} className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0" style={{ background: accentColor }}>
+                {tenant.name[0].toUpperCase()}
+              </div>
             )}
-            <div>
-              <h1 className="font-bold text-lg text-gray-900">{tenant.name}</h1>
-              <p className="text-xs text-gray-500">Boutique en ligne</p>
-            </div>
+            <span className="font-bold text-gray-900 truncate">{tenant.name}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button onClick={handleShare} className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Partager">
-              <Share2 className="w-5 h-5 text-gray-600" />
+              <Share2 className="w-4 h-4 text-gray-500" />
             </button>
-            <button
-              onClick={() => openWhatsApp(`Bonjour ${tenant.name} ! Je voudrais passer une commande.`)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors"
-              style={{ background: accentColor, color: 'white' }}
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Commander sur WhatsApp</span>
-            </button>
+            {tenant.phone && (
+              <button
+                onClick={() => openWhatsApp(`Bonjour ${tenant.name} ! Je voudrais passer une commande.`)}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: accentColor }}
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Commander
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Bienvenue chez {tenant.name}</h2>
-          <p className="text-gray-600">Découvrez nos produits et commandez sur WhatsApp</p>
+      <div className="relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}05 100%)` }}>
+        <div className="max-w-5xl mx-auto px-4 py-10 sm:py-14 text-center">
+          {tenant.logo && (
+            <img src={tenant.logo} alt={tenant.name} className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-lg" />
+          )}
+          <h1 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2">{tenant.name}</h1>
+          <p className="text-gray-500 text-sm sm:text-base mb-5">Découvrez nos produits · Commandez facilement</p>
           {tenant.phone && (
-            <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500">
-              <Phone className="w-4 h-4" />
-              <span>{tenant.phone}</span>
-            </div>
+            <button
+              onClick={() => openWhatsApp(`Bonjour ${tenant.name} ! Je voudrais passer une commande.`)}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-bold text-white shadow-lg transition-all hover:scale-105 active:scale-95"
+              style={{ background: accentColor, boxShadow: `0 8px 24px ${accentColor}40` }}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              Commander sur WhatsApp
+            </button>
           )}
         </div>
       </div>
 
       {/* Filters */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher un produit..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-            />
-          </div>
-          <div className="flex gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
+      <div className="max-w-5xl mx-auto px-4 py-4 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Rechercher un produit..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:border-transparent text-sm"
+            style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
+          />
+        </div>
+        {categories.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <button
               onClick={() => setSelectedCategory('')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${!selectedCategory ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-            >
-              Tous
-            </button>
+              className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"
+              style={!selectedCategory ? { background: accentColor, color: 'white' } : { background: 'white', color: '#6b7280', border: '1px solid #e5e7eb' }}
+            >Tous</button>
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${selectedCategory === cat ? 'bg-gray-900 text-white' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-              >
-                {cat}
-              </button>
+                className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"
+                style={selectedCategory === cat ? { background: accentColor, color: 'white' } : { background: 'white', color: '#6b7280', border: '1px solid #e5e7eb' }}
+              >{cat}</button>
             ))}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Products */}
+      <div className="max-w-5xl mx-auto px-4 pb-24">
         {filteredProducts.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            Aucun produit trouvé
+          <div className="text-center py-16 text-gray-400">
+            <ShoppingCart className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Aucun produit trouvé</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
             {filteredProducts.map(product => (
-              <div key={product.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="aspect-square bg-gray-100 relative">
+              <div key={product.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                <div className="aspect-square bg-gray-100 relative overflow-hidden">
                   {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                      <span className="text-4xl">📦</span>
-                    </div>
+                    <div className="w-full h-full flex items-center justify-center text-4xl select-none">📦</div>
                   )}
                   {product.totalStock <= 0 && (
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">Rupture</span>
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <span className="text-white font-bold text-xs px-2 py-1 rounded-full bg-black/40">Rupture</span>
                     </div>
                   )}
                 </div>
-                <div className="p-3">
-                  <h3 className="font-semibold text-sm text-gray-900 line-clamp-2">{product.name}</h3>
-                  {product.description && (
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{product.description}</p>
-                  )}
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <span className="font-bold text-base" style={{ color: accentColor }}>{formatCurrency(product.sellingPrice)}</span>
+                <div className="p-2.5">
+                  <h3 className="font-semibold text-xs sm:text-sm text-gray-900 line-clamp-2 leading-tight">{product.name}</h3>
+                  <div className="mt-2 flex items-center justify-between gap-1">
+                    <span className="font-black text-sm" style={{ color: accentColor }}>{formatCurrency(product.sellingPrice)}</span>
                     {product.totalStock > 0 && (
                       <button
                         onClick={() => openWhatsApp(`Bonjour ! Je veux commander *${product.name}* à ${product.sellingPrice.toLocaleString()} FCFA.`)}
-                        className="text-xs px-2 py-1 rounded-lg font-medium text-white whitespace-nowrap"
+                        className="text-[10px] sm:text-xs px-2 py-1 rounded-lg font-bold text-white whitespace-nowrap flex-shrink-0"
                         style={{ background: accentColor }}
                       >
                         Commander
@@ -227,37 +233,25 @@ export function StorefrontPage() {
         )}
       </div>
 
+      {/* Floating WhatsApp button (mobile) */}
+      {tenant.phone && (
+        <button
+          onClick={() => openWhatsApp(`Bonjour ${tenant.name} ! Je voudrais passer une commande.`)}
+          className="fixed bottom-5 right-5 z-30 sm:hidden w-14 h-14 rounded-full shadow-xl flex items-center justify-center text-white transition-transform hover:scale-110 active:scale-95"
+          style={{ background: accentColor, boxShadow: `0 8px 24px ${accentColor}60` }}
+        >
+          <ShoppingCart className="w-6 h-6" />
+        </button>
+      )}
+
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="font-bold text-gray-900 mb-3">{tenant.name}</h3>
-              <p className="text-sm text-gray-600">Votre boutique de confiance pour tous vos achats.</p>
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 mb-3">Contact</h3>
-              {tenant.phone && (
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                  <Phone className="w-4 h-4" />
-                  <span>{tenant.phone}</span>
-                </div>
-              )}
-              {tenant.email && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Mail className="w-4 h-4" />
-                  <span>{tenant.email}</span>
-                </div>
-              )}
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 mb-3">Powered by</h3>
-              <p className="text-sm text-gray-600">KABRAK Store</p>
-            </div>
+      <footer className="bg-white border-t border-gray-100 py-6">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            {tenant.phone && <><Phone className="w-3.5 h-3.5" /><span>{tenant.phone}</span></>}
+            {tenant.email && <><Mail className="w-3.5 h-3.5 ml-3" /><span>{tenant.email}</span></>}
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-200 text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} {tenant.name}. Tous droits réservés.
-          </div>
+          <p className="text-xs text-gray-400">© {new Date().getFullYear()} {tenant.name}</p>
         </div>
       </footer>
     </div>

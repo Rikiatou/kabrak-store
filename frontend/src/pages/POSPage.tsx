@@ -174,6 +174,17 @@ export function POSPage() {
     setPaymentMethod('CASH');
   };
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'Enter' && cart.length > 0 && !processing) handleCheckout();
+      if (e.key === 'Escape' && cart.length > 0) resetData();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [cart, processing]);
+
   const renderClientPicker = () => {
     if (!showClientPicker) return null;
     return (
