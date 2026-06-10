@@ -122,7 +122,7 @@ export function AIReportsPage() {
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              {fr ? 'Rapports IA — Groq Llama' : 'AI Reports — Groq Llama'}
+              {fr ? 'Rapport IA' : 'AI Report'}
               {isShop && (
                 <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/30 text-amber-100 border border-amber-300/30">
                   {fr ? '3/mois · SHOP' : '3/mo · SHOP'}

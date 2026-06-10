@@ -91,29 +91,56 @@ export const generateReport = async (req: Request, res: Response): Promise<void>
       return acc;
     }, {} as Record<string, number>);
 
-    // Build prompt for OpenAI
-    const prompt = `Analyse ce business et donne un rapport concis en français avec des recommandations actionnables:
+    // Build enriched prompt
+    const lowStockItems = products.filter(p => p.totalStock <= p.lowStockAlert);
+    const paidOrders = orders.filter(o => o.invoice?.paymentStatus === 'PAID').length;
+    const unpaidOrders = orders.filter(o => o.invoice?.paymentStatus === 'PENDING').length;
+    const partialOrders = orders.filter(o => o.invoice?.paymentStatus === 'PARTIAL').length;
+    const avgOrderValue = orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0;
 
-Période: ${period}
-Revenus: ${totalRevenue} XAF
-Dépenses: ${totalExpenses} XAF
-Bénéfice: ${profit} XAF
-Marge: ${margin}%
+    const prompt = `Tu es un conseiller business expert pour les PME en Afrique centrale (Cameroun, Côte d'Ivoire, Sénégal...).
+Analyse les données suivantes et génère un rapport professionnel en français.
 
-Top produits:
-${topProductsList.map(p => `- ${p.name}: ${p.revenue} XAF`).join('\n')}
+═══ DONNÉES PÉRIODE: ${period === 'week' ? '7 derniers jours' : 'Ce mois'} ═══
 
-Dépenses par catégorie:
-${Object.entries(expenseByCategory).map(([cat, amt]) => `- ${cat}: ${amt} XAF`).join('\n')}
+FINANCES:
+- Revenus encaissés: ${totalRevenue.toLocaleString()} XAF
+- Dépenses totales: ${totalExpenses.toLocaleString()} XAF
+- Bénéfice net: ${profit.toLocaleString()} XAF
+- Marge bénéficiaire: ${margin}%
+- Valeur moyenne commande: ${avgOrderValue.toLocaleString()} XAF
 
-Clients top: ${clients.slice(0, 5).map(c => c.name).join(', ')}
+COMMANDES (${orders.length} total):
+- Payées: ${paidOrders} | Partielles: ${partialOrders} | Impayées: ${unpaidOrders}
 
-Format de réponse:
-1. Résumé exécutif (3-4 lignes)
-2. Points forts (2-3 points)
-3. Points d'amélioration (2-3 points)
-4. Recommandations concrètes (3-5 actions)
-5. Prévision pour le mois prochain (1-2 lignes)`;
+TOP 5 PRODUITS (par revenus):
+${topProductsList.length > 0 ? topProductsList.map((p, i) => `${i + 1}. ${p.name}: ${p.revenue.toLocaleString()} XAF`).join('\n') : '- Aucune donnée'}
+
+DÉPENSES PAR CATÉGORIE:
+${Object.entries(expenseByCategory).length > 0 ? Object.entries(expenseByCategory).map(([cat, amt]) => `- ${cat}: ${(amt as number).toLocaleString()} XAF`).join('\n') : '- Aucune dépense enregistrée'}
+
+STOCK EN ALERTE (${lowStockItems.length} produits):
+${lowStockItems.length > 0 ? lowStockItems.slice(0, 5).map(p => `- ${p.name}: ${p.totalStock} restants (seuil: ${p.lowStockAlert})`).join('\n') : '- Aucun produit en rupture'}
+
+MEILLEURS CLIENTS:
+${clients.slice(0, 5).map(c => `- ${c.name}: ${c.totalSpent.toLocaleString()} XAF dépensés`).join('\n')}
+
+═══ FORMAT DU RAPPORT (respecte exactement) ═══
+
+1. Résumé exécutif
+[3-4 lignes sur l'état général du business, avec un ton direct et professionnel]
+
+2. Points forts
+[2-3 points positifs concrets avec chiffres à l'appui]
+
+3. Points d'amélioration
+[2-3 problèmes identifiés avec impact chiffré si possible]
+
+4. Recommandations concrètes
+[3-5 actions précises et réalisables cette semaine, adaptées au contexte africain]
+
+5. Prévision mois prochain
+[Estimation réaliste basée sur la tendance actuelle]`;
 
     // Call Groq (free, fast Llama 3)
     const apiKey = process.env.GROQ_API_KEY;
@@ -134,7 +161,7 @@ Format de réponse:
           { role: 'system', content: 'Tu es un expert business analyst pour les PME en Afrique. Donne des rapports concis, actionnables et adaptés au contexte local.' },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 800,
+        max_tokens: 1200,
         temperature: 0.7,
       }),
     });
