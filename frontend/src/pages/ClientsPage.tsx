@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Search, Users, Pencil, Trash2, X, Download, ShoppingCart, ChevronRight } from 'lucide-react';
+import { Plus, Search, Users, Pencil, Trash2, X, Download, ShoppingCart } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Client {
