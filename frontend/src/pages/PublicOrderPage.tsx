@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, Clock, XCircle, Share2, MessageCircle } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
+import axios from 'axios';
 
 interface OrderItem {
   id: string;
@@ -67,11 +68,9 @@ export function PublicOrderPage() {
   useEffect(() => {
     if (!token) return;
     const base = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
-    fetch(`${base}/api/public/order/${token}`)
-      .then(r => r.json())
-      .then(res => {
-        if (res.success) setOrder(res.data);
-      })
+    const client = axios.create({ baseURL: base });
+    client.get(`/api/public/order/${token}`)
+      .then(res => { if (res.data.success) setOrder(res.data.data); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [token]);

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ShoppingCart, Phone, Mail, Search, Heart, Share2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import axios from 'axios';
 
 interface Tenant {
   id: string;
@@ -34,17 +35,18 @@ export function StorefrontPage() {
 
   useEffect(() => {
     if (!slug) return;
+    const base = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
+    const client = axios.create({ baseURL: base });
     const fetchAll = async () => {
       try {
-        const base = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
         const [tenantRes, prodRes] = await Promise.all([
-          fetch(`${base}/api/public/tenant/${slug}`).then(r => r.json()),
-          fetch(`${base}/api/public/products/${slug}?limit=100`).then(r => r.json()),
+          client.get(`/api/public/tenant/${slug}`),
+          client.get(`/api/public/products/${slug}?limit=100`),
         ]);
-        if (tenantRes.success) setTenant(tenantRes.data);
-        if (prodRes.success) setProducts(prodRes.data);
+        if (tenantRes.data.success) setTenant(tenantRes.data.data);
+        if (prodRes.data.success) setProducts(prodRes.data.data);
       } catch (e) {
-        console.error(e);
+        console.error('Storefront fetch error:', e);
       } finally {
         setLoading(false);
       }
