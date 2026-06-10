@@ -101,7 +101,10 @@ export function AIReportsPage() {
         setError(res.data.message || 'Erreur inconnue');
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Erreur de connexion';
+      const data = err?.response?.data;
+      const msg = data?.details
+        ? `${data.message} — ${data.details}`
+        : data?.message || err?.message || 'Erreur de connexion';
       setError(msg);
     } finally {
       setLoading(false);
@@ -119,7 +122,7 @@ export function AIReportsPage() {
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
-              {fr ? 'Rapports IA — GPT-4o' : 'AI Reports — GPT-4o'}
+              {fr ? 'Rapports IA — Groq Llama' : 'AI Reports — Groq Llama'}
               {isShop && (
                 <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/30 text-amber-100 border border-amber-300/30">
                   {fr ? '3/mois · SHOP' : '3/mo · SHOP'}
