@@ -269,68 +269,72 @@ export function DashboardPage() {
   return (
     <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* Welcome */}
-      <div className={`bg-gradient-to-r ${welcomeGradient} rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg ${welcomeShadow}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className={`h-1 w-full bg-gradient-to-r ${isService ? 'from-violet-500 to-violet-600' : 'from-blue-500 to-blue-600'}`} />
+        <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            {tenant?.logo && (
-              <img src={tenant.logo} alt={tenant.name} className="h-12 w-12 rounded-lg object-contain bg-white/20 p-1" />
+            {tenant?.logo ? (
+              <img src={tenant.logo} alt={tenant.name} className="h-10 w-10 rounded-lg object-contain border border-gray-100 dark:border-gray-700" />
+            ) : (
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-base bg-gradient-to-br ${isService ? 'from-violet-500 to-violet-600' : 'from-blue-500 to-blue-600'}`}>
+                {(tenant?.name || user?.firstName || '?')[0].toUpperCase()}
+              </div>
             )}
             <div>
-              <h1 className="text-base sm:text-xl font-bold">
-                {t('dashboard.welcome')}, {user?.firstName}
-              </h1>
-              <p className="text-white/70 text-sm mt-1">
-                {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                {isService && (
-                  <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                    {language === 'fr' ? 'Mode Services' : 'Service Mode'}
-                  </span>
-                )}
+              <p className="font-bold text-gray-900 dark:text-white text-base">
+                {language === 'fr' ? 'Bonjour' : 'Hello'}, {user?.firstName} 👋
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {isService && <span className="ml-2 bg-violet-100 text-violet-600 dark:bg-violet-900/30 dark:text-violet-300 px-1.5 py-0.5 rounded text-[10px] font-medium">Services</span>}
               </p>
             </div>
           </div>
-          {tenant?.slug && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/storefront/${tenant.slug}`);
-                  alert(language === 'fr' ? 'Lien vitrine copié !' : 'Storefront link copied!');
-                }}
-                className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                title={language === 'fr' ? 'Copier le lien vitrine' : 'Copy storefront link'}
-              >
-                <Copy className="w-3.5 h-3.5" />
-                {language === 'fr' ? 'Copier lien' : 'Copy link'}
-              </button>
-              <a
-                href={`/storefront/${tenant.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 bg-white text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
-              >
-                <Globe className="w-3.5 h-3.5" />
-                {language === 'fr' ? 'Voir ma vitrine' : 'View Storefront'}
-              </a>
-            </div>
-          )}
-          {!isService && (
-            <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
-              {(['today', 'week', 'month', 'year'] as const).map((p) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {tenant?.slug && (
+              <>
                 <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                    period === p ? 'bg-white text-blue-600' : 'text-white/80 hover:bg-white/10'
-                  }`}
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/storefront/${tenant.slug}`);
+                    alert(language === 'fr' ? 'Lien copié !' : 'Link copied!');
+                  }}
+                  className="flex items-center gap-1.5 border border-gray-200 dark:border-gray-600 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs text-gray-600 dark:text-gray-300 font-medium transition-colors"
                 >
-                  {language === 'fr' 
-                    ? { today: 'Aujourd\'hui', week: 'Semaine', month: 'Mois', year: 'Année' }[p]
-                    : { today: 'Today', week: 'Week', month: 'Month', year: 'Year' }[p]
-                  }
+                  <Copy className="w-3 h-3" />
+                  {language === 'fr' ? 'Copier vitrine' : 'Copy link'}
                 </button>
-              ))}
-            </div>
-          )}
+                <a
+                  href={`/storefront/${tenant.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90 bg-gradient-to-r ${isService ? 'from-violet-500 to-violet-600' : 'from-blue-500 to-blue-600'}`}
+                >
+                  <Globe className="w-3 h-3" />
+                  {language === 'fr' ? 'Ma vitrine' : 'Storefront'}
+                </a>
+              </>
+            )}
+            {!isService && (
+              <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-700 rounded-lg p-0.5">
+                {(['today', 'week', 'month', 'year'] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPeriod(p)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                      period === p
+                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                    }`}
+                  >
+                    {language === 'fr'
+                      ? { today: 'Auj.', week: 'Sem.', month: 'Mois', year: 'An' }[p]
+                      : { today: 'Today', week: 'Week', month: 'Month', year: 'Year' }[p]
+                    }
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -342,16 +346,16 @@ export function DashboardPage() {
             const value = serviceData?.[card.key as keyof ServiceDashboardData] as number || 0;
             const label = card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] || '');
             return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border-l-4 border border-gray-100 dark:border-gray-700" style={{ borderLeftColor: `var(--stat-accent)` }}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wide font-medium truncate">{label}</p>
+                  <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {card.isCurrency ? formatCurrency(value) : value}
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{label}</p>
               </div>
             );
           })
@@ -361,16 +365,14 @@ export function DashboardPage() {
             const value = productData?.[card.key as keyof DashboardData] as number || 0;
             const label = card.label[language as 'fr' | 'en'];
             return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border-l-4 border border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wide font-medium truncate">{label}</p>
+                  <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
-                  {card.isCurrency ? formatCurrency(value) : value}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{label}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{card.isCurrency ? formatCurrency(value) : value}</p>
               </div>
             );
           })
@@ -385,16 +387,16 @@ export function DashboardPage() {
             }
             const isNegative = card.isProfit && value < 0;
             return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div key={card.key} className={`bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border-l-4 border border-gray-100 dark:border-gray-700 ${isNegative ? 'border-l-red-400' : ''}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wide font-medium truncate">{card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] ?? '')}</p>
+                  <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}>
+                    <Icon className="w-3.5 h-3.5 text-white" />
                   </div>
                 </div>
-                <p className={`text-lg sm:text-2xl font-bold truncate ${isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                <p className={`text-xl sm:text-2xl font-bold ${isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
                   {card.isCurrency ? formatCurrency(value) : value}
                 </p>
-                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] ?? '')}</p>
               </div>
             );
           })
@@ -453,15 +455,16 @@ export function DashboardPage() {
                 {language === 'fr' ? 'Actions rapides' : 'Quick Actions'}
               </h3>
               <div className="space-y-2">
-                <a href="/projects" className="block p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 text-sm font-medium hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors">
-                  + {language === 'fr' ? 'Nouveau projet' : 'New project'}
-                </a>
-                <a href="/services" className="block p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                  + {language === 'fr' ? 'Nouveau service' : 'New service'}
-                </a>
-                <a href="/invoices" className="block p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                  + {language === 'fr' ? 'Nouvelle facture' : 'New invoice'}
-                </a>
+                {[
+                  { href: '/projects', label: language === 'fr' ? 'Nouveau projet' : 'New project', icon: Plus, color: 'text-violet-600 dark:text-violet-400', bg: 'hover:bg-violet-50 dark:hover:bg-violet-900/20' },
+                  { href: '/clients', label: language === 'fr' ? 'Nouveau client' : 'New client', icon: Users, color: 'text-blue-600 dark:text-blue-400', bg: 'hover:bg-blue-50 dark:hover:bg-blue-900/20' },
+                  { href: '/invoices', label: language === 'fr' ? 'Nouvelle facture' : 'New invoice', icon: FileText, color: 'text-amber-600 dark:text-amber-400', bg: 'hover:bg-amber-50 dark:hover:bg-amber-900/20' },
+                ].map(({ href, label, icon: Icon, color, bg }) => (
+                  <a key={href} href={href} className={`flex items-center gap-2.5 p-2.5 rounded-lg border border-transparent ${bg} hover:border-gray-100 dark:hover:border-gray-700 transition-all`}>
+                    <Icon className={`w-4 h-4 ${color}`} />
+                    <span className={`text-sm font-medium ${color}`}>{label}</span>
+                  </a>
+                ))}
               </div>
             </div>
           </div>
@@ -479,19 +482,18 @@ export function DashboardPage() {
             <div className="p-3 sm:p-5 pt-2 sm:pt-3">
               <div className="space-y-2">
                 {productData?.recentOrders?.length ? productData.recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <div>
+                  <div key={order.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${
+                      order.paymentStatus === 'PAID' ? 'bg-green-400' :
+                      order.paymentStatus === 'PARTIAL' ? 'bg-amber-400' : 'bg-red-300'
+                    }`} />
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm text-gray-900 dark:text-white">{order.reference}</p>
-                      <p className="text-xs text-gray-400">
-                        {order.client?.name || (language === 'fr' ? 'Client anonyme' : 'Anonymous client')} · {formatDateTime(order.createdAt)}
+                      <p className="text-xs text-gray-400 truncate">
+                        {order.client?.name || (language === 'fr' ? 'Anonyme' : 'Anonymous')} · {formatDateTime(order.createdAt)}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm text-gray-900 dark:text-white">{formatCurrency(order.finalAmount)}</p>
-                      <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 ${statusColors[order.paymentStatus] || 'bg-gray-100 text-gray-600'}`}>
-                        {t(`status.${(order.paymentStatus || '').toLowerCase()}`)}
-                      </span>
-                    </div>
+                    <p className="font-semibold text-sm text-gray-900 dark:text-white flex-shrink-0">{formatCurrency(order.finalAmount)}</p>
                   </div>
                 )) : (
                   <p className="text-gray-400 text-sm text-center py-8">{t('common.noResults')}</p>
@@ -571,14 +573,25 @@ export function DashboardPage() {
               </div>
               <div className="p-5 pt-3">
                 <div className="space-y-3">
-                  {productData?.lowStockProducts?.length ? productData.lowStockProducts.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[140px]">{product.name}</span>
-                      <span className="text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 px-2.5 py-1 rounded-full">
-                        {product.totalStock} {language === 'fr' ? 'restant(s)' : 'left'}
-                      </span>
-                    </div>
-                  )) : (
+                  {productData?.lowStockProducts?.length ? productData.lowStockProducts.map((product) => {
+                    const pct = Math.min(100, Math.round((product.totalStock / (product.lowStockAlert || 5)) * 100));
+                    return (
+                      <div key={product.id}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-[140px]">{product.name}</span>
+                          <span className={`text-xs font-bold ${product.totalStock === 0 ? 'text-red-500' : 'text-amber-500'}`}>
+                            {product.totalStock}
+                          </span>
+                        </div>
+                        <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-gray-700">
+                          <div
+                            className={`h-1.5 rounded-full transition-all ${product.totalStock === 0 ? 'bg-red-400' : 'bg-amber-400'}`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  }) : (
                     <p className="text-gray-400 text-sm text-center py-4">{t('common.noResults')}</p>
                   )}
                 </div>
