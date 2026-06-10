@@ -35,6 +35,7 @@ export function DeliveriesPage() {
   const [phone, setPhone] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const fetchDeliveries = useCallback(async () => {
     try { const { data } = await api.get('/deliveries'); setDeliveries(data.data); }
@@ -80,6 +81,16 @@ export function DeliveriesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('delivery.title')}</h1>
         <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4 mr-1" /> {language === 'fr' ? 'Nouvelle livraison' : 'New delivery'}</Button>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        {['', 'PENDING', 'IN_TRANSIT', 'DELIVERED', 'FAILED'].map(s => (
+          <button key={s} onClick={() => setFilterStatus(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              filterStatus === s ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-blue-300'
+            }`}>
+            {s === '' ? (language === 'fr' ? 'Toutes' : 'All') : s.replace('_', ' ')}
+          </button>
+        ))}
       </div>
 
       {showForm && (
@@ -132,7 +143,7 @@ export function DeliveriesPage() {
         <div className="text-center py-12"><Truck className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">{t('common.noResults')}</p></div>
       ) : (
         <div className="space-y-3">
-          {deliveries.map((del) => (
+          {deliveries.filter(d => !filterStatus || d.status === filterStatus).map((del) => (
             <Card key={del.id}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">

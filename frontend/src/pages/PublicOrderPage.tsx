@@ -66,7 +66,8 @@ export function PublicOrderPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${import.meta.env.VITE_API_URL}/api/public/order/${token}`)
+    const base = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
+    fetch(`${base}/api/public/order/${token}`)
       .then(r => r.json())
       .then(res => {
         if (res.success) setOrder(res.data);

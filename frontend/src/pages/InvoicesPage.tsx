@@ -73,6 +73,7 @@ export function InvoicesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [filterPayment, setFilterPayment] = useState('');
 
   // Standalone invoice form state
   const [clients, setClients] = useState<Client[]>([]);
@@ -217,6 +218,21 @@ export function InvoicesPage() {
             <Download className="w-4 h-4 mr-2" /> {t('common.export')} CSV
           </Button>
         </div>
+      </div>
+
+      {/* Payment status quick filters */}
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { v: '', l: language === 'fr' ? 'Toutes' : 'All' },
+          { v: 'PAID', l: language === 'fr' ? 'Payées' : 'Paid' },
+          { v: 'PARTIAL', l: language === 'fr' ? 'Partielles' : 'Partial' },
+          { v: 'PENDING', l: language === 'fr' ? 'Impayées' : 'Unpaid' },
+        ].map(({ v, l }) => (
+          <button key={v} onClick={() => setFilterPayment(v)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              filterPayment === v ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 dark:border-gray-600 dark:text-gray-400 hover:border-blue-300'
+            }`}>{l}</button>
+        ))}
       </div>
 
       {/* Search and Filter Bar */}
@@ -404,7 +420,7 @@ export function InvoicesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {invoices.map((inv) => (
+          {invoices.filter(inv => !filterPayment || inv.paymentStatus === filterPayment).map((inv) => (
             <Card key={inv.id} className="hover:shadow-md transition-shadow dark:bg-gray-800">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>

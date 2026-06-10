@@ -36,9 +36,10 @@ export function StorefrontPage() {
     if (!slug) return;
     const fetchAll = async () => {
       try {
+        const base = (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '');
         const [tenantRes, prodRes] = await Promise.all([
-          fetch(`${import.meta.env.VITE_API_URL}/api/public/tenant/${slug}`).then(r => r.json()),
-          fetch(`${import.meta.env.VITE_API_URL}/api/public/products/${slug}?limit=100`).then(r => r.json()),
+          fetch(`${base}/api/public/tenant/${slug}`).then(r => r.json()),
+          fetch(`${base}/api/public/products/${slug}?limit=100`).then(r => r.json()),
         ]);
         if (tenantRes.success) setTenant(tenantRes.data);
         if (prodRes.success) setProducts(prodRes.data);

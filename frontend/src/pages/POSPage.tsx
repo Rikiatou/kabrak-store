@@ -241,7 +241,7 @@ export function POSPage() {
                   key={product.id}
                   onClick={() => !isOutOfStock && addToCart(product)}
                   disabled={isOutOfStock}
-                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  className={`rounded-xl border text-left transition-all cursor-pointer overflow-hidden ${
                     isOutOfStock
                       ? 'opacity-40 cursor-not-allowed bg-gray-50 dark:bg-gray-800/50'
                       : inCart
@@ -249,15 +249,24 @@ export function POSPage() {
                         : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-200 hover:shadow-sm'
                   }`}
                 >
-                  <p className="font-medium text-sm text-gray-900 dark:text-white truncate">{product.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{product.totalStock} {language === 'fr' ? 'en stock' : 'in stock'}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="font-bold text-sm text-blue-600">{formatCurrency(product.sellingPrice)}</p>
-                    {inCart ? (
-                      <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
-                        {inCart.quantity}
-                      </span>
-                    ) : null}
+                  {product.image ? (
+                    <img src={product.image} alt={product.name} className="w-full h-20 object-cover" />
+                  ) : (
+                    <div className="w-full h-20 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <ShoppingCart className="w-6 h-6 text-gray-300" />
+                    </div>
+                  )}
+                  <div className="p-2">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white truncate">{product.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{product.totalStock} {language === 'fr' ? 'en stock' : 'in stock'}</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="font-bold text-sm text-blue-600">{formatCurrency(product.sellingPrice)}</p>
+                      {inCart ? (
+                        <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
+                          {inCart.quantity}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </button>
               );
