@@ -261,10 +261,6 @@ export function DashboardPage() {
   }
 
   const isService = businessMode === 'SERVICE';
-  const welcomeGradient = isService
-    ? 'from-violet-600 to-violet-700'
-    : 'from-blue-600 to-blue-700';
-  const welcomeShadow = isService ? 'shadow-violet-200/50' : 'shadow-blue-200/50';
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
