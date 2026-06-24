@@ -130,7 +130,6 @@ function App() {
   return (
     <BrowserRouter>
       <InstallPrompt />
-      <Onboarding />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -143,6 +142,7 @@ function App() {
           element={
             <ProtectedRoute>
               <AppLayout />
+              <Onboarding />
             </ProtectedRoute>
           }
         >
