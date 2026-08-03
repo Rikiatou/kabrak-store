@@ -17,8 +17,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('kabrak_token');
-      window.location.href = '/login';
+      // Avoid redirect loop when already on login/register/forgot/reset pages
+      const path = window.location.pathname.toLowerCase();
+      const isAuthPage = path.includes('/login') || path.includes('/register') || path.includes('/forgot') || path.includes('/reset');
+      if (!isAuthPage) {
+        localStorage.removeItem('kabrak_token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

@@ -56,9 +56,13 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, phone, email, address } = req.body;
+    if (!name || String(name).trim().length === 0) {
+      res.status(400).json({ success: false, message: 'Nom requis' });
+      return;
+    }
 
     const client = await prisma.client.create({
-      data: { name, phone, email, address, tenantId: req.user!.tenantId },
+      data: { name: String(name).trim(), phone, email, address, tenantId: req.user!.tenantId },
     });
 
     res.status(201).json({ success: true, data: client });
@@ -99,10 +103,16 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const existing = await prisma.client.findFirst({
       where: { id, tenantId: req.user!.tenantId },
+      include: { _count: { select: { orders: true, invoices: true } } },
     });
 
     if (!existing) {
       res.status(404).json({ success: false, message: 'Client non trouvé' });
+      return;
+    }
+
+    if (existing._count.orders > 0 || existing._count.invoices > 0) {
+      res.status(400).json({ success: false, message: 'Client lié à des commandes/factures — suppression impossible' });
       return;
     }
 

@@ -19,9 +19,12 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, icon } = req.body;
-
+    if (!name || String(name).trim().length === 0) {
+      res.status(400).json({ success: false, message: 'Nom requis' });
+      return;
+    }
     const category = await prisma.category.create({
-      data: { name, icon, tenantId: req.user!.tenantId },
+      data: { name: String(name).trim(), icon, tenantId: req.user!.tenantId },
     });
 
     res.status(201).json({ success: true, data: category });
@@ -62,10 +65,16 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id as string;
     const existing = await prisma.category.findFirst({
       where: { id, tenantId: req.user!.tenantId },
+      include: { _count: { select: { products: true } } },
     });
 
     if (!existing) {
       res.status(404).json({ success: false, message: 'Catégorie non trouvée' });
+      return;
+    }
+
+    if (existing._count.products > 0) {
+      res.status(400).json({ success: false, message: 'Catégorie liée à des produits — suppression impossible' });
       return;
     }
 

@@ -25,12 +25,20 @@ export function EmployeesPage() {
 
   const handleResetPassword = async () => {
     if (!resetId || !newPassword) return;
+    if (newPassword.length < 6) {
+      alert('Mot de passe trop court (min 6 caractères)');
+      return;
+    }
     setResetLoading(true);
     try {
       await api.put(`/employees/${resetId}/password`, { password: newPassword });
       setResetId(null); setNewPassword('');
       alert('Mot de passe mis à jour');
-    } catch { alert('Erreur'); }
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.response?.data?.message || 'Erreur lors de la mise à jour du mot de passe';
+      alert(msg);
+    }
     finally { setResetLoading(false); }
   };
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '@/lib/api';
 import { ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react';
@@ -17,6 +17,13 @@ export function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +42,7 @@ export function ResetPasswordPage() {
     try {
       await api.post('/auth/reset-password', { token, newPassword });
       setDone(true);
-      setTimeout(() => navigate('/login'), 3000);
+      timeoutRef.current = setTimeout(() => navigate('/login'), 3000);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || (fr ? 'Lien invalide ou expiré' : 'Invalid or expired link'));

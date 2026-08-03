@@ -45,7 +45,10 @@ export function SuppliersPage() {
       setEditingId(null);
       setForm(emptyForm);
       fetchSuppliers();
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error(err);
+      alert(language === 'fr' ? 'Erreur lors de l\'enregistrement' : 'Error saving supplier');
+    }
     setSaving(false);
   };
 

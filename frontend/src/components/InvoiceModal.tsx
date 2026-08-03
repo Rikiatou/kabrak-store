@@ -4,8 +4,30 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+
+// Lazy-load heavy libraries only when sharing/downloading
+type Html2Canvas = (el: HTMLElement, opts?: Record<string, unknown>) => Promise<HTMLCanvasElement>;
+let _html2canvas: Html2Canvas | null = null;
+async function loadHtml2Canvas(): Promise<Html2Canvas> {
+  if (!_html2canvas) {
+    const mod = await import('html2canvas');
+    _html2canvas = mod.default as Html2Canvas;
+  }
+  return _html2canvas;
+}
+
+type JsPDF = new (orientation: 'p' | 'l', unit: string, format: string | [number, number]) => {
+  addImage: (data: string, format: string, x: number, y: number, w: number, h: number) => void;
+  save: (filename: string) => void;
+};
+let _jsPDF: JsPDF | null = null;
+async function loadJsPDF(): Promise<JsPDF> {
+  if (!_jsPDF) {
+    const mod = await import('jspdf');
+    _jsPDF = mod.default as JsPDF;
+  }
+  return _jsPDF;
+}
 
 interface InvoiceItem {
   product: { name: string };
@@ -106,24 +128,21 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
   const shareAsImage = async () => {
     setSharing(true);
+    const el = printRef.current;
+    if (!el) { setSharing(false); return; }
+    // Temporarily remove max-height to capture full content
+    const parent = el.parentElement;
+    const originalMaxHeight = parent?.style.maxHeight;
+    if (parent) parent.style.maxHeight = 'none';
     try {
-      const el = printRef.current;
-      if (!el) return;
-      // Temporarily remove max-height to capture full content
-      const parent = el.parentElement;
-      const originalMaxHeight = parent?.style.maxHeight;
-      if (parent) parent.style.maxHeight = 'none';
-      
+      const html2canvas = await loadHtml2Canvas();
       const canvas = await html2canvas(el, {
         scale: 2.5,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
       });
-      
-      // Restore original max-height
-      if (parent && originalMaxHeight) parent.style.maxHeight = originalMaxHeight;
-      
+
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         const file = new File([blob], `facture-${invoice.invoiceNumber}.png`, { type: 'image/png' });
@@ -144,39 +163,41 @@ export function InvoiceModal({ invoice, onClose }: Props) {
     } catch (e) {
       console.error(e);
     } finally {
+      // Always restore original max-height to avoid DOM leak
+      if (parent) parent.style.maxHeight = originalMaxHeight || '';
       setSharing(false);
     }
   };
 
   const downloadAsPDF = async () => {
     setSharing(true);
+    const el = printRef.current;
+    if (!el) { setSharing(false); return; }
+    // Temporarily remove max-height to capture full content
+    const parent = el.parentElement;
+    const originalMaxHeight = parent?.style.maxHeight;
+    if (parent) parent.style.maxHeight = 'none';
     try {
-      const el = printRef.current;
-      if (!el) return;
-      // Temporarily remove max-height to capture full content
-      const parent = el.parentElement;
-      const originalMaxHeight = parent?.style.maxHeight;
-      if (parent) parent.style.maxHeight = 'none';
-      
+      const html2canvas = await loadHtml2Canvas();
       const canvas = await html2canvas(el, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
       });
-      
-      // Restore original max-height
-      if (parent && originalMaxHeight) parent.style.maxHeight = originalMaxHeight;
-      
+
       const imgData = canvas.toDataURL('image/png');
       const imgWidth = 210; // A4 width in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const jsPDF = await loadJsPDF();
       const pdf = new jsPDF('p', 'mm', [imgWidth, imgHeight]);
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       pdf.save(`facture-${invoice.invoiceNumber}.pdf`);
     } catch (e) {
       console.error(e);
     } finally {
+      // Always restore original max-height to avoid DOM leak
+      if (parent) parent.style.maxHeight = originalMaxHeight || '';
       setSharing(false);
     }
   };

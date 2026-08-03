@@ -88,6 +88,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const token = get().token;
     if (!token) return;
 
+    // Prevent concurrent calls
+    if (get().isLoading) return;
+
     set({ isLoading: true });
     try {
       const { data } = await api.get('/auth/me');
@@ -98,9 +101,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         language: data.data.tenant.language || get().language,
         isLoading: false,
       });
-    } catch {
-      localStorage.removeItem('kabrak_token');
-      set({ user: null, tenant: null, token: null, isLoading: false });
+    } catch (err: unknown) {
+      // Only clear token on 401 (auth failure), not on transient network errors
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        localStorage.removeItem('kabrak_token');
+        set({ user: null, tenant: null, subscription: null, token: null, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
     }
   },
 }));

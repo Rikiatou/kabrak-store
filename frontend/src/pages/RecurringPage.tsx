@@ -174,7 +174,7 @@ export function RecurringPage() {
               </label>
               <input
                 type="number"
-                value={form.amount || ''}
+                value={form.amount === null || form.amount === undefined ? '' : form.amount}
                 onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
                 className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white"
                 placeholder="75000"

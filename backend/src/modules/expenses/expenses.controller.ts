@@ -86,9 +86,14 @@ export const getSummary = async (req: Request, res: Response): Promise<void> => 
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const { amount, category, description, date, reference, paymentMethod, supplierId } = req.body;
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      res.status(400).json({ success: false, message: 'Montant invalide' });
+      return;
+    }
     const expense = await prisma.expense.create({
       data: {
-        amount: parseFloat(amount),
+        amount: parsedAmount,
         category: category || 'OTHER',
         description,
         date: date ? new Date(date) : new Date(),
@@ -112,6 +117,13 @@ export const update = async (req: Request, res: Response): Promise<void> => {
     const existing = await prisma.expense.findFirst({ where: { id: id as string, tenantId: req.user!.tenantId as string } });
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
     const { amount, category, description, date, reference, paymentMethod, supplierId } = req.body;
+    if (amount !== undefined) {
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount < 0) {
+        res.status(400).json({ success: false, message: 'Montant invalide' });
+        return;
+      }
+    }
     const expense = await prisma.expense.update({
       where: { id: id as string },
       data: {
@@ -121,7 +133,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
         ...(date && { date: new Date(date) }),
         ...(reference !== undefined && { reference }),
         ...(paymentMethod && { paymentMethod }),
-        supplierId: supplierId || null,
+        ...(supplierId !== undefined && { supplierId: supplierId || null }),
       },
       include: { supplier: true },
     });

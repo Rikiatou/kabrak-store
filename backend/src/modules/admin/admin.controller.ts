@@ -1,11 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
-
-const PLAN_PRICES: Record<string, number> = {
-  STORE: 4900,
-  SHOP: 7900,
-  BUSINESS: 12900,
-};
+import { PLAN_PRICES } from '../../config/pricing';
 
 export const getDashboard = async (req: Request, res: Response): Promise<void> => {
   try {

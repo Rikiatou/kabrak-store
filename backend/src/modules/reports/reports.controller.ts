@@ -34,11 +34,13 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       }),
       prisma.product.count({ where: { tenantId, isActive: true } }),
       prisma.client.count({ where: { tenantId } }),
-      prisma.product.findMany({
-        where: { tenantId, totalStock: { lte: 5 } },
-        orderBy: { totalStock: 'asc' },
-        take: 10,
-      }),
+      prisma.$queryRaw<Array<{ id: string; name: string; totalStock: number; lowStockAlert: number; sellingPrice: number; image: string | null }>>`
+        SELECT id, name, "totalStock", "lowStockAlert", "sellingPrice", image
+        FROM products
+        WHERE "tenantId" = ${tenantId} AND "isActive" = true AND "totalStock" <= "lowStockAlert"
+        ORDER BY "totalStock" ASC
+        LIMIT 10
+      `,
       prisma.order.findMany({
         where: { tenantId },
         include: {
@@ -67,10 +69,10 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       }),
     ]);
 
-    // Fetch product details for top products
+    // Fetch product details for top products (tenant-scoped)
     const topProductIds = topProducts.map((p) => p.productId);
     const topProductDetails = await prisma.product.findMany({
-      where: { id: { in: topProductIds } },
+      where: { id: { in: topProductIds }, tenantId },
     });
 
     const topProductsWithDetails = topProducts.map((tp) => {

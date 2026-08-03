@@ -382,7 +382,7 @@ export function POSPage() {
               <span className="text-sm text-gray-500">{language === 'fr' ? 'Remise' : 'Discount'}</span>
               <Input
                 type="number" min={0} className="h-7 w-24 text-xs ml-auto text-right"
-                value={discount || ''} onChange={(e) => setDiscount(+e.target.value)}
+                value={discount === null || discount === undefined ? '' : discount} onChange={(e) => setDiscount(+e.target.value)}
               />
             </div>
             <div className="flex justify-between font-bold text-lg text-gray-900 dark:text-white pt-1 border-t border-gray-100 dark:border-gray-700">
@@ -419,7 +419,7 @@ export function POSPage() {
             <div className="flex gap-2">
               <Input
                 type="number" min={0}
-                value={amountPaid || ''}
+                value={amountPaid === null || amountPaid === undefined ? '' : amountPaid}
                 onChange={(e) => setAmountPaid(+e.target.value)}
                 className="flex-1"
               />

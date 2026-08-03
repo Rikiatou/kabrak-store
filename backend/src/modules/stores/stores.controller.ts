@@ -84,6 +84,7 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     const storeId = req.params.id as string;
     const store = await prisma.store.findFirst({
       where: { id: storeId, tenantId: req.user!.tenantId },
+      include: { _count: { select: { users: true, products: true } } },
     });
 
     if (!store) {
@@ -93,6 +94,11 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
 
     if (store.isMain) {
       res.status(400).json({ success: false, message: 'Impossible de supprimer le magasin principal' });
+      return;
+    }
+
+    if (store._count.users > 0 || store._count.products > 0) {
+      res.status(400).json({ success: false, message: 'Magasin lié à des utilisateurs/produits — suppression impossible' });
       return;
     }
 

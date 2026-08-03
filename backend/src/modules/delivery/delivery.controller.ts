@@ -27,6 +27,11 @@ export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const { orderId, address, phone, notes, deliveryDate } = req.body;
 
+    if (!orderId || !address || String(address).trim().length === 0) {
+      res.status(400).json({ success: false, message: 'orderId et address requis' });
+      return;
+    }
+
     const order = await prisma.order.findFirst({
       where: { id: orderId, tenantId: req.user!.tenantId },
       include: { delivery: true },
@@ -76,6 +81,11 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
+    if (existing.status === 'DELIVERED' || existing.status === 'FAILED') {
+      res.status(400).json({ success: false, message: 'Livraison déjà terminée' });
+      return;
+    }
+
     const delivery = await prisma.delivery.update({
       where: { id },
       data: {
@@ -87,7 +97,7 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
 
     if (status === 'DELIVERED') {
       await prisma.order.update({
-        where: { id: delivery.orderId },
+        where: { id: delivery.orderId, tenantId: req.user!.tenantId },
         data: { status: 'DELIVERED' },
       });
     }

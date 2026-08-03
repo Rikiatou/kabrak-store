@@ -262,11 +262,11 @@ export function ProductsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium mb-1 block">{t('products.costPrice')} (FCFA)</label>
-                    <Input type="number" placeholder="0" value={form.costPrice || ''} onChange={(e) => setForm({ ...form, costPrice: e.target.value ? +e.target.value : 0 })} />
+                    <Input type="number" placeholder="0" value={form.costPrice === null || form.costPrice === undefined ? '' : form.costPrice} onChange={(e) => setForm({ ...form, costPrice: e.target.value ? +e.target.value : 0 })} />
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-1 block">{t('products.sellingPrice')} (FCFA)</label>
-                    <Input type="number" placeholder="0" value={form.sellingPrice || ''} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value ? +e.target.value : 0 })} />
+                    <Input type="number" placeholder="0" value={form.sellingPrice === null || form.sellingPrice === undefined ? '' : form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value ? +e.target.value : 0 })} />
                   </div>
                 </div>
 
@@ -284,17 +284,17 @@ export function ProductsPage() {
                         <Input
                           type="number"
                           placeholder={t('products.autoCalculated')}
-                          value={form.totalStock || ''}
+                          value={form.totalStock === null || form.totalStock === undefined ? '' : form.totalStock}
                           readOnly
                           className="bg-gray-50"
                         />
                       ) : (
-                        <Input type="number" placeholder="0" value={form.totalStock || ''} onChange={(e) => setForm({ ...form, totalStock: e.target.value ? +e.target.value : 0 })} />
+                        <Input type="number" placeholder="0" value={form.totalStock === null || form.totalStock === undefined ? '' : form.totalStock} onChange={(e) => setForm({ ...form, totalStock: e.target.value ? +e.target.value : 0 })} />
                       )}
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-1 block">{t('products.lowStock')}</label>
-                      <Input type="number" placeholder="5" value={form.lowStockAlert || ''} onChange={(e) => setForm({ ...form, lowStockAlert: e.target.value ? +e.target.value : 5 })} />
+                      <Input type="number" placeholder="5" value={form.lowStockAlert === null || form.lowStockAlert === undefined ? '' : form.lowStockAlert} onChange={(e) => setForm({ ...form, lowStockAlert: e.target.value ? +e.target.value : 5 })} />
                     </div>
                   </div>
                 )}

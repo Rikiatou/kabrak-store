@@ -66,7 +66,14 @@ export function ClientsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm') + '?')) return;
-    try { await api.delete(`/clients/${id}`); fetchClients(); } catch (err) { console.error(err); }
+    try {
+      await api.delete(`/clients/${id}`);
+      fetchClients();
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.response?.data?.message || t('common.error');
+      alert(msg);
+    }
   };
 
   return (

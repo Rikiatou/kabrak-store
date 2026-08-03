@@ -266,7 +266,7 @@ export function ExpensesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">Montant *</label>
-                  <input type="number" min="1" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })}
+                  <input type="number" min="0" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })}
                     placeholder="Ex: 5000"
                     className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400" />
                 </div>

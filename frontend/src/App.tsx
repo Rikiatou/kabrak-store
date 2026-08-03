@@ -1,47 +1,57 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ProductsPage } from './pages/ProductsPage';
-import { OrdersPage } from './pages/OrdersPage';
-import { ClientsPage } from './pages/ClientsPage';
-import { InvoicesPage } from './pages/InvoicesPage';
-import { EmployeesPage } from './pages/EmployeesPage';
-import { DeliveriesPage } from './pages/DeliveriesPage';
-import { CategoriesPage } from './pages/CategoriesPage';
-import { ReportsPage } from './pages/ReportsPage';
-import { BillingPage } from './pages/BillingPage';
-import { LoyaltyPage } from './pages/LoyaltyPage';
-import { StoresPage } from './pages/StoresPage';
-import { POSPage } from './pages/POSPage';
-import { ProjectsPage } from './pages/ProjectsPage';
-import { ServicesPage } from './pages/ServicesPage';
-import { RecurringPage } from './pages/RecurringPage';
-import { SettingsPage } from './pages/SettingsPage';
-import { ExpensesPage } from './pages/ExpensesPage';
-import { SuppliersPage } from './pages/SuppliersPage';
-import { StorefrontPage } from './pages/StorefrontPage';
-import { PublicOrderPage } from './pages/PublicOrderPage';
-import { AIReportsPage } from './pages/AIReportsPage';
-import { GuidePage } from './pages/GuidePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { InstallPrompt } from './components/InstallPrompt';
 import { Onboarding } from './components/Onboarding';
 import { useAuthStore } from './stores/authStore';
 
+// Lazy-load authenticated pages to reduce initial bundle size
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
+const ProductsPage = lazy(() => import('./pages/ProductsPage').then(m => ({ default: m.ProductsPage })));
+const OrdersPage = lazy(() => import('./pages/OrdersPage').then(m => ({ default: m.OrdersPage })));
+const ClientsPage = lazy(() => import('./pages/ClientsPage').then(m => ({ default: m.ClientsPage })));
+const InvoicesPage = lazy(() => import('./pages/InvoicesPage').then(m => ({ default: m.InvoicesPage })));
+const EmployeesPage = lazy(() => import('./pages/EmployeesPage').then(m => ({ default: m.EmployeesPage })));
+const DeliveriesPage = lazy(() => import('./pages/DeliveriesPage').then(m => ({ default: m.DeliveriesPage })));
+const CategoriesPage = lazy(() => import('./pages/CategoriesPage').then(m => ({ default: m.CategoriesPage })));
+const ReportsPage = lazy(() => import('./pages/ReportsPage').then(m => ({ default: m.ReportsPage })));
+const BillingPage = lazy(() => import('./pages/BillingPage').then(m => ({ default: m.BillingPage })));
+const LoyaltyPage = lazy(() => import('./pages/LoyaltyPage').then(m => ({ default: m.LoyaltyPage })));
+const StoresPage = lazy(() => import('./pages/StoresPage').then(m => ({ default: m.StoresPage })));
+const POSPage = lazy(() => import('./pages/POSPage').then(m => ({ default: m.POSPage })));
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then(m => ({ default: m.ProjectsPage })));
+const ServicesPage = lazy(() => import('./pages/ServicesPage').then(m => ({ default: m.ServicesPage })));
+const RecurringPage = lazy(() => import('./pages/RecurringPage').then(m => ({ default: m.RecurringPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage').then(m => ({ default: m.ExpensesPage })));
+const SuppliersPage = lazy(() => import('./pages/SuppliersPage').then(m => ({ default: m.SuppliersPage })));
+const StorefrontPage = lazy(() => import('./pages/StorefrontPage').then(m => ({ default: m.StorefrontPage })));
+const PublicOrderPage = lazy(() => import('./pages/PublicOrderPage').then(m => ({ default: m.PublicOrderPage })));
+const AIReportsPage = lazy(() => import('./pages/AIReportsPage').then(m => ({ default: m.AIReportsPage })));
+const GuidePage = lazy(() => import('./pages/GuidePage').then(m => ({ default: m.GuidePage })));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen text-gray-500">Chargement…</div>
+);
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
+  const isLoading = useAuthStore((s) => s.isLoading);
   if (!token) return <Navigate to="/login" replace />;
+  if (isLoading) return <div className="flex items-center justify-center min-h-screen text-gray-500">Chargement…</div>;
   return <>{children}</>;
 }
 
 function ModeGuard({ mode, children }: { mode: 'PRODUCT' | 'SERVICE'; children: React.ReactNode }) {
   const tenant = useAuthStore((s) => s.tenant);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  if (isLoading) return <div className="flex items-center justify-center min-h-screen text-gray-500">Chargement…</div>;
   const businessMode = tenant?.businessMode || 'PRODUCT';
   if (businessMode !== mode) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
@@ -64,7 +74,7 @@ function PlanGuard({ plans, children }: { plans: string[]; children: React.React
   const plan = tenant?.plan || 'STORE';
   if (plans.includes(plan)) return <>{children}</>;
 
-  const whatsappLink = `https://wa.me/237600000000?text=${encodeURIComponent('Bonjour, je voudrais upgrader mon plan KABRAK Store vers SHOP pour accéder au stock et à la caisse.')}`;
+  const whatsappLink = `https://wa.me/237653561862?text=${encodeURIComponent('Bonjour, je voudrais upgrader mon plan KABRAK Store vers SHOP pour accéder au stock et à la caisse.')}`;
 
   const featuresMap: Record<string, string[]> = {
     '/products': ['Catalogue produits', 'Gestion stock par taille/couleur', 'Alertes stock faible'],
@@ -125,11 +135,13 @@ function App() {
 
   useEffect(() => {
     if (token) fetchMe();
-  }, [token, fetchMe]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   return (
     <BrowserRouter>
       <InstallPrompt />
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -174,6 +186,7 @@ function App() {
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

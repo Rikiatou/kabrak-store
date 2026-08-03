@@ -1,26 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 
-// ─── Monthly usage counter for SHOP plan (3 AI reports/month) ──────────────
-const aiUsage = new Map<string, { count: number; monthKey: string }>();
-function getMonthKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth()}`;
-}
-function checkAndIncrementUsage(tenantId: string, plan: string): { allowed: boolean; remaining: number } {
-  const LIMIT = 3;
-  if (plan !== 'SHOP') return { allowed: true, remaining: 999 };
-  const monthKey = getMonthKey();
-  const entry = aiUsage.get(tenantId);
-  if (!entry || entry.monthKey !== monthKey) {
-    aiUsage.set(tenantId, { count: 1, monthKey });
-    return { allowed: true, remaining: LIMIT - 1 };
-  }
-  if (entry.count >= LIMIT) return { allowed: false, remaining: 0 };
-  entry.count++;
-  return { allowed: true, remaining: LIMIT - entry.count };
-}
-// ────────────────────────────────────────────────────────────────────────────
+const SHOP_AI_LIMIT = 3;
 
 export const generateReport = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -31,14 +12,23 @@ export const generateReport = async (req: Request, res: Response): Promise<void>
     const tenantInfo = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { plan: true } });
     const userPlan = tenantInfo?.plan || 'STORE';
 
-    // Check monthly limit for SHOP plan
-    const usage = checkAndIncrementUsage(tenantId, userPlan);
-    if (!usage.allowed) {
-      res.status(429).json({
-        success: false,
-        message: 'Limite mensuelle atteinte. Le plan SHOP inclut 3 rapports IA par mois. Passez au plan BUSINESS pour des rapports illimités.',
+    // Check monthly limit for SHOP plan using DB (persists across restarts)
+    if (userPlan === 'SHOP') {
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const usageCount = await (prisma as any).aIReport.count({
+        where: { tenantId, createdAt: { gte: monthStart } },
       });
-      return;
+
+      if (usageCount >= SHOP_AI_LIMIT) {
+        res.status(429).json({
+          success: false,
+          message: 'Limite mensuelle atteinte. Le plan SHOP inclut 3 rapports IA par mois. Passez au plan BUSINESS pour des rapports illimités.',
+        });
+        return;
+      }
     }
 
     // Fetch data
@@ -175,6 +165,20 @@ ${clients.slice(0, 5).map(c => `- ${c.name}: ${c.totalSpent.toLocaleString()} XA
 
     const data = await response.json() as any;
     const report = data.choices[0]?.message?.content || 'Erreur génération rapport';
+
+    // Persist report for usage tracking and history
+    try {
+      await (prisma as any).aIReport.create({
+        data: {
+          tenantId,
+          period,
+          reportContent: report,
+          metrics: { totalRevenue, totalExpenses, profit, margin },
+        },
+      });
+    } catch (persistErr) {
+      console.warn('AI report persist skipped:', (persistErr as Error).message);
+    }
 
     res.json({ success: true, data: { report, period, metrics: { totalRevenue, totalExpenses, profit, margin } } });
   } catch (error) {

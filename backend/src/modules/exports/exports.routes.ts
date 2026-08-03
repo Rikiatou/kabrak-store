@@ -7,9 +7,12 @@ import {
   backupAll,
   getExportHistory,
 } from './exports.controller';
-import { authorize } from '../../middleware/auth';
+import { authenticate, authorize } from '../../middleware/auth';
 
 const router = Router();
+
+// Explicit authentication on all export routes (defense in depth)
+router.use(authenticate);
 
 router.get('/history', getExportHistory);
 router.get('/products', exportProducts);

@@ -58,6 +58,7 @@ export function InvoicesPage() {
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -85,14 +86,16 @@ export function InvoicesPage() {
 
   const loadInvoices = async () => {
     try {
-      const params: any = { limit: 50 };
+      const params: Record<string, string | number> = { limit: 50 };
       if (searchQuery) params.search = searchQuery;
       if (dateFrom) params.from = dateFrom;
       if (dateTo) params.to = dateTo;
+      if (filterPayment) params.status = filterPayment;
       const { data } = await api.get('/invoices', { params });
       if (mountedRef.current) setInvoices(data.data);
     } catch (err) {
       console.error(err);
+      if (mountedRef.current) setError(true);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
@@ -107,7 +110,7 @@ export function InvoicesPage() {
       }).catch(() => {});
     }
     return () => { mountedRef.current = false; };
-  }, [isService, searchQuery, dateFrom, dateTo]);
+  }, [isService, searchQuery, dateFrom, dateTo, filterPayment]);
 
   const handleExport = async () => {
     try {
@@ -358,7 +361,7 @@ export function InvoicesPage() {
                     />
                     <input
                       type="number"
-                      value={item.unitPrice || ''}
+                      value={item.unitPrice === null || item.unitPrice === undefined ? '' : item.unitPrice}
                       min={0}
                       onChange={(e) => updateLineItem(index, 'unitPrice', parseFloat(e.target.value) || 0)}
                       className="w-32 rounded-lg border px-3 py-2 text-sm text-right dark:bg-gray-800 dark:border-gray-600 dark:text-white"
@@ -407,6 +410,13 @@ export function InvoicesPage() {
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
         </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-2">{language === 'fr' ? 'Erreur de chargement' : 'Failed to load'}</p>
+          <Button variant="outline" onClick={() => { setError(false); loadInvoices(); }}>
+            {language === 'fr' ? 'Réessayer' : 'Retry'}
+          </Button>
+        </div>
       ) : invoices.length === 0 ? (
         <div className="text-center py-12">
           <FileText className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
@@ -420,7 +430,7 @@ export function InvoicesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {invoices.filter(inv => !filterPayment || inv.paymentStatus === filterPayment).map((inv) => (
+          {invoices.map((inv) => (
             <Card key={inv.id} className="hover:shadow-md transition-shadow dark:bg-gray-800">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>

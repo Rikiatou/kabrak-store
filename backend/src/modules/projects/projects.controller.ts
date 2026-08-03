@@ -72,6 +72,30 @@ export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const data = req.body as CreateProjectInput;
 
+    // Validate clientId belongs to tenant
+    if (data.clientId) {
+      const client = await prisma.client.findFirst({
+        where: { id: data.clientId, tenantId: req.user!.tenantId },
+        select: { id: true },
+      });
+      if (!client) {
+        res.status(400).json({ success: false, message: 'Client invalide' });
+        return;
+      }
+    }
+
+    // Validate assignedToId belongs to tenant
+    if (data.assignedToId) {
+      const user = await prisma.user.findFirst({
+        where: { id: data.assignedToId, tenantId: req.user!.tenantId },
+        select: { id: true },
+      });
+      if (!user) {
+        res.status(400).json({ success: false, message: 'Utilisateur invalide' });
+        return;
+      }
+    }
+
     const project = await prisma.project.create({
       data: {
         name: data.name,

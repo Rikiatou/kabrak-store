@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { randomBytes } from 'crypto';
 import { prisma } from '../../config/prisma';
 import { CreateOrderInput } from './orders.schema';
 
@@ -8,6 +9,10 @@ function generateReference(): string {
   const dateStr = date.toISOString().slice(2, 10).replace(/-/g, '');
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `${prefix}-${dateStr}-${rand}`;
+}
+
+function generatePublicToken(): string {
+  return randomBytes(24).toString('hex');
 }
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
@@ -108,6 +113,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       const newOrder = await tx.order.create({
         data: {
           reference: generateReference(),
+          publicToken: generatePublicToken(),
           totalAmount,
           discount: data.discount,
           finalAmount,
@@ -133,19 +139,22 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         },
       });
 
-      // Update product stock with validation
+      // Update product stock with validation (tenant-scoped to prevent cross-tenant references)
       for (const item of data.items) {
-        const product = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { totalStock: true },
+        const product = await tx.product.findFirst({
+          where: { id: item.productId, tenantId: req.user!.tenantId },
+          select: { id: true, totalStock: true, name: true, isService: true },
         });
 
         if (!product) {
-          throw new Error(`Product ${item.productId} not found`);
+          throw new Error(`Product ${item.productId} not found in your catalog`);
         }
 
+        // Skip stock decrement for services or made-to-order products
+        if (product.isService) continue;
+
         if (product.totalStock < item.quantity) {
-          throw new Error(`Insufficient stock for product ${item.productId}. Available: ${product.totalStock}, Requested: ${item.quantity}`);
+          throw new Error(`Stock insuffisant pour "${product.name}". Disponible: ${product.totalStock}, Demandé: ${item.quantity}`);
         }
 
         await tx.product.update({
@@ -245,6 +254,7 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
 
     const existing = await prisma.order.findFirst({
       where: { id, tenantId: req.user!.tenantId },
+      include: { items: { include: { product: { select: { id: true, isService: true } } } } },
     });
 
     if (!existing) {
@@ -252,13 +262,41 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const order = await prisma.order.update({
-      where: { id },
-      data: { status },
-      include: {
-        client: true,
-        items: { include: { product: true } },
-      },
+    // Prevent changing status of terminal orders
+    if (existing.status === 'CANCELLED') {
+      res.status(400).json({ success: false, message: 'Impossible de modifier une commande annulée' });
+      return;
+    }
+    if (existing.status === 'DELIVERED' && status !== 'DELIVERED') {
+      res.status(400).json({ success: false, message: 'Impossible de modifier une commande livrée' });
+      return;
+    }
+    // No-op if same status
+    if (existing.status === status) {
+      res.json({ success: true, data: existing });
+      return;
+    }
+
+    const order = await prisma.$transaction(async (tx) => {
+      // Restore stock when cancelling (only for non-service items)
+      if (status === 'CANCELLED') {
+        for (const item of existing.items) {
+          if (item.product?.isService) continue;
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { totalStock: { increment: item.quantity } },
+          });
+        }
+      }
+
+      return tx.order.update({
+        where: { id },
+        data: { status },
+        include: {
+          client: true,
+          items: { include: { product: true } },
+        },
+      });
     });
 
     res.json({ success: true, data: order });

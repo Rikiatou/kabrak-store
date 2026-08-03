@@ -39,11 +39,17 @@ export const getPublicProducts = async (req: Request, res: Response): Promise<vo
 export const getPublicOrder = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token } = req.params;
+    // Prefer secure publicToken; fall back to reference for legacy orders
     const order = await prisma.order.findFirst({
-      where: { reference: token as string },
+      where: {
+        OR: [
+          { publicToken: token as string },
+          { reference: token as string },
+        ],
+      },
       include: {
-        client: true,
-        items: { include: { product: true } },
+        client: { select: { id: true, name: true, phone: true } },
+        items: { include: { product: { select: { id: true, name: true, image: true, description: true } } } },
         tenant: { select: { id: true, name: true, logo: true, invoiceColor: true, phone: true } },
       },
     });

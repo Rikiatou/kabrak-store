@@ -121,7 +121,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <ul className="space-y-1">
             {filteredItems.map((item) => {
               const isActive = location.pathname === item.path ||
-                (item.path !== '/' && location.pathname.startsWith(item.path));
+                (item.path !== '/' && location.pathname.startsWith(item.path + '/'));
               const Icon = item.icon;
 
               return (

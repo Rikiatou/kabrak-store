@@ -75,13 +75,29 @@ export const getClientLoyalty = async (req: Request, res: Response): Promise<voi
 export const addPoints = async (req: Request, res: Response): Promise<void> => {
   try {
     const { clientId, amount } = req.body;
-    const pointsEarned = Math.floor((amount as number) / POINTS_PER_FCFA);
+
+    if (!clientId || typeof amount !== 'number' || amount <= 0) {
+      res.status(400).json({ success: false, message: 'clientId et amount (>0) requis' });
+      return;
+    }
+
+    // Verify client belongs to tenant
+    const existing = await prisma.client.findFirst({
+      where: { id: clientId, tenantId: req.user!.tenantId },
+      select: { id: true },
+    });
+    if (!existing) {
+      res.status(404).json({ success: false, message: 'Client non trouvé' });
+      return;
+    }
+
+    const pointsEarned = Math.floor(amount / POINTS_PER_FCFA);
 
     const client = await prisma.client.update({
-      where: { id: clientId as string },
+      where: { id: clientId, tenantId: req.user!.tenantId },
       data: {
         loyaltyPoints: { increment: pointsEarned },
-        totalSpent: { increment: amount as number },
+        totalSpent: { increment: amount },
         totalOrders: { increment: 1 },
         lastVisit: new Date(),
       },
@@ -90,7 +106,7 @@ export const addPoints = async (req: Request, res: Response): Promise<void> => {
     const newTier = calculateTier(client.loyaltyPoints);
     if (newTier !== client.loyaltyTier) {
       await prisma.client.update({
-        where: { id: clientId as string },
+        where: { id: clientId, tenantId: req.user!.tenantId },
         data: { loyaltyTier: newTier },
       });
     }
@@ -124,10 +140,24 @@ export const getRewards = async (req: Request, res: Response): Promise<void> => 
 export const createReward = async (req: Request, res: Response): Promise<void> => {
   try {
     const { name, pointsRequired, discountPercent, discountAmount } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      res.status(400).json({ success: false, message: 'Nom requis' });
+      return;
+    }
+    if (typeof pointsRequired !== 'number' || pointsRequired <= 0) {
+      res.status(400).json({ success: false, message: 'pointsRequired doit être > 0' });
+      return;
+    }
+    if ((discountPercent || 0) === 0 && (discountAmount || 0) === 0) {
+      res.status(400).json({ success: false, message: 'Au moins un type de remise requis' });
+      return;
+    }
+
     const reward = await prisma.loyaltyReward.create({
       data: {
-        name: name as string,
-        pointsRequired: pointsRequired as number,
+        name: name.trim(),
+        pointsRequired,
         discountPercent: (discountPercent as number) || 0,
         discountAmount: (discountAmount as number) || 0,
         tenantId: req.user!.tenantId,
@@ -165,7 +195,7 @@ export const redeemReward = async (req: Request, res: Response): Promise<void> =
 
     await prisma.$transaction([
       prisma.client.update({
-        where: { id: clientId as string },
+        where: { id: clientId as string, tenantId: req.user!.tenantId },
         data: { loyaltyPoints: { decrement: reward.pointsRequired } },
       }),
       prisma.loyaltyReward.create({

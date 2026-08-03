@@ -14,12 +14,26 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // File size validation (max 10MB)
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      alert('Fichier trop volumineux. Taille maximum: 10MB.');
+      e.target.value = '';
+      return;
+    }
+
+    // File type validation
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Type de fichier invalide. Formats acceptés: JPEG, PNG, WebP, GIF.');
+      e.target.value = '';
+      return;
+    }
+
     setUploading(true);
     try {
       const cloudName = (import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || '').trim();
       const uploadPreset = (import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '').trim();
-
-      console.log('Cloudinary config:', { cloudName, uploadPreset });
 
       if (!cloudName || !uploadPreset) {
         alert('Configuration Cloudinary manquante. Vérifiez les variables VITE_CLOUDINARY_CLOUD_NAME et VITE_CLOUDINARY_UPLOAD_PRESET.');
@@ -37,8 +51,8 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        console.error('Cloudinary error full:', JSON.stringify(data));
-        alert(`Erreur upload: ${data.error?.message || JSON.stringify(data)}`);
+        console.error('Cloudinary error:', data);
+        alert(`Erreur upload: ${data.error?.message || 'Erreur inconnue'}`);
         return;
       }
 

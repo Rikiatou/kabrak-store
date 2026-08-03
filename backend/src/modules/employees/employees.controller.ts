@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../config/prisma';
+import { UserRole } from '@prisma/client';
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -20,6 +21,20 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password, firstName, lastName, phone, role } = req.body;
+
+    if (!email || !password || !firstName || !lastName) {
+      res.status(400).json({ success: false, message: 'email, password, firstName, lastName requis' });
+      return;
+    }
+    if (password.length < 6) {
+      res.status(400).json({ success: false, message: 'Mot de passe trop court (min 6 caractères)' });
+      return;
+    }
+    // Only OWNER can create OWNER/MANAGER
+    if (role === 'OWNER' && req.user!.role !== 'OWNER') {
+      res.status(403).json({ success: false, message: 'Seul le propriétaire peut créer un propriétaire' });
+      return;
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -51,7 +66,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 export const update = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const { firstName, lastName, phone, role, isActive } = req.body;
+    const { firstName, lastName, phone, role, isActive, password } = req.body;
 
     const existing = await prisma.user.findFirst({
       where: { id, tenantId: req.user!.tenantId },
@@ -67,9 +82,26 @@ export const update = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Prevent self-escalation and managers promoting to owner
+    if (role === 'OWNER') {
+      res.status(403).json({ success: false, message: 'Impossible de promouvoir en propriétaire' });
+      return;
+    }
+    if (role === 'MANAGER' && req.user!.role === 'MANAGER') {
+      res.status(403).json({ success: false, message: 'Seul le propriétaire peut créer un manager' });
+      return;
+    }
+
+    const updateData: { firstName?: string; lastName?: string; phone?: string; role?: UserRole; isActive?: boolean; password?: string } = {
+      firstName, lastName, phone, role: role as UserRole | undefined, isActive,
+    };
+    if (password && password.length >= 6) {
+      updateData.password = await bcrypt.hash(password, 12);
+    }
+
     const employee = await prisma.user.update({
       where: { id },
-      data: { firstName, lastName, phone, role, isActive },
+      data: updateData,
       select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, isActive: true },
     });
 

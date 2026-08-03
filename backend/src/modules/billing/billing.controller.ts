@@ -1,12 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { omService } from '../../services/orangeMoneyService';
-
-const PLAN_PRICES: Record<string, number> = {
-  STORE: 4900,
-  SHOP: 9900,
-  BUSINESS: 14900,
-};
+import { PLAN_PRICES } from '../../config/pricing';
 
 export const getSubscription = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -242,10 +237,21 @@ export const getHistory = async (req: Request, res: Response): Promise<void> => 
 };
 
 async function confirmBillingPayment(billingId: string): Promise<void> {
-  const billing = await prisma.billingPayment.update({
-    where: { id: billingId },
+  // Use a transaction with conditional update for idempotency.
+  // Only update if status is still PENDING — concurrent callers will see SUCCEEDED and skip.
+  const result = await prisma.billingPayment.updateMany({
+    where: { id: billingId, status: 'PENDING' },
     data: { status: 'SUCCEEDED', confirmedAt: new Date() },
   });
+
+  // If no row was updated, another caller already confirmed — skip subscription extension
+  if (result.count === 0) {
+    console.log(`[BILLING] Payment ${billingId} already confirmed — skipping`);
+    return;
+  }
+
+  const billing = await prisma.billingPayment.findUnique({ where: { id: billingId } });
+  if (!billing) return;
 
   const sub = await prisma.subscription.findUnique({
     where: { tenantId: billing.tenantId },

@@ -35,7 +35,11 @@ export const update = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const existing = await prisma.supplier.findFirst({ where: { id: id as string, tenantId: req.user!.tenantId as string } });
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
-    const supplier = await prisma.supplier.update({ where: { id: id as string }, data: req.body });
+    const { name, phone, email, address, notes } = req.body;
+    const supplier = await prisma.supplier.update({
+      where: { id: id as string },
+      data: { name, phone, email, address, notes },
+    });
     res.json({ success: true, data: supplier });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
@@ -45,8 +49,15 @@ export const update = async (req: Request, res: Response): Promise<void> => {
 export const remove = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const existing = await prisma.supplier.findFirst({ where: { id: id as string, tenantId: req.user!.tenantId as string } });
+    const existing = await prisma.supplier.findFirst({
+      where: { id: id as string, tenantId: req.user!.tenantId as string },
+      include: { _count: { select: { expenses: true } } },
+    });
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
+    if (existing._count.expenses > 0) {
+      res.status(400).json({ success: false, message: 'Fournisseur lié à des dépenses — suppression impossible' });
+      return;
+    }
     await prisma.supplier.delete({ where: { id: id as string } });
     res.json({ success: true });
   } catch (error) {

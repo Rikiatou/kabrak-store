@@ -116,12 +116,23 @@ class OrangeMoneyService {
   }
 
   verifyWebhook(body: unknown, signature: string | undefined): boolean {
-    if (!process.env.OM_WEBHOOK_SECRET) return true;
+    if (!process.env.OM_WEBHOOK_SECRET) {
+      console.error('[SECURITY] OM_WEBHOOK_SECRET not configured — rejecting webhook');
+      return false;
+    }
+    if (!signature) {
+      console.error('[SECURITY] Webhook missing signature');
+      return false;
+    }
     const expected = crypto
       .createHmac('sha256', process.env.OM_WEBHOOK_SECRET)
       .update(typeof body === 'string' ? body : JSON.stringify(body))
       .digest('hex');
-    return expected === signature;
+    const isValid = expected === signature;
+    if (!isValid) {
+      console.error('[SECURITY] Invalid webhook signature');
+    }
+    return isValid;
   }
 }
 

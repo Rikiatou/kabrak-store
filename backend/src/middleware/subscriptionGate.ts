@@ -26,18 +26,35 @@ export const requireActiveSubscription = async (
 
   const now = new Date();
 
-  if (subscription.status === 'TRIAL' && subscription.trialEndsAt && subscription.trialEndsAt < now) {
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: { status: 'EXPIRED' },
-    });
+  if (subscription.status === 'TRIAL') {
+    // If trial has no end date, treat as expired (fail-closed) to prevent indefinite trial
+    if (!subscription.trialEndsAt) {
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { status: 'EXPIRED' },
+      });
 
-    res.status(403).json({
-      success: false,
-      message: 'Your trial has expired. Please subscribe to continue.',
-      code: 'TRIAL_EXPIRED',
-    });
-    return;
+      res.status(403).json({
+        success: false,
+        message: 'Your trial has expired. Please subscribe to continue.',
+        code: 'TRIAL_EXPIRED',
+      });
+      return;
+    }
+
+    if (subscription.trialEndsAt < now) {
+      await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { status: 'EXPIRED' },
+      });
+
+      res.status(403).json({
+        success: false,
+        message: 'Your trial has expired. Please subscribe to continue.',
+        code: 'TRIAL_EXPIRED',
+      });
+      return;
+    }
   }
 
   if (subscription.status === 'EXPIRED' || subscription.endDate < now) {

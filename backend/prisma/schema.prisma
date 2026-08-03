@@ -173,6 +173,7 @@ model Tenant {
   recurringBillings  RecurringBilling[]
   expenses           Expense[]
   suppliers          Supplier[]
+  aiReports          AIReport[]
 
   @@map("tenants")
 }
@@ -203,6 +204,7 @@ model User {
   projects      Project[] @relation("projectAssignee")
   expenses      Expense[]
 
+  @@index([tenantId])
   @@map("users")
 }
 
@@ -220,6 +222,7 @@ model Category {
   products  Product[]
 
   @@unique([name, tenantId])
+  @@index([tenantId])
   @@map("categories")
 }
 
@@ -261,6 +264,10 @@ model Product {
   invoiceLineItems InvoiceLineItem[]
   recurringBillings RecurringBilling[]
 
+  @@index([tenantId])
+  @@index([categoryId])
+  @@index([storeId])
+  @@index([barcode])
   @@map("products")
 }
 
@@ -289,6 +296,7 @@ model Client {
   projects       Project[]
   recurringBillings RecurringBilling[]
 
+  @@index([tenantId])
   @@map("clients")
 }
 
@@ -297,6 +305,7 @@ model Client {
 model Order {
   id              String        @id @default(uuid())
   reference       String
+  publicToken     String?       @unique
   status          OrderStatus   @default(PENDING)
   totalAmount     Float         @default(0)
   discount        Float         @default(0)
@@ -318,6 +327,10 @@ model Order {
   invoice         Invoice?
   delivery        Delivery?
 
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([status])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -335,6 +348,8 @@ model OrderItem {
   order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product     Product @relation(fields: [productId], references: [id])
 
+  @@index([orderId])
+  @@index([productId])
   @@map("order_items")
 }
 
@@ -366,6 +381,10 @@ model Invoice {
   payments      Payment[]
   lineItems     InvoiceLineItem[]
 
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([paymentStatus])
+  @@index([createdAt])
   @@map("invoices")
 }
 
@@ -384,6 +403,8 @@ model InvoiceLineItem {
   invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   product     Product? @relation(fields: [productId], references: [id])
 
+  @@index([invoiceId])
+  @@index([productId])
   @@map("invoice_line_items")
 }
 
@@ -400,6 +421,7 @@ model Payment {
 
   invoice       Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
+  @@index([invoiceId])
   @@map("payments")
 }
 
@@ -423,6 +445,8 @@ model Delivery {
   order         Order          @relation(fields: [orderId], references: [id])
   client        Client?        @relation(fields: [clientId], references: [id])
 
+  @@index([tenantId])
+  @@index([status])
   @@map("deliveries")
 }
 
@@ -456,6 +480,9 @@ model Project {
   milestones      ProjectMilestone[]
   invoices        Invoice[]
 
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([status])
   @@map("projects")
 }
 
@@ -475,6 +502,7 @@ model ProjectMilestone {
 
   createdAt   DateTime  @default(now())
 
+  @@index([projectId])
   @@map("project_milestones")
 }
 
@@ -499,6 +527,9 @@ model RecurringBilling {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([nextBillingDate])
   @@map("recurring_billings")
 }
 
@@ -542,6 +573,8 @@ model BillingPayment {
 
   tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
+  @@index([status])
   @@map("billing_payments")
 }
 
@@ -562,6 +595,8 @@ model LoyaltyReward {
   tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   client          Client?  @relation(fields: [clientId], references: [id])
 
+  @@index([tenantId])
+  @@index([clientId])
   @@map("loyalty_rewards")
 }
 
@@ -582,6 +617,7 @@ model Store {
   users           User[]
   products        Product[]
 
+  @@index([tenantId])
   @@map("stores")
 }
 
@@ -599,6 +635,8 @@ model Notification {
 
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
+  @@index([isRead])
   @@map("notifications")
 }
 
@@ -618,6 +656,7 @@ model Supplier {
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   expenses  Expense[]
 
+  @@index([tenantId])
   @@map("suppliers")
 }
 
@@ -641,6 +680,10 @@ model Expense {
   supplier      Supplier?       @relation(fields: [supplierId], references: [id])
   createdBy     User            @relation(fields: [createdById], references: [id])
 
+  @@index([tenantId])
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([date])
   @@map("expenses")
 }
 
@@ -672,5 +715,22 @@ model DataExport {
 
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
+  @@index([tenantId])
   @@map("data_exports")
+}
+
+// ─── AI REPORT (persistent usage tracking + report history) ──
+
+model AIReport {
+  id            String   @id @default(uuid())
+  tenantId      String
+  period        String
+  reportContent String
+  metrics       Json?
+  createdAt     DateTime @default(now())
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@map("ai_reports")
 }

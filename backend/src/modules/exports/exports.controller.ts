@@ -4,7 +4,11 @@ import { prisma } from '../../config/prisma';
 function toCsvRow(values: (string | number | null | undefined)[]): string {
   return values
     .map((v) => {
-      const str = v == null ? '' : String(v);
+      let str = v == null ? '' : String(v);
+      // Prevent CSV injection: prefix formula-triggering characters with a single quote
+      if (/^[=+\-@]/.test(str)) {
+        str = `'${str}`;
+      }
       return str.includes(',') || str.includes('"') || str.includes('\n')
         ? `"${str.replace(/"/g, '""')}"`
         : str;
