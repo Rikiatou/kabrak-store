@@ -9,8 +9,10 @@ import { formatCurrency } from '@/lib/utils';
 import { Plus, Search, Package, Pencil, Trash2, X, ScanLine, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { ImageUpload } from '@/components/ImageUpload';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 interface Product {
   id: string;
@@ -95,20 +97,23 @@ export function ProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
   const [formImage, setFormImage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const debouncedSearch = useDebounce(search);
 
   const fetchProducts = useCallback(async () => {
     try {
-      const { data } = await api.get('/products', { params: { search, limit: PAGE_SIZE, page } });
+      const { data } = await api.get('/products', { params: { search: debouncedSearch, limit: PAGE_SIZE, page } });
       setProducts(data.data);
       const totalCount = data.pagination?.total || data.data.length;
       setTotal(totalCount);
       setTotalPages(Math.max(1, Math.ceil(totalCount / PAGE_SIZE)));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
     finally { setLoading(false); }
-  }, [search, page]);
+  }, [debouncedSearch, page]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
 
   // Auto-calculate totalStock from sizes for HIJABS_ABAYAS
   useEffect(() => {
@@ -124,6 +129,8 @@ export function ProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       const payload = { ...form, image: formImage };
       if (editingId) {
@@ -131,12 +138,18 @@ export function ProductsPage() {
       } else {
         await api.post('/products', payload);
       }
+      toast.success(language === 'fr' ? 'Produit enregistré' : 'Product saved');
       setShowForm(false);
       setEditingId(null);
       setForm(defaultForm);
       setFormImage('');
       fetchProducts();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? "Échec de l'enregistrement" : 'Failed to save'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleEdit = (product: Product) => {
@@ -160,8 +173,12 @@ export function ProductsPage() {
     if (!confirm(t('common.confirm') + '?')) return;
     try {
       await api.delete(`/products/${id}`);
+      toast.success(language === 'fr' ? 'Produit supprimé' : 'Product deleted');
       fetchProducts();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
+    }
   };
 
   const handleBarcodeScan = async (code: string) => {
@@ -172,7 +189,7 @@ export function ProductsPage() {
         setShowScanner(false);
       }
     } catch {
-      alert('Produit non trouvé pour ce code');
+      toast.error('Produit non trouvé pour ce code');
     }
   };
 
@@ -187,6 +204,7 @@ export function ProductsPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de l\'export' : 'Export failed'));
     }
   };
 
@@ -319,8 +337,8 @@ export function ProductsPage() {
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">
                     {t('common.cancel')}
                   </Button>
-                  <Button type="submit" className="flex-1">
-                    {t('common.save')}
+                  <Button type="submit" className="flex-1" disabled={submitting}>
+                    {submitting ? (language === 'fr' ? 'Enregistrement...' : 'Saving...') : t('common.save')}
                   </Button>
                 </div>
               </form>

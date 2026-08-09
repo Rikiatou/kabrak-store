@@ -7,7 +7,9 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { Plus, ShoppingCart, X, MessageCircle } from 'lucide-react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import { useDebounce } from '@/hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 interface OrderItem {
   id: string;
@@ -96,35 +98,43 @@ export function OrdersPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [filterPayment, setFilterPayment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const debouncedSearch = useDebounce(searchQuery);
 
   const fetchOrders = useCallback(async () => {
     try {
-      const params: any = { limit: 50 };
-      if (searchQuery) params.search = searchQuery;
+      const params: Record<string, string | number> = { limit: 50 };
+      if (debouncedSearch) params.search = debouncedSearch;
       if (dateFrom) params.from = dateFrom;
       if (dateTo) params.to = dateTo;
       const { data } = await api.get('/orders', { params });
       setOrders(data.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
     finally { setLoading(false); }
-  }, [searchQuery, dateFrom, dateTo]);
+  }, [debouncedSearch, dateFrom, dateTo]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const openNewOrder = async () => {
-    const [prodRes, clientRes] = await Promise.all([
-      api.get('/products', { params: { limit: 200 } }),
-      api.get('/clients', { params: { limit: 200 } }),
-    ]);
-    setProducts(prodRes.data.data);
-    setClients(clientRes.data.data);
-    setCart([]);
-    setSelectedClient('');
-    setInitialAmountPaid('');
-    setDiscount('');
-    setDeliveryDate('');
-    setInitialPaymentMethod('CASH');
-    setShowForm(true);
+    try {
+      const [prodRes, clientRes] = await Promise.all([
+        api.get('/products', { params: { limit: 200 } }),
+        api.get('/clients', { params: { limit: 200 } }),
+      ]);
+      setProducts(prodRes.data.data);
+      setClients(clientRes.data.data);
+      setCart([]);
+      setSelectedClient('');
+      setInitialAmountPaid('');
+      setDiscount('');
+      setDeliveryDate('');
+      setInitialPaymentMethod('CASH');
+      setShowForm(true);
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors du chargement' : 'Failed to load data'));
+    }
   };
 
   const addToCart = (product: Product) => {
@@ -141,6 +151,8 @@ export function OrdersPage() {
   const finalTotal = cartTotal - (Number(discount) || 0);
 
   const handleCreateOrder = async () => {
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await api.post('/orders', {
         clientId: selectedClient || undefined,
@@ -150,13 +162,13 @@ export function OrdersPage() {
         amountPaid: Number(initialAmountPaid) || 0,
         deliveryDate: isOrderBased ? deliveryDate : undefined,
       });
+      toast.success(t('common.saved') || 'Saved');
       setShowForm(false);
       fetchOrders();
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      alert(axiosErr.response?.data?.message || "Erreur lors de la création de la commande");
+    } catch (err) {
       console.error(err);
-    }
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la création de la commande' : 'Error creating order'));
+    } finally { setSubmitting(false); }
   };
 
   const handleWhatsApp = (order: Order) => {
@@ -177,10 +189,11 @@ export function OrdersPage() {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       await api.patch(`/orders/${orderId}/status`, { status: newStatus });
+      toast.success(language === 'fr' ? 'Statut mis à jour' : 'Status updated');
       fetchOrders();
     } catch (err) {
       console.error(err);
-      alert('Erreur lors de la mise à jour du statut');
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la mise à jour du statut' : 'Error updating status'));
     }
   };
 
@@ -340,7 +353,7 @@ export function OrdersPage() {
 
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setShowForm(false)} className="flex-1">{t('common.cancel')}</Button>
-                <Button onClick={handleCreateOrder} className="flex-1" disabled={cart.length === 0}>{t('common.save')}</Button>
+                <Button onClick={handleCreateOrder} className="flex-1" disabled={cart.length === 0 || submitting}>{submitting ? '...' : t('common.save')}</Button>
               </div>
             </CardContent>
           </Card>

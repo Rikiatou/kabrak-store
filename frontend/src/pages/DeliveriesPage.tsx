@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatDate } from '@/lib/utils';
 import { Truck, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface Delivery {
   id: string; status: string; address: string; phone?: string;
@@ -36,23 +37,27 @@ export function DeliveriesPage() {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchDeliveries = useCallback(async () => {
     try { const { data } = await api.get('/deliveries'); setDeliveries(data.data); }
-    catch (err) { console.error(err); } finally { setLoading(false); }
+    catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); } finally { setLoading(false); }
   }, []);
 
   const fetchOrders = useCallback(async () => {
     try { const { data } = await api.get('/orders'); setOrders(data.data); }
-    catch (err) { console.error(err); }
+    catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
   }, []);
 
   useEffect(() => { fetchDeliveries(); fetchOrders(); }, [fetchDeliveries, fetchOrders]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await api.post('/deliveries', { orderId: selectedOrder, address, phone, deliveryDate, notes });
+      toast.success(language === 'fr' ? 'Livraison créée' : 'Delivery created');
       setShowForm(false);
       setSelectedOrder('');
       setAddress('');
@@ -62,17 +67,18 @@ export function DeliveriesPage() {
       fetchDeliveries();
     } catch (err) {
       console.error(err);
-      alert(language === 'fr' ? 'Erreur lors de la création' : 'Error creating delivery');
-    }
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la création' : 'Error creating delivery'));
+    } finally { setSubmitting(false); }
   };
 
   const updateStatus = async (id: string, status: string) => {
     try {
       await api.patch(`/deliveries/${id}/status`, { status });
+      toast.success(language === 'fr' ? 'Statut mis à jour' : 'Status updated');
       fetchDeliveries();
     } catch (err) {
       console.error(err);
-      alert(language === 'fr' ? 'Erreur lors de la mise à jour' : 'Error updating status');
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la mise à jour' : 'Error updating status'));
     }
   };
 
@@ -129,7 +135,7 @@ export function DeliveriesPage() {
                 <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
               <div className="flex gap-2">
-                <Button type="submit">{language === 'fr' ? 'Créer' : 'Create'}</Button>
+                <Button type="submit" disabled={submitting}>{submitting ? '...' : (language === 'fr' ? 'Créer' : 'Create')}</Button>
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>{language === 'fr' ? 'Annuler' : 'Cancel'}</Button>
               </div>
             </form>

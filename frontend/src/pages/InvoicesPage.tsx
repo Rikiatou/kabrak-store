@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { FileText, MessageCircle, Eye, Download, Plus, Trash2, X, DollarSign } from 'lucide-react';
 import { InvoiceModal } from '@/components/InvoiceModal';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import { useDebounce } from '@/hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 interface InvoiceItem {
   product: { name: string };
@@ -76,6 +78,8 @@ export function InvoicesPage() {
   const [dateTo, setDateTo] = useState('');
   const [filterPayment, setFilterPayment] = useState('');
 
+  const debouncedSearch = useDebounce(searchQuery);
+
   // Standalone invoice form state
   const [clients, setClients] = useState<Client[]>([]);
   const [formClientId, setFormClientId] = useState('');
@@ -84,10 +88,10 @@ export function InvoicesPage() {
   const [lineItems, setLineItems] = useState<LineItem[]>([{ description: '', quantity: 1, unitPrice: 0 }]);
   const [submitting, setSubmitting] = useState(false);
 
-  const loadInvoices = async () => {
+  const loadInvoices = useCallback(async () => {
     try {
       const params: Record<string, string | number> = { limit: 50 };
-      if (searchQuery) params.search = searchQuery;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (dateFrom) params.from = dateFrom;
       if (dateTo) params.to = dateTo;
       if (filterPayment) params.status = filterPayment;
@@ -95,11 +99,11 @@ export function InvoicesPage() {
       if (mountedRef.current) setInvoices(data.data);
     } catch (err) {
       console.error(err);
-      if (mountedRef.current) setError(true);
+      if (mountedRef.current) { setError(true); toast.error(getApiErrorMessage(err)); }
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  };
+  }, [debouncedSearch, dateFrom, dateTo, filterPayment]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -107,10 +111,10 @@ export function InvoicesPage() {
     if (isService) {
       api.get('/clients?limit=200').then(({ data }) => {
         if (mountedRef.current) setClients(data.data || []);
-      }).catch(() => {});
+      }).catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); });
     }
     return () => { mountedRef.current = false; };
-  }, [isService, searchQuery, dateFrom, dateTo, filterPayment]);
+  }, [isService, loadInvoices]);
 
   const handleExport = async () => {
     try {
@@ -123,6 +127,7 @@ export function InvoicesPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de l\'export' : 'Export failed'));
     }
   };
 
@@ -168,6 +173,7 @@ export function InvoicesPage() {
       loadInvoices();
     } catch (err) {
       console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la création' : 'Failed to create invoice'));
     } finally {
       setSubmitting(false);
     }
@@ -194,6 +200,7 @@ export function InvoicesPage() {
       loadInvoices();
     } catch (err) {
       console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors du paiement' : 'Failed to add payment'));
     } finally {
       setAddingPayment(false);
     }

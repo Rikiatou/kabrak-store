@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { Plus, Tags, Pencil, Trash2, X } from 'lucide-react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface Category {
   id: string; name: string; icon?: string;
@@ -29,27 +30,35 @@ export function CategoriesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', icon: '' });
+  const [submitting, setSubmitting] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     try { const { data } = await api.get('/categories'); setCategories(data.data); }
-    catch (err) { console.error(err); } finally { setLoading(false); }
+    catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (editingId) await api.put(`/categories/${editingId}`, form);
       else await api.post('/categories', form);
+      toast.success(t('common.saved') || 'Saved');
       setShowForm(false); setEditingId(null); setForm({ name: '', icon: '' });
       fetchCategories();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
+    } finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm') + '?')) return;
-    try { await api.delete(`/categories/${id}`); fetchCategories(); } catch (err) { console.error(err); }
+    try { await api.delete(`/categories/${id}`); toast.success(t('common.deleted') || 'Deleted'); fetchCategories(); }
+    catch (err) { console.error(err); toast.error(getApiErrorMessage(err, t('common.error') || 'Error')); }
   };
 
   return (
@@ -89,7 +98,7 @@ export function CategoriesPage() {
                 </div>
                 <div className="flex gap-3">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">{t('common.cancel')}</Button>
-                  <Button type="submit" className="flex-1">{t('common.save')}</Button>
+                  <Button type="submit" className="flex-1" disabled={submitting}>{submitting ? '...' : t('common.save')}</Button>
                 </div>
               </form>
             </CardContent>

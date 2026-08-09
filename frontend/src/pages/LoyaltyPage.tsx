@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
 import { Heart, Star, Gift, Plus, X, Trophy, Users } from 'lucide-react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface LoyaltyConfig {
   tiers: Array<{ name: string; minPoints: number; discountPercent: number }>;
@@ -59,6 +60,7 @@ export function LoyaltyPage() {
     discountPercent: 0,
     discountAmount: 0,
   });
+  const [submitting, setSubmitting] = useState(false);
 
   const refreshRef = useRef<() => void>(() => {});
 
@@ -78,6 +80,7 @@ export function LoyaltyPage() {
         }
       } catch (err) {
         console.error(err);
+        toast.error(getApiErrorMessage(err));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -89,14 +92,18 @@ export function LoyaltyPage() {
 
   const handleCreateReward = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await api.post('/loyalty/rewards', rewardForm);
+      toast.success(t('common.saved') || 'Saved');
       setShowRewardForm(false);
       setRewardForm({ name: '', pointsRequired: 100, discountPercent: 0, discountAmount: 0 });
       refreshRef.current();
     } catch (err) {
       console.error(err);
-    }
+      toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
+    } finally { setSubmitting(false); }
   };
 
   const topClients = [...clients]
@@ -273,9 +280,7 @@ export function LoyaltyPage() {
                   <Button type="button" variant="outline" onClick={() => setShowRewardForm(false)} className="flex-1">
                     {t('common.cancel')}
                   </Button>
-                  <Button type="submit" className="flex-1">
-                    {t('common.save')}
-                  </Button>
+                  <Button type="submit" className="flex-1" disabled={submitting}>{submitting ? '...' : t('common.save')}</Button>
                 </div>
               </form>
             </CardContent>

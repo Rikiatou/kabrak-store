@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ShoppingCart, Phone, Mail, Search, Share2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 interface Tenant {
   id: string;
@@ -87,7 +88,7 @@ export function StorefrontPage() {
   const cleanPhone = (tenant.phone || '').replace(/[^\d]/g, '');
 
   const openWhatsApp = (message: string) => {
-    if (!cleanPhone) { alert('Numéro WhatsApp non configuré'); return; }
+    if (!cleanPhone) { toast.error('Numéro WhatsApp non configuré'); return; }
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -98,7 +99,7 @@ export function StorefrontPage() {
       catch { /* cancelled */ }
     } else {
       navigator.clipboard.writeText(url);
-      alert('Lien copié !');
+      toast.success('Lien copié !');
     }
   };
 

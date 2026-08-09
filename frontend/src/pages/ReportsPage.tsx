@@ -5,7 +5,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
 import { BarChart3, TrendingUp, DollarSign, ShoppingCart, Download, FolderKanban, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface SalesReport {
   totalRevenue: number;
@@ -47,17 +48,17 @@ export function ReportsPage() {
           const totalPending = projects.reduce((s: number, p: { amountRemaining: number }) => s + (p.amountRemaining || 0), 0);
           setServiceReport({ totalProjects: projects.length, activeProjects: active.length, totalRevenue, totalPending, projects });
         })
-        .catch(console.error)
+        .catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); })
         .finally(() => setLoading(false));
     } else {
-      const params: any = { groupBy: period };
+      const params: Record<string, string> = { groupBy: period };
       if (customRange) {
         params.from = customRange.from;
         params.to = customRange.to;
       }
       api.get('/reports/sales', { params })
         .then((res) => setReport(res.data.data))
-        .catch(console.error)
+        .catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); })
         .finally(() => setLoading(false));
     }
   };
@@ -77,6 +78,7 @@ export function ReportsPage() {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de l\'export' : 'Export failed'));
     }
   };
 

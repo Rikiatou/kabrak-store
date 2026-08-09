@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { RefreshCw, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 interface RecurringBilling {
   id: string;
@@ -46,7 +47,7 @@ export function RecurringPage() {
     try {
       const { data } = await api.get('/recurring');
       setItems(data.data);
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
     setLoading(false);
   }, []);
 
@@ -54,10 +55,10 @@ export function RecurringPage() {
 
   useEffect(() => {
     if (showForm) {
-      api.get('/clients?limit=200').then(({ data }) => setClients(data.data || [])).catch(() => {});
+      api.get('/clients?limit=200').then(({ data }) => setClients(data.data || [])).catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); });
       api.get('/products?isService=true&limit=200').then(({ data }) => {
         setServices((data.data || []).filter((p: { isService: boolean }) => p.isService));
-      }).catch(() => {});
+      }).catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); });
     }
   }, [showForm]);
 
@@ -65,19 +66,27 @@ export function RecurringPage() {
     try {
       await api.put(`/recurring/${item.id}`, { isActive: !item.isActive });
       fetchItems();
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la mise à jour' : 'Update failed'));
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm(language === 'fr' ? 'Supprimer ?' : 'Delete?')) return;
     try {
       await api.delete(`/recurring/${id}`);
+      toast.success(language === 'fr' ? 'Supprimé' : 'Deleted');
       fetchItems();
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
+    }
   };
 
   const handleCreate = async () => {
     if (!form.clientId || !form.amount || !form.nextBillingDate) return;
+    if (saving) return;
     setSaving(true);
     try {
       await api.post('/recurring', {
@@ -87,11 +96,16 @@ export function RecurringPage() {
         frequency: form.frequency,
         nextBillingDate: form.nextBillingDate,
       });
+      toast.success(language === 'fr' ? 'Facturation créée' : 'Recurring billing created');
       setShowForm(false);
       setForm({ clientId: '', productId: '', amount: 0, frequency: 'monthly', nextBillingDate: '' });
       fetchItems();
-    } catch { /* ignore */ }
-    setSaving(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la création' : 'Failed to create'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleServiceSelect = (productId: string) => {

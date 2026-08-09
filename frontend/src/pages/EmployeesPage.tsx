@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { Plus, UserCog, Pencil, Trash2, X, KeyRound } from 'lucide-react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface Employee {
   id: string; email: string; firstName: string; lastName: string;
@@ -22,47 +23,54 @@ export function EmployeesPage() {
   const [resetId, setResetId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleResetPassword = async () => {
     if (!resetId || !newPassword) return;
     if (newPassword.length < 6) {
-      alert('Mot de passe trop court (min 6 caractères)');
+      toast.error('Mot de passe trop court (min 6 caractères)');
       return;
     }
     setResetLoading(true);
     try {
       await api.put(`/employees/${resetId}/password`, { password: newPassword });
       setResetId(null); setNewPassword('');
-      alert('Mot de passe mis à jour');
-    } catch (err: any) {
+      toast.success('Mot de passe mis à jour');
+    } catch (err) {
       console.error(err);
-      const msg = err?.response?.data?.message || 'Erreur lors de la mise à jour du mot de passe';
-      alert(msg);
+      toast.error(getApiErrorMessage(err, 'Erreur lors de la mise à jour du mot de passe'));
     }
     finally { setResetLoading(false); }
   };
 
   const fetchEmployees = useCallback(async () => {
     try { const { data } = await api.get('/employees'); setEmployees(data.data); }
-    catch (err) { console.error(err); } finally { setLoading(false); }
+    catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (editingId) await api.put(`/employees/${editingId}`, form);
       else await api.post('/employees', form);
+      toast.success(t('common.saved') || 'Saved');
       setShowForm(false); setEditingId(null);
       setForm({ email: '', password: '', firstName: '', lastName: '', phone: '', role: 'EMPLOYEE' });
       fetchEmployees();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
+    } finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm') + '?')) return;
-    try { await api.delete(`/employees/${id}`); fetchEmployees(); } catch (err) { console.error(err); }
+    try { await api.delete(`/employees/${id}`); toast.success(t('common.deleted') || 'Deleted'); fetchEmployees(); }
+    catch (err) { console.error(err); toast.error(getApiErrorMessage(err, t('common.error') || 'Error')); }
   };
 
   const roleLabel = (role: string) => t(`employees.${role.toLowerCase()}`);
@@ -109,7 +117,7 @@ export function EmployeesPage() {
                 </div>
                 <div className="flex gap-3">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">{t('common.cancel')}</Button>
-                  <Button type="submit" className="flex-1">{t('common.save')}</Button>
+                  <Button type="submit" className="flex-1" disabled={submitting}>{submitting ? '...' : t('common.save')}</Button>
                 </div>
               </form>
             </CardContent>

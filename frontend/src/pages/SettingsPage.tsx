@@ -1,9 +1,10 @@
 import { useState, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, Globe, CreditCard } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 
 export function SettingsPage() {
@@ -54,10 +55,9 @@ export function SettingsPage() {
         text: language === 'fr' ? 'Profil mis à jour avec succès' : 'Profile updated successfully',
       });
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
       setProfileMsg({
         type: 'error',
-        text: axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur de mise à jour' : 'Update failed'),
+        text: getApiErrorMessage(err, language === 'fr' ? 'Erreur de mise à jour' : 'Update failed'),
       });
     } finally {
       setProfileLoading(false);
@@ -76,10 +76,9 @@ export function SettingsPage() {
         text: language === 'fr' ? 'Boutique mise à jour avec succès' : 'Store updated successfully',
       });
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
       setStoreMsg({
         type: 'error',
-        text: axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur de mise à jour' : 'Update failed'),
+        text: getApiErrorMessage(err, language === 'fr' ? 'Erreur de mise à jour' : 'Update failed'),
       });
     } finally {
       setStoreLoading(false);
@@ -118,10 +117,9 @@ export function SettingsPage() {
       });
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
       setPassMsg({
         type: 'error',
-        text: axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur' : 'Error'),
+        text: getApiErrorMessage(err, language === 'fr' ? 'Erreur' : 'Error'),
       });
     } finally {
       setPassLoading(false);
@@ -303,7 +301,7 @@ export function SettingsPage() {
                   type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(`${window.location.origin}/storefront/${tenant.slug}`);
-                    alert(language === 'fr' ? 'Lien copié !' : 'Link copied!');
+                    toast.success(language === 'fr' ? 'Lien copié !' : 'Link copied!');
                   }}
                   className="px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
                 >
@@ -368,7 +366,7 @@ export function SettingsPage() {
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                if (file.size > 3 * 1024 * 1024) { alert(language === 'fr' ? 'Image trop grande (max 3MB)' : 'Image too large (max 3MB)'); return; }
+                if (file.size > 3 * 1024 * 1024) { toast.error(language === 'fr' ? 'Image trop grande (max 3MB)' : 'Image too large (max 3MB)'); return; }
                 const reader = new FileReader();
                 reader.onloadend = () => setStore({ ...store, logo: reader.result as string });
                 reader.readAsDataURL(file);

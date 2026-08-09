@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
 import { Plus, Search, Users, Pencil, Trash2, X, Download, ShoppingCart } from 'lucide-react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import { useDebounce } from '@/hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 interface Client {
   id: string; name: string; phone?: string; email?: string;
@@ -28,6 +30,9 @@ export function ClientsPage() {
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [clientOrders, setClientOrders] = useState<Order[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const debouncedSearch = useDebounce(search);
 
   const openHistory = async (client: Client) => {
     setHistoryClient(client);
@@ -41,22 +46,28 @@ export function ClientsPage() {
 
   const fetchClients = useCallback(async () => {
     try {
-      const { data } = await api.get('/clients', { params: { search, limit: 100 } });
+      const { data } = await api.get('/clients', { params: { search: debouncedSearch, limit: 100 } });
       setClients(data.data);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
     finally { setLoading(false); }
-  }, [search]);
+  }, [debouncedSearch]);
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (editingId) await api.put(`/clients/${editingId}`, form);
       else await api.post('/clients', form);
+      toast.success(t('common.saved') || 'Saved');
       setShowForm(false); setEditingId(null); setForm({ name: '', phone: '', email: '', address: '' });
       fetchClients();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
+    } finally { setSubmitting(false); }
   };
 
   const handleEdit = (client: Client) => {
@@ -68,11 +79,11 @@ export function ClientsPage() {
     if (!confirm(t('common.confirm') + '?')) return;
     try {
       await api.delete(`/clients/${id}`);
+      toast.success(t('common.deleted') || 'Deleted');
       fetchClients();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      const msg = err?.response?.data?.message || t('common.error');
-      alert(msg);
+      toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
     }
   };
 
@@ -90,7 +101,7 @@ export function ClientsPage() {
               a.download = `clients-${Date.now()}.csv`;
               a.click();
               URL.revokeObjectURL(url);
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error(err); toast.error(getApiErrorMessage(err, t('common.error') || 'Error')); }
           }}>
             <Download className="w-4 h-4 mr-1" /> CSV
           </Button>
@@ -124,7 +135,7 @@ export function ClientsPage() {
                   <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
                 <div className="flex gap-3">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">{t('common.cancel')}</Button>
-                  <Button type="submit" className="flex-1">{t('common.save')}</Button>
+                  <Button type="submit" className="flex-1" disabled={submitting}>{submitting ? '...' : t('common.save')}</Button>
                 </div>
               </form>
             </CardContent>

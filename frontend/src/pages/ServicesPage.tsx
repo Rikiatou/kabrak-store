@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { Package, Plus, Edit2, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface ServicePackage {
   id: string;
@@ -31,7 +32,9 @@ export function ServicesPage() {
     try {
       const { data } = await api.get('/products?isService=true');
       setServices((data.data || []).filter((p: { isService: boolean }) => p.isService));
-    } catch {
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err));
       setServices([]);
     }
     setLoading(false);
@@ -40,6 +43,7 @@ export function ServicesPage() {
   useEffect(() => { fetchServices(); }, [fetchServices]);
 
   const handleSave = async () => {
+    if (saving) return;
     setSaving(true);
     try {
       const payload = {
@@ -58,9 +62,14 @@ export function ServicesPage() {
       setShowForm(false);
       setEditId(null);
       setForm({ name: '', description: '', sellingPrice: 0, duration: '', recurringType: 'one_time', recurringPrice: 0, businessType: 'OTHER' });
+      toast.success(language === 'fr' ? 'Service enregistré' : 'Service saved');
       fetchServices();
-    } catch { /* ignore */ }
-    setSaving(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de l\'enregistrement' : 'Failed to save service'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEdit = (s: ServicePackage) => {
@@ -81,8 +90,12 @@ export function ServicesPage() {
     if (!confirm(language === 'fr' ? 'Supprimer ce service ?' : 'Delete this service?')) return;
     try {
       await api.delete(`/products/${id}`);
+      toast.success(language === 'fr' ? 'Service supprimé' : 'Service deleted');
       fetchServices();
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
+    }
   };
 
 

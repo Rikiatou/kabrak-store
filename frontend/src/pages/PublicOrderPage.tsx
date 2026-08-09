@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, Clock, XCircle, Share2, MessageCircle } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
+import { getApiErrorMessage } from '@/lib/api';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 interface OrderItem {
   id: string;
@@ -43,7 +45,7 @@ interface Order {
   tenant: Tenant;
 }
 
-const statusConfig: Record<string, { label: string; icon: any; color: string }> = {
+const statusConfig: Record<string, { label: string; icon: typeof Clock; color: string }> = {
   PENDING: { label: 'En attente', icon: Clock, color: 'bg-amber-100 text-amber-700' },
   CONFIRMED: { label: 'Confirmée', icon: CheckCircle, color: 'bg-blue-100 text-blue-700' },
   PREPARING: { label: 'En préparation', icon: Clock, color: 'bg-blue-100 text-blue-700' },
@@ -71,7 +73,7 @@ export function PublicOrderPage() {
     const client = axios.create({ baseURL: base });
     client.get(`/api/public/order/${token}`)
       .then(res => { if (res.data.success) setOrder(res.data.data); })
-      .catch(console.error)
+      .catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); })
       .finally(() => setLoading(false));
   }, [token]);
 

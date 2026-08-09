@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { FolderKanban, Plus, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 interface Milestone {
   id: string;
@@ -39,7 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function ProjectsPage() {
   const { t, language } = useTranslation();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -50,7 +51,7 @@ export function ProjectsPage() {
     try {
       const { data } = await api.get('/projects');
       setProjects(data.data);
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
     setLoading(false);
   }, []);
 
@@ -58,20 +59,26 @@ export function ProjectsPage() {
     try {
       const { data } = await api.get('/clients', { params: { limit: 200 } });
       setClients(data.data || []);
-    } catch { /* ignore */ }
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
   }, []);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
 
   const handleCreate = async () => {
+    if (saving) return;
     setSaving(true);
     try {
       await api.post('/projects', form);
+      toast.success(language === 'fr' ? 'Projet créé' : 'Project created');
       setShowForm(false);
       setForm({ name: '', description: '', totalBudget: 0, deadline: '', clientId: '' });
       fetchProjects();
-    } catch { /* ignore */ }
-    setSaving(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la création' : 'Failed to create project'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openForm = async () => {

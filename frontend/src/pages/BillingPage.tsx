@@ -7,7 +7,8 @@ import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Check, Crown, Copy, Clock, ArrowLeft, Shield, Zap, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 const PLANS = [
   { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & stock', 'Commandes', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats', 'Logo & couleur facture'], quote: false },
@@ -80,7 +81,7 @@ export function BillingPage() {
         setSub(res.data.data);
         setSelectedPlan(res.data.data.plan);
       })
-      .catch(console.error)
+      .catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -98,6 +99,7 @@ export function BillingPage() {
       }
     } catch (err) {
       console.error(err);
+      toast.error(getApiErrorMessage(err, t('billing.paymentFailed') || 'Payment initiation failed'));
     } finally {
       setInitiating(false);
     }

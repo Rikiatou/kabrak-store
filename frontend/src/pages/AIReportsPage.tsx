@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Sparkles, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, RefreshCw, DollarSign, BarChart3, Lightbulb, Target, Calendar } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
+import toast from 'react-hot-toast';
 
 interface ReportData {
   report: string;
@@ -100,12 +101,10 @@ export function AIReportsPage() {
       } else {
         setError(res.data.message || 'Erreur inconnue');
       }
-    } catch (err: any) {
-      const data = err?.response?.data;
-      const msg = data?.details
-        ? `${data.message} — ${data.details}`
-        : data?.message || err?.message || 'Erreur de connexion';
+    } catch (err) {
+      const msg = getApiErrorMessage(err, fr ? 'Erreur de connexion' : 'Connection error');
       setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

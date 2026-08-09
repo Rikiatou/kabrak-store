@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2, Phone, Mail, MapPin, X, Search, Pencil } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import { useDebounce } from '@/hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 interface Supplier {
   id: string;
@@ -24,16 +26,21 @@ export function SuppliersPage() {
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
 
-  const fetchSuppliers = async () => {
-    const res = await api.get('/suppliers', { params: { limit: 100, search } });
-    setSuppliers(res.data.data || []);
-  };
+  const debouncedSearch = useDebounce(search);
 
-  useEffect(() => { fetchSuppliers(); }, [search]);
+  const fetchSuppliers = useCallback(async () => {
+    try {
+      const res = await api.get('/suppliers', { params: { limit: 100, search: debouncedSearch } });
+      setSuppliers(res.data.data || []);
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
+  }, [debouncedSearch]);
+
+  useEffect(() => { fetchSuppliers(); }, [fetchSuppliers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name) return;
+    if (saving) return;
     setSaving(true);
     try {
       if (editingId) {
@@ -47,9 +54,10 @@ export function SuppliersPage() {
       fetchSuppliers();
     } catch (err) {
       console.error(err);
-      alert(language === 'fr' ? 'Erreur lors de l\'enregistrement' : 'Error saving supplier');
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de l\'enregistrement' : 'Error saving supplier'));
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleEdit = (sup: Supplier) => {
@@ -60,8 +68,14 @@ export function SuppliersPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm(language === 'fr' ? 'Supprimer ce fournisseur?' : 'Delete this supplier?')) return;
-    await api.delete(`/suppliers/${id}`);
-    fetchSuppliers();
+    try {
+      await api.delete(`/suppliers/${id}`);
+      toast.success(language === 'fr' ? 'Fournisseur supprimé' : 'Supplier deleted');
+      fetchSuppliers();
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
+    }
   };
 
   return (

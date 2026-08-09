@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { Store, Plus, X, MapPin, Phone, Pencil, Trash2, Users, Package } from 'lucide-react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface StoreData {
   id: string;
@@ -24,6 +25,7 @@ export function StoresPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', address: '', phone: '' });
+  const [submitting, setSubmitting] = useState(false);
 
   const refreshRef = useRef<() => void>(() => {});
 
@@ -35,6 +37,7 @@ export function StoresPage() {
         if (mounted) setStores(data.data);
       } catch (err) {
         console.error(err);
+        toast.error(getApiErrorMessage(err));
       } finally {
         if (mounted) setLoading(false);
       }
@@ -46,19 +49,23 @@ export function StoresPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (editingId) {
         await api.put(`/stores/${editingId}`, form);
       } else {
         await api.post('/stores', form);
       }
+      toast.success(t('common.saved') || 'Saved');
       setShowForm(false);
       setEditingId(null);
       setForm({ name: '', address: '', phone: '' });
       refreshRef.current();
     } catch (err) {
       console.error(err);
-    }
+      toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
+    } finally { setSubmitting(false); }
   };
 
   const handleEdit = (store: StoreData) => {
@@ -71,9 +78,11 @@ export function StoresPage() {
     if (!confirm(t('common.confirm') + '?')) return;
     try {
       await api.delete(`/stores/${id}`);
+      toast.success(t('common.deleted') || 'Deleted');
       refreshRef.current();
     } catch (err) {
       console.error(err);
+      toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
     }
   };
 
@@ -195,9 +204,7 @@ export function StoresPage() {
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">
                     {t('common.cancel')}
                   </Button>
-                  <Button type="submit" className="flex-1">
-                    {t('common.save')}
-                  </Button>
+                  <Button type="submit" className="flex-1" disabled={submitting}>{submitting ? '...' : t('common.save')}</Button>
                 </div>
               </form>
             </CardContent>

@@ -1,5 +1,18 @@
 import axios from 'axios';
 
+/**
+ * Extracts a human-readable message from an axios/unknown error.
+ * Prefers the backend's `response.data.message`, then axios message, then a fallback.
+ */
+export function getApiErrorMessage(err: unknown, fallback = 'Une erreur est survenue'): string {
+  if (axios.isAxiosError(err)) {
+    const data = err.response?.data as { message?: string; error?: string } | undefined;
+    return data?.message || data?.error || err.message || fallback;
+  }
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: { 'Content-Type': 'application/json' },

@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2, TrendingDown, TrendingUp, Minus as MinusIcon, X, ShoppingCart, Users, Home, Truck, Megaphone, Zap, Wrench, HelpCircle, Pencil } from 'lucide-react';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface Expense {
   id: string;
@@ -57,7 +58,7 @@ export function ExpensesPage() {
   const [periodFilter, setPeriodFilter] = useState<'month' | 'week' | 'all'>('month');
   const [catFilter, setCatFilter] = useState<string>('ALL');
 
-  const getDateRange = () => {
+  const getDateRange = useCallback(() => {
     const now = new Date();
     if (periodFilter === 'week') {
       const from = new Date(now); from.setDate(now.getDate() - 7);
@@ -68,32 +69,35 @@ export function ExpensesPage() {
       return { from: from.toISOString(), to: now.toISOString() };
     }
     return {};
-  };
+  }, [periodFilter]);
 
   const fetchAll = useCallback(async () => {
     const range = getDateRange();
-    const [expRes, sumRes, supRes] = await Promise.all([
-      api.get('/expenses', { params: { limit: 50, ...range } }),
-      api.get('/expenses/summary', { params: range }),
-      api.get('/suppliers', { params: { limit: 100 } }),
-    ]);
-    setExpenses(expRes.data.data || []);
-    setSummary(sumRes.data.data);
-    setSuppliers(supRes.data.data || []);
-  }, [periodFilter]);
+    try {
+      const [expRes, sumRes, supRes] = await Promise.all([
+        api.get('/expenses', { params: { limit: 50, ...range } }),
+        api.get('/expenses/summary', { params: range }),
+        api.get('/suppliers', { params: { limit: 100 } }),
+      ]);
+      setExpenses(expRes.data.data || []);
+      setSummary(sumRes.data.data);
+      setSuppliers(supRes.data.data || []);
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
+  }, [getDateRange]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const openNew = () => { setEditId(null); setForm(emptyForm); setShowForm(true); };
   const openEdit = (exp: Expense) => {
     setEditId(exp.id);
-    setForm({ amount: String(exp.amount), category: exp.category, description: exp.description || '', reference: (exp as any).reference || '', date: exp.date.slice(0, 10), paymentMethod: exp.paymentMethod, supplierId: exp.supplier?.id || '' });
+    setForm({ amount: String(exp.amount), category: exp.category, description: exp.description || '', reference: (exp as unknown as Record<string, unknown>).reference as string || '', date: exp.date.slice(0, 10), paymentMethod: exp.paymentMethod, supplierId: exp.supplier?.id || '' });
     setShowForm(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.amount) return;
+    if (saving) return;
     setSaving(true);
     try {
       if (editId) {
@@ -102,15 +106,26 @@ export function ExpensesPage() {
         await api.post('/expenses', { ...form, supplierId: form.supplierId || undefined });
       }
       setShowForm(false); setEditId(null); setForm(emptyForm);
+      toast.success(language === 'fr' ? 'Dépense enregistrée' : 'Expense saved');
       fetchAll();
-    } catch { /* ignore */ }
-    setSaving(false);
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de l\'enregistrement' : 'Failed to save'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm(language === 'fr' ? 'Supprimer cette dépense?' : 'Delete this expense?')) return;
-    await api.delete(`/expenses/${id}`);
-    fetchAll();
+    try {
+      await api.delete(`/expenses/${id}`);
+      toast.success(language === 'fr' ? 'Dépense supprimée' : 'Expense deleted');
+      fetchAll();
+    } catch (err) {
+      console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
+    }
   };
 
   const profitColor = (summary?.profit ?? 0) >= 0 ? 'text-green-600' : 'text-red-500';
@@ -300,7 +315,7 @@ export function ExpensesPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Référence' : 'Reference'} (optionnel)</label>
-                  <input type="text" value={(form as any).reference || ''} onChange={e => setForm({ ...form, reference: e.target.value } as any)}
+                  <input type="text" value={form.reference || ''} onChange={e => setForm({ ...form, reference: e.target.value })}
                     placeholder={language === 'fr' ? 'Ex: FAC-2024-001' : 'Ex: INV-2024-001'}
                     className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400" />
                 </div>

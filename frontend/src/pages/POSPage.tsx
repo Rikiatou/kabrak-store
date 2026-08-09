@@ -8,7 +8,9 @@ import { formatCurrency } from '@/lib/utils';
 import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, X } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { InvoiceModal } from '@/components/InvoiceModal';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import { useDebounce } from '@/hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 interface Product {
   id: string;
@@ -55,19 +57,22 @@ export function POSPage() {
 
   const canScan = tenant?.plan === 'SHOP' || tenant?.plan === 'BUSINESS';
 
+  const debouncedSearch = useDebounce(search);
+  const debouncedClientSearch = useDebounce(clientSearch);
+
   const fetchProducts = useCallback(async () => {
     try {
-      const { data } = await api.get('/products', { params: { search, limit: 50, isService: false } });
+      const { data } = await api.get('/products', { params: { search: debouncedSearch, limit: 50, isService: false } });
       setProducts(data.data || []);
-    } catch (err) { console.error(err); }
-  }, [search]);
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
+  }, [debouncedSearch]);
 
   const fetchClients = useCallback(async () => {
     try {
-      const { data } = await api.get('/clients', { params: { search: clientSearch, limit: 20 } });
+      const { data } = await api.get('/clients', { params: { search: debouncedClientSearch, limit: 20 } });
       setClients(data.data || []);
-    } catch (err) { console.error(err); }
-  }, [clientSearch]);
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
+  }, [debouncedClientSearch]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
   useEffect(() => { if (showClientPicker) fetchClients(); }, [showClientPicker, fetchClients]);
@@ -125,12 +130,13 @@ export function POSPage() {
         setShowScanner(false);
       }
     } catch {
-      alert(language === 'fr' ? 'Produit non trouvé' : 'Product not found');
+      toast.error(language === 'fr' ? 'Produit non trouvé' : 'Product not found');
     }
   };
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+    if (processing) return;
     setProcessing(true);
     try {
       const res = await api.post('/orders', {
@@ -159,10 +165,10 @@ export function POSPage() {
       fetchProducts();
     } catch (err) {
       console.error(err);
-      const errorMsg = err instanceof Error && err.message ? err.message : (language === 'fr' ? 'Erreur lors de la vente' : 'Error during sale');
-      alert(errorMsg);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la vente' : 'Error during sale'));
+    } finally {
+      setProcessing(false);
     }
-    setProcessing(false);
   };
 
   const resetData = () => {

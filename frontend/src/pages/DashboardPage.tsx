@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown, Globe, Copy } from 'lucide-react';
 import api from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface DashboardData {
   todayOrders: number;
@@ -43,7 +44,7 @@ interface StatCard {
   key: string;
   labelKey?: string;
   label?: { fr: string; en: string };
-  icon: any;
+  icon: typeof ShoppingCart;
   gradient: string;
   isCurrency?: boolean;
   isProfit?: boolean;
@@ -70,11 +71,11 @@ const categoryDashboards: Record<string, {
   statCards: Array<{
     key: string;
     label: { fr: string; en: string };
-    icon: any;
+    icon: typeof ShoppingCart;
     gradient: string;
     isCurrency?: boolean;
   }>;
-  primaryAction: { label: { fr: string; en: string }; icon: any; href: string; gradient: string };
+  primaryAction: { label: { fr: string; en: string }; icon: typeof ShoppingCart; href: string; gradient: string };
 }> = {
   // Boutique & Commerce
   CLOTHING: {
@@ -203,27 +204,30 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'today' | 'week' | 'month' | 'year'>('today');
 
-  const getPeriodDates = () => {
+  const getPeriodDates = useCallback(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     switch (period) {
       case 'today':
         return { from: today.toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
-      case 'week':
+      case 'week': {
         const weekStart = new Date(today);
         weekStart.setDate(today.getDate() - today.getDay());
         return { from: weekStart.toISOString(), to: new Date(weekStart.getTime() + 7 * 86400000).toISOString() };
-      case 'month':
+      }
+      case 'month': {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         return { from: monthStart.toISOString(), to: new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString() };
-      case 'year':
+      }
+      case 'year': {
         const yearStart = new Date(now.getFullYear(), 0, 1);
         return { from: yearStart.toISOString(), to: new Date(now.getFullYear() + 1, 0, 1).toISOString() };
+      }
       default:
         return { from: today.toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     const dates = getPeriodDates();
@@ -248,9 +252,9 @@ export function DashboardPage() {
         api.get('/reports/dashboard', { params: dates }).catch(() => ({ data: { data: null } })),
       ]).then(([dashRes]) => {
         setProductData(dashRes.data.data);
-      }).catch(console.error).finally(() => setLoading(false));
+      }).catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); }).finally(() => setLoading(false));
     }
-  }, [businessMode, period]);
+  }, [businessMode, getPeriodDates]);
 
   if (loading) {
     return (
@@ -292,7 +296,7 @@ export function DashboardPage() {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(`${window.location.origin}/storefront/${tenant.slug}`);
-                    alert(language === 'fr' ? 'Lien copié !' : 'Link copied!');
+                    toast.success(language === 'fr' ? 'Lien copié !' : 'Link copied!');
                   }}
                   className="flex items-center gap-1.5 border border-gray-200 dark:border-gray-600 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs text-gray-600 dark:text-gray-300 font-medium transition-colors"
                 >
