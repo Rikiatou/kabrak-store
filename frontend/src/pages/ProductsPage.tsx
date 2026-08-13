@@ -312,7 +312,7 @@ export function ProductsPage() {
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-1 block">{t('products.lowStock')}</label>
-                      <Input type="number" min={0} placeholder="5" value={form.lowStockAlert === null || form.lowStockAlert === undefined ? '' : form.lowStockAlert} onChange={(e) => setForm({ ...form, lowStockAlert: e.target.value === '' ? 5 : Math.max(0, +e.target.value) })} />
+                      <Input type="number" min={0} placeholder="5" value={form.lowStockAlert === null || form.lowStockAlert === undefined ? '' : form.lowStockAlert} onChange={(e) => setForm({ ...form, lowStockAlert: e.target.value === '' ? 0 : Math.max(0, +e.target.value) })} />
                     </div>
                   </div>
                 )}
