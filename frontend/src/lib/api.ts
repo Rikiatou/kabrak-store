@@ -29,15 +29,27 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    const path = window.location.pathname.toLowerCase();
+
+    if (status === 401) {
       // Avoid redirect loop when already on login/register/forgot/reset pages
-      const path = window.location.pathname.toLowerCase();
       const isAuthPage = path.includes('/login') || path.includes('/register') || path.includes('/forgot') || path.includes('/reset');
       if (!isAuthPage) {
         localStorage.removeItem('kabrak_token');
         window.location.href = '/login';
       }
     }
+
+    // Subscription/trial expired — send the user to billing to renew
+    const code = (error.response?.data as { code?: string } | undefined)?.code;
+    const SUB_CODES = ['NO_SUBSCRIPTION', 'TRIAL_EXPIRED', 'SUBSCRIPTION_EXPIRED', 'SUBSCRIPTION_CANCELLED'];
+    if (status === 403 && code && SUB_CODES.includes(code)) {
+      if (!path.includes('/billing')) {
+        window.location.href = '/billing';
+      }
+    }
+
     return Promise.reject(error);
   }
 );
