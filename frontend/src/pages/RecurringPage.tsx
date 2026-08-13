@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/utils';
 import { RefreshCw, Plus, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface RecurringBilling {
   id: string;
@@ -72,16 +73,18 @@ export function RecurringPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(language === 'fr' ? 'Supprimer ?' : 'Delete?')) return;
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/recurring/${id}`);
+      await api.delete(`/recurring/${deleteTarget}`);
       toast.success(language === 'fr' ? 'Supprimé' : 'Deleted');
       fetchItems();
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
-    }
+    } finally { setDeleteTarget(null); }
   };
 
   const handleCreate = async () => {
@@ -294,6 +297,12 @@ export function RecurringPage() {
           </table>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={language === 'fr' ? 'Supprimer cette facturation ?' : 'Delete this billing?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

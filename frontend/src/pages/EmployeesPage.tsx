@@ -7,6 +7,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { Plus, UserCog, Pencil, Trash2, X, KeyRound } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Employee {
   id: string; email: string; firstName: string; lastName: string;
@@ -67,14 +68,13 @@ export function EmployeesPage() {
     } finally { setSubmitting(false); }
   };
 
-  const [deleting, setDeleting] = useState(false);
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('common.confirm') + '?')) return;
-    if (deleting) return;
-    setDeleting(true);
-    try { await api.delete(`/employees/${id}`); toast.success(t('common.deleted') || 'Deleted'); fetchEmployees(); }
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try { await api.delete(`/employees/${deleteTarget}`); toast.success(t('common.deleted') || 'Deleted'); fetchEmployees(); }
     catch (err) { console.error(err); toast.error(getApiErrorMessage(err, t('common.error') || 'Error')); }
-    finally { setDeleting(false); }
+    finally { setDeleteTarget(null); }
   };
 
   const roleLabel = (role: string) => t(`employees.${role.toLowerCase()}`);
@@ -190,6 +190,12 @@ export function EmployeesPage() {
           </Card>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={language === 'fr' ? 'Supprimer cet employé ?' : 'Delete this employee?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

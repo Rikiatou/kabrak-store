@@ -4,6 +4,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Supplier {
   id: string;
@@ -66,19 +67,18 @@ export function SuppliersPage() {
     setShowForm(true);
   };
 
-  const [deleting, setDeleting] = useState(false);
-  const handleDelete = async (id: string) => {
-    if (!confirm(language === 'fr' ? 'Supprimer ce fournisseur?' : 'Delete this supplier?')) return;
-    if (deleting) return;
-    setDeleting(true);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/suppliers/${id}`);
+      await api.delete(`/suppliers/${deleteTarget}`);
       toast.success(language === 'fr' ? 'Fournisseur supprimé' : 'Supplier deleted');
       fetchSuppliers();
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
-    } finally { setDeleting(false); }
+    } finally { setDeleteTarget(null); }
   };
 
   return (
@@ -210,6 +210,12 @@ export function SuppliersPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={language === 'fr' ? 'Supprimer ce fournisseur ?' : 'Delete this supplier?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

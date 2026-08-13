@@ -7,6 +7,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { Store, Plus, X, MapPin, Phone, Pencil, Trash2, Users, Package } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface StoreData {
   id: string;
@@ -74,19 +75,18 @@ export function StoresPage() {
     setShowForm(true);
   };
 
-  const [deleting, setDeleting] = useState(false);
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('common.confirm') + '?')) return;
-    if (deleting) return;
-    setDeleting(true);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/stores/${id}`);
+      await api.delete(`/stores/${deleteTarget}`);
       toast.success(t('common.deleted') || 'Deleted');
       refreshRef.current();
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
-    } finally { setDeleting(false); }
+    } finally { setDeleteTarget(null); }
   };
 
   if (loading) {
@@ -214,6 +214,12 @@ export function StoresPage() {
           </Card>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={language === 'fr' ? 'Supprimer cette boutique ?' : 'Delete this store?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

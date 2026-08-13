@@ -4,6 +4,7 @@ import api, { getApiErrorMessage } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { Package, Plus, Edit2, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface ServicePackage {
   id: string;
@@ -86,16 +87,18 @@ export function ServicesPage() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(language === 'fr' ? 'Supprimer ce service ?' : 'Delete this service?')) return;
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/products/${id}`);
+      await api.delete(`/products/${deleteTarget}`);
       toast.success(language === 'fr' ? 'Service supprimé' : 'Service deleted');
       fetchServices();
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
-    }
+    } finally { setDeleteTarget(null); }
   };
 
 
@@ -219,6 +222,12 @@ export function ServicesPage() {
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={language === 'fr' ? 'Supprimer ce service ?' : 'Delete this service?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

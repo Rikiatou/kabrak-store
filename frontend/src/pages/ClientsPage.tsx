@@ -8,6 +8,7 @@ import { Plus, Search, Users, Pencil, Trash2, X, Download, ShoppingCart } from '
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Client {
   id: string; name: string; phone?: string; email?: string;
@@ -20,7 +21,8 @@ interface Order {
 }
 
 export function ClientsPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const fr = language === 'fr';
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -75,16 +77,18 @@ export function ClientsPage() {
     setEditingId(client.id); setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('common.confirm') + '?')) return;
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/clients/${id}`);
+      await api.delete(`/clients/${deleteTarget}`);
       toast.success(t('common.deleted') || 'Deleted');
       fetchClients();
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
-    }
+    } finally { setDeleteTarget(null); }
   };
 
   return (
@@ -224,6 +228,12 @@ export function ClientsPage() {
           </Card>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={fr ? 'Supprimer ce client ?' : 'Delete this client?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

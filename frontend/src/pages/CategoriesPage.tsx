@@ -6,6 +6,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { Plus, Tags, Pencil, Trash2, X } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Category {
   id: string; name: string; icon?: string;
@@ -24,7 +25,8 @@ const EMOJI_OPTIONS = [
 ];
 
 export function CategoriesPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const fr = language === 'fr';
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -55,14 +57,13 @@ export function CategoriesPage() {
     } finally { setSubmitting(false); }
   };
 
-  const [deleting, setDeleting] = useState(false);
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('common.confirm') + '?')) return;
-    if (deleting) return;
-    setDeleting(true);
-    try { await api.delete(`/categories/${id}`); toast.success(t('common.deleted') || 'Deleted'); fetchCategories(); }
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try { await api.delete(`/categories/${deleteTarget}`); toast.success(t('common.deleted') || 'Deleted'); fetchCategories(); }
     catch (err) { console.error(err); toast.error(getApiErrorMessage(err, t('common.error') || 'Error')); }
-    finally { setDeleting(false); }
+    finally { setDeleteTarget(null); }
   };
 
   return (
@@ -136,6 +137,12 @@ export function CategoriesPage() {
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={fr ? 'Supprimer cette catégorie ?' : 'Delete this category?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import api, { getApiErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Product {
   id: string;
@@ -176,16 +177,18 @@ export function ProductsPage() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('common.confirm') + '?')) return;
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/products/${id}`);
+      await api.delete(`/products/${deleteTarget}`);
       toast.success(language === 'fr' ? 'Produit supprimé' : 'Product deleted');
       fetchProducts();
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
-    }
+    } finally { setDeleteTarget(null); }
   };
 
   const handleBarcodeScan = async (code: string) => {
@@ -447,6 +450,12 @@ export function ProductsPage() {
           onClose={() => setShowScanner(false)}
         />
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={language === 'fr' ? 'Supprimer ce produit ?' : 'Delete this product?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

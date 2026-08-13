@@ -4,6 +4,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
 import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 interface Expense {
   id: string;
@@ -130,19 +131,18 @@ export function ExpensesPage() {
     }
   };
 
-  const [deleting, setDeleting] = useState(false);
-  const handleDelete = async (id: string) => {
-    if (!confirm(language === 'fr' ? 'Supprimer cette dépense?' : 'Delete this expense?')) return;
-    if (deleting) return;
-    setDeleting(true);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const handleDelete = (id: string) => setDeleteTarget(id);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await api.delete(`/expenses/${id}`);
+      await api.delete(`/expenses/${deleteTarget}`);
       toast.success(language === 'fr' ? 'Dépense supprimée' : 'Expense deleted');
       fetchAll();
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
-    } finally { setDeleting(false); }
+    } finally { setDeleteTarget(null); }
   };
 
   const profitColor = (summary?.profit ?? 0) >= 0 ? 'text-green-600' : 'text-red-500';
@@ -373,6 +373,12 @@ export function ExpensesPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        message={language === 'fr' ? 'Supprimer cette dépense ?' : 'Delete this expense?'}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
