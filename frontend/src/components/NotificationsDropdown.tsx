@@ -15,7 +15,8 @@ interface Notification {
 }
 
 export function NotificationsDropdown() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const fr = language === 'fr';
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -68,11 +69,11 @@ export function NotificationsDropdown() {
   const timeAgo = (date: string) => {
     const diff = now - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'À l\'instant';
+    if (mins < 1) return fr ? 'À l\'instant' : 'Just now';
     if (mins < 60) return `${mins}min`;
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}h`;
-    return `${Math.floor(hours / 24)}j`;
+    return `${Math.floor(hours / 24)}${fr ? 'j' : 'd'}`;
   };
 
   return (
@@ -96,13 +97,13 @@ export function NotificationsDropdown() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-              <span className="text-sm font-bold">Notifications</span>
+              <span className="text-sm font-bold">{fr ? 'Notifications' : 'Notifications'}</span>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
                   className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                 >
-                  <Check className="w-3 h-3" /> Tout lire
+                  <Check className="w-3 h-3" /> {fr ? 'Tout lire' : 'Mark all read'}
                 </button>
               )}
             </div>

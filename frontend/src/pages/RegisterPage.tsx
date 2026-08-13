@@ -48,21 +48,21 @@ const SERVICE_CATEGORIES = [
 ];
 
 const PLANS = [
-  { value: 'STORE', price: '4 900', features: ['Produits & stock', 'Commandes', 'Clients', 'Facturation WhatsApp'] },
-  { value: 'SHOP', price: '9 900', features: ['Tout STORE +', 'Caisse POS', 'Livraisons', 'Employés & Rapports'] },
-  { value: 'BUSINESS', price: '14 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
+  { value: 'STORE', price: '4 900', features: { fr: ['Produits & stock', 'Commandes', 'Clients', 'Facturation WhatsApp'], en: ['Products & stock', 'Orders', 'Clients', 'WhatsApp invoicing'] } },
+  { value: 'SHOP', price: '9 900', features: { fr: ['Tout STORE +', 'Caisse POS', 'Livraisons', 'Employés & Rapports'], en: ['All STORE +', 'POS register', 'Deliveries', 'Employees & Reports'] } },
+  { value: 'BUSINESS', price: '14 900', features: { fr: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'], en: ['All SHOP +', 'Multi-stores', 'AI Reports', 'Priority support'] } },
 ];
 
 const ORDER_BASED_PLANS = [
-  { value: 'STORE', price: '4 900', features: ['Commandes WhatsApp', 'Clients', 'Facturation', 'Dashboard'] },
-  { value: 'SHOP', price: '9 900', features: ['Tout STORE +', 'Livraisons', 'Employés', 'Rapports'] },
-  { value: 'BUSINESS', price: '14 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
+  { value: 'STORE', price: '4 900', features: { fr: ['Commandes WhatsApp', 'Clients', 'Facturation', 'Dashboard'], en: ['WhatsApp orders', 'Clients', 'Invoicing', 'Dashboard'] } },
+  { value: 'SHOP', price: '9 900', features: { fr: ['Tout STORE +', 'Livraisons', 'Employés', 'Rapports'], en: ['All STORE +', 'Deliveries', 'Employees', 'Reports'] } },
+  { value: 'BUSINESS', price: '14 900', features: { fr: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'], en: ['All SHOP +', 'Multi-stores', 'AI Reports', 'Priority support'] } },
 ];
 
 const SERVICE_PLANS = [
-  { value: 'STORE', price: '4 900', features: ['Projets & milestones', 'Clients', 'Facturation WhatsApp', 'Dépenses'] },
-  { value: 'SHOP', price: '9 900', features: ['Tout STORE +', 'Facturation récurrente', 'Employés', 'Rapports'] },
-  { value: 'BUSINESS', price: '14 900', features: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'] },
+  { value: 'STORE', price: '4 900', features: { fr: ['Projets & milestones', 'Clients', 'Facturation WhatsApp', 'Dépenses'], en: ['Projects & milestones', 'Clients', 'WhatsApp invoicing', 'Expenses'] } },
+  { value: 'SHOP', price: '9 900', features: { fr: ['Tout STORE +', 'Facturation récurrente', 'Employés', 'Rapports'], en: ['All STORE +', 'Recurring billing', 'Employees', 'Reports'] } },
+  { value: 'BUSINESS', price: '14 900', features: { fr: ['Tout SHOP +', 'Multi-boutiques', 'Rapports IA', 'Support prioritaire'], en: ['All SHOP +', 'Multi-stores', 'AI Reports', 'Priority support'] } },
 ];
 
 const ORDER_BASED_CATS = new Set([
@@ -150,7 +150,7 @@ export function RegisterPage() {
       navigate('/guide');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Erreur lors de l'inscription");
+      setError(axiosErr.response?.data?.message || (language === 'fr' ? "Erreur lors de l'inscription" : 'Registration error'));
     } finally {
       setLoading(false);
     }
@@ -501,7 +501,7 @@ export function RegisterPage() {
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-2">
-                          {plan.features.map((f) => (
+                          {plan.features[language as 'fr' | 'en'].map((f) => (
                             <span key={f} className="text-[11px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
                               {f}
                             </span>

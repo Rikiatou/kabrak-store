@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { NotificationsDropdown } from '@/components/NotificationsDropdown';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -29,6 +30,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la sauvegarde' : 'Backup error'));
     }
   };
 
@@ -65,7 +67,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
         </Button>
 
-        <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9" onClick={handleBackup} title="Backup">
+        <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9" onClick={handleBackup} title={language === 'fr' ? 'Sauvegarde' : 'Backup'}>
           <Download className="w-4 h-4" />
         </Button>
 

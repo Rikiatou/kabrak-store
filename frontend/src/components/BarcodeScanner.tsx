@@ -10,7 +10,8 @@ interface Props {
 }
 
 export function BarcodeScanner({ onScan, onClose }: Props) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const fr = language === 'fr';
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mode, setMode] = useState<'camera' | 'manual'>('manual');
@@ -38,7 +39,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
           videoRef.current.play();
         }
       } catch {
-        setCameraError('Impossible d\'accéder à la caméra');
+        setCameraError(fr ? 'Impossible d\'accéder à la caméra' : 'Cannot access camera');
         setMode('manual');
       }
     };
@@ -73,7 +74,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <span className="text-sm font-bold">Scanner code-barres</span>
+          <span className="text-sm font-bold">{fr ? 'Scanner code-barres' : 'Barcode scanner'}</span>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
           </Button>
@@ -90,7 +91,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}
             >
-              <Keyboard className="w-4 h-4" /> Manuel
+              <Keyboard className="w-4 h-4" /> {fr ? 'Manuel' : 'Manual'}
             </button>
             <button
               onClick={() => setMode('camera')}
@@ -100,7 +101,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
               }`}
             >
-              <Camera className="w-4 h-4" /> Caméra
+              <Camera className="w-4 h-4" /> {fr ? 'Caméra' : 'Camera'}
             </button>
           </div>
 
@@ -120,7 +121,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
                     <div className="w-48 h-32 border-2 border-kabrak-500 rounded-lg opacity-50" />
                   </div>
                   <p className="text-xs text-center text-muted-foreground mt-2">
-                    Placez le code-barres dans le cadre
+                    {fr ? 'Placez le code-barres dans le cadre' : 'Place the barcode in the frame'}
                   </p>
                 </>
               )}
@@ -128,11 +129,11 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
           ) : (
             <form onSubmit={handleManualSubmit} className="space-y-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">Code-barres / SKU</label>
+                <label className="text-sm font-medium mb-1 block">{fr ? 'Code-barres / SKU' : 'Barcode / SKU'}</label>
                 <Input
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
-                  placeholder="Entrez ou scannez le code..."
+                  placeholder={fr ? 'Entrez ou scannez le code...' : 'Enter or scan the code...'}
                   autoFocus
                 />
               </div>

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useTranslation } from '@/i18n/useTranslation';
 
 interface ImageUploadProps {
   value?: string;
@@ -8,6 +10,8 @@ interface ImageUploadProps {
 }
 
 export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
+  const { language } = useTranslation();
+  const fr = language === 'fr';
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -17,7 +21,7 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
     // File size validation (max 10MB)
     const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      alert('Fichier trop volumineux. Taille maximum: 10MB.');
+      toast.error(fr ? 'Fichier trop volumineux. Taille maximum: 10MB.' : 'File too large. Maximum size: 10MB.');
       e.target.value = '';
       return;
     }
@@ -25,7 +29,7 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
     // File type validation
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      alert('Type de fichier invalide. Formats acceptés: JPEG, PNG, WebP, GIF.');
+      toast.error(fr ? 'Type de fichier invalide. Formats acceptés: JPEG, PNG, WebP, GIF.' : 'Invalid file type. Accepted formats: JPEG, PNG, WebP, GIF.');
       e.target.value = '';
       return;
     }
@@ -36,7 +40,7 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
       const uploadPreset = (import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '').trim();
 
       if (!cloudName || !uploadPreset) {
-        alert('Configuration Cloudinary manquante. Vérifiez les variables VITE_CLOUDINARY_CLOUD_NAME et VITE_CLOUDINARY_UPLOAD_PRESET.');
+        toast.error(fr ? 'Configuration Cloudinary manquante. Vérifiez les variables d\'environnement.' : 'Missing Cloudinary configuration. Check environment variables.');
         return;
       }
 
@@ -52,7 +56,7 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
 
       if (!res.ok) {
         console.error('Cloudinary error:', data);
-        alert(`Erreur upload: ${data.error?.message || 'Erreur inconnue'}`);
+        toast.error(fr ? `Erreur upload: ${data.error?.message || 'Erreur inconnue'}` : `Upload error: ${data.error?.message || 'Unknown error'}`);
         return;
       }
 
@@ -61,7 +65,7 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
       }
     } catch (err) {
       console.error('Upload error:', err);
-      alert('Erreur upload image');
+      toast.error(fr ? 'Erreur upload image' : 'Image upload error');
     } finally {
       setUploading(false);
     }
@@ -92,7 +96,7 @@ export function ImageUpload({ value, onChange, label }: ImageUploadProps) {
           ) : (
             <>
               <ImageIcon className="w-8 h-8 text-muted-foreground mb-2" />
-              <p className="text-xs text-muted-foreground">Cliquez pour uploader</p>
+              <p className="text-xs text-muted-foreground">{fr ? 'Cliquez pour uploader' : 'Click to upload'}</p>
             </>
           )}
           <input

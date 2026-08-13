@@ -25,7 +25,7 @@ export function LoginPage() {
       navigate('/dashboard');
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || 'Erreur de connexion');
+      setError(axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur de connexion' : 'Login error'));
     } finally {
       setLoading(false);
     }

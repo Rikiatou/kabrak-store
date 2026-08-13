@@ -59,7 +59,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, onClose }: SidebarProps) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const fr = language === 'fr';
   const location = useLocation();
   const tenant = useAuthStore((s) => s.tenant);
   const businessMode = tenant?.businessMode || 'PRODUCT';
@@ -155,7 +156,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
                 : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
           )}>
-            {businessMode === 'SERVICE' ? 'Services & Clients' : isOrderBased ? 'Sur commande' : 'Vente & Commandes'}
+            {businessMode === 'SERVICE' ? (fr ? 'Services & Clients' : 'Services & Clients') : isOrderBased ? (fr ? 'Sur commande' : 'Order-based') : (fr ? 'Vente & Commandes' : 'Sales & Orders')}
           </div>
         </div>
       </aside>
