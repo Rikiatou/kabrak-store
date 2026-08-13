@@ -46,10 +46,10 @@ export function POSPage() {
   const [showClientPicker, setShowClientPicker] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ORANGE_MONEY' | 'MTN_MOMO' | 'BANK_TRANSFER'>('CASH');
-  const [amountPaid, setAmountPaid] = useState(0);
+  const [amountPaid, setAmountPaid] = useState<number | ''>('');
   const [processing, setProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
   const [showInvoice, setShowInvoice] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<unknown>(null);
@@ -118,9 +118,9 @@ export function POSPage() {
   };
 
   const subtotal = cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
-  const total = Math.max(0, subtotal - discount);
-  const change = amountPaid > total ? amountPaid - total : 0;
-  const paymentStatus = amountPaid >= total ? 'PAID' : amountPaid > 0 ? 'PARTIAL' : 'PENDING';
+  const total = Math.max(0, subtotal - (Number(discount) || 0));
+  const change = (Number(amountPaid) || 0) > total ? (Number(amountPaid) || 0) - total : 0;
+  const paymentStatus = (Number(amountPaid) || 0) >= total ? 'PAID' : (Number(amountPaid) || 0) > 0 ? 'PARTIAL' : 'PENDING';
 
   const handleBarcodeScan = async (code: string) => {
     try {
@@ -142,8 +142,8 @@ export function POSPage() {
       const res = await api.post('/orders', {
         clientId: selectedClient?.id || null,
         paymentMethod,
-        amountPaid: Math.min(amountPaid, total),
-        discount,
+        amountPaid: Math.min(Number(amountPaid) || 0, total),
+        discount: Number(discount) || 0,
         notes: notes || undefined,
         items: cart.map(item => ({
           productId: item.product.id,
@@ -174,8 +174,8 @@ export function POSPage() {
   const resetData = () => {
     setCart([]);
     setSelectedClient(null);
-    setAmountPaid(0);
-    setDiscount(0);
+    setAmountPaid('');
+    setDiscount('');
     setNotes('');
     setPaymentMethod('CASH');
   };
@@ -388,7 +388,7 @@ export function POSPage() {
               <span className="text-sm text-gray-500">{language === 'fr' ? 'Remise' : 'Discount'}</span>
               <Input
                 type="number" min={0} className="h-7 w-24 text-xs ml-auto text-right"
-                value={discount === null || discount === undefined ? '' : discount} onChange={(e) => setDiscount(+e.target.value)}
+                value={discount ?? ''} onChange={(e) => setDiscount(e.target.value === '' ? '' : Math.max(0, +e.target.value))}
               />
             </div>
             <div className="flex justify-between font-bold text-lg text-gray-900 dark:text-white pt-1 border-t border-gray-100 dark:border-gray-700">
@@ -425,8 +425,8 @@ export function POSPage() {
             <div className="flex gap-2">
               <Input
                 type="number" min={0}
-                value={amountPaid === null || amountPaid === undefined ? '' : amountPaid}
-                onChange={(e) => setAmountPaid(+e.target.value)}
+                value={amountPaid ?? ''}
+                onChange={(e) => setAmountPaid(e.target.value === '' ? '' : Math.max(0, +e.target.value))}
                 className="flex-1"
               />
               <Button variant="outline" size="sm" onClick={() => setAmountPaid(total)}>

@@ -308,7 +308,7 @@ export function OrdersPage() {
                       <span className="font-medium">{item.name}</span>
                       <div className="flex items-center gap-2">
                         <Input type="number" className="w-16 h-8 text-center" min={1} value={item.quantity}
-                          onChange={(e) => setCart((prev) => prev.map((ci, ci2) => ci2 === i ? { ...ci, quantity: +e.target.value } : ci))} />
+                          onChange={(e) => setCart((prev) => prev.map((ci, ci2) => ci2 === i ? { ...ci, quantity: Math.max(1, +e.target.value || 1) } : ci))} />
                         <span className="w-24 text-right">{formatCurrency(item.unitPrice * item.quantity)}</span>
                         <Button variant="ghost" size="sm" onClick={() => setCart((prev) => prev.filter((_, ci2) => ci2 !== i))}>
                           <X className="w-3 h-3" />
@@ -398,13 +398,13 @@ export function OrdersPage() {
                         onChange={(e) => updateOrderStatus(order.id, e.target.value)}
                         className="text-xs border rounded px-1 py-1 bg-background"
                       >
-                        <option value="PENDING">En attente</option>
-                        <option value="CONFIRMED">Confirmée</option>
-                        <option value="PREPARING">En préparation</option>
-                        <option value="READY">Prête</option>
-                        <option value="DELIVERING">En livraison</option>
-                        <option value="DELIVERED">Livrée</option>
-                        <option value="CANCELLED">Annulée</option>
+                        <option value="PENDING">{t('status.pending')}</option>
+                        <option value="CONFIRMED">{t('status.confirmed')}</option>
+                        <option value="PREPARING">{t('status.preparing')}</option>
+                        <option value="READY">{t('status.ready')}</option>
+                        <option value="DELIVERING">{t('status.delivering')}</option>
+                        <option value="DELIVERED">{t('status.delivered')}</option>
+                        <option value="CANCELLED">{t('status.cancelled')}</option>
                       </select>
                       {order.client?.phone && (
                         <Button variant="outline" size="sm" className="h-8 w-8 p-0" onClick={() => handleWhatsApp(order)} title={t('orders.sendWhatsApp')}>

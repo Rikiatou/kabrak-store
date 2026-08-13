@@ -38,6 +38,7 @@ export function DeliveriesPage() {
   const [notes, setNotes] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const fetchDeliveries = useCallback(async () => {
     try { const { data } = await api.get('/deliveries'); setDeliveries(data.data); }
@@ -72,6 +73,8 @@ export function DeliveriesPage() {
   };
 
   const updateStatus = async (id: string, status: string) => {
+    if (updatingId) return;
+    setUpdatingId(id);
     try {
       await api.patch(`/deliveries/${id}/status`, { status });
       toast.success(language === 'fr' ? 'Statut mis à jour' : 'Status updated');
@@ -79,6 +82,8 @@ export function DeliveriesPage() {
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la mise à jour' : 'Error updating status'));
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -163,21 +168,21 @@ export function DeliveriesPage() {
                 <div className="flex gap-2 mt-3">
                   {del.status === 'PENDING' && (
                     <>
-                      <Button size="sm" variant="outline" onClick={() => updateStatus(del.id, 'PICKED_UP')}>
+                      <Button size="sm" variant="outline" disabled={updatingId === del.id} onClick={() => updateStatus(del.id, 'PICKED_UP')}>
                         <Clock className="w-3 h-3 mr-1" /> {language === 'fr' ? 'Ramassé' : 'Picked up'}
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => updateStatus(del.id, 'IN_TRANSIT')}>
+                      <Button size="sm" variant="outline" disabled={updatingId === del.id} onClick={() => updateStatus(del.id, 'IN_TRANSIT')}>
                         <Truck className="w-3 h-3 mr-1" /> {language === 'fr' ? 'En transit' : 'In transit'}
                       </Button>
                     </>
                   )}
                   {del.status === 'IN_TRANSIT' && (
-                    <Button size="sm" onClick={() => updateStatus(del.id, 'DELIVERED')}>
+                    <Button size="sm" disabled={updatingId === del.id} onClick={() => updateStatus(del.id, 'DELIVERED')}>
                       <CheckCircle className="w-3 h-3 mr-1" /> {language === 'fr' ? 'Livré' : 'Delivered'}
                     </Button>
                   )}
                   {del.status !== 'DELIVERED' && del.status !== 'FAILED' && (
-                    <Button size="sm" variant="destructive" onClick={() => updateStatus(del.id, 'FAILED')}>
+                    <Button size="sm" variant="destructive" disabled={updatingId === del.id} onClick={() => updateStatus(del.id, 'FAILED')}>
                       <XCircle className="w-3 h-3 mr-1" /> {language === 'fr' ? 'Échec' : 'Failed'}
                     </Button>
                   )}
