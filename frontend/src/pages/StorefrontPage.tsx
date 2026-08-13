@@ -5,6 +5,8 @@ import { formatCurrency } from '@/lib/utils';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+const fr = typeof navigator !== 'undefined' && (navigator.language || '').startsWith('fr');
+
 interface Tenant {
   id: string;
   name: string;
@@ -49,6 +51,7 @@ export function StorefrontPage() {
         if (prodRes.data.success) setProducts(prodRes.data.data);
       } catch (e) {
         console.error('Storefront fetch error:', e);
+      toast.error(fr ? 'Erreur lors du chargement de la boutique' : 'Error loading store');
       } finally {
         setLoading(false);
       }
@@ -76,8 +79,8 @@ export function StorefrontPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Boutique introuvable</h1>
-          <p className="text-gray-500">Cette boutique n'existe pas ou a été supprimée.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{fr ? 'Boutique introuvable' : 'Store not found'}</h1>
+          <p className="text-gray-500">{fr ? 'Cette boutique n\'existe pas ou a été supprimée.' : 'This store does not exist or has been deleted.'}</p>
         </div>
       </div>
     );
@@ -88,18 +91,18 @@ export function StorefrontPage() {
   const cleanPhone = (tenant.phone || '').replace(/[^\d]/g, '');
 
   const openWhatsApp = (message: string) => {
-    if (!cleanPhone) { toast.error('Numéro WhatsApp non configuré'); return; }
+    if (!cleanPhone) { toast.error(fr ? 'Numéro WhatsApp non configuré' : 'WhatsApp number not configured'); return; }
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleShare = async () => {
     const url = window.location.href;
     if (navigator.share) {
-      try { await navigator.share({ title: tenant.name, text: `Découvrez ${tenant.name}`, url }); }
+      try { await navigator.share({ title: tenant.name, text: fr ? `Découvrez ${tenant.name}` : `Check out ${tenant.name}`, url }); }
       catch { /* cancelled */ }
     } else {
       navigator.clipboard.writeText(url);
-      toast.success('Lien copié !');
+      toast.success(fr ? 'Lien copié !' : 'Link copied!');
     }
   };
 
@@ -120,7 +123,7 @@ export function StorefrontPage() {
             <span className="font-bold text-gray-900 truncate">{tenant.name}</span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={handleShare} className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title="Partager">
+            <button onClick={handleShare} className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title={fr ? 'Partager' : 'Share'}>
               <Share2 className="w-4 h-4 text-gray-500" />
             </button>
             {tenant.phone && (
@@ -130,7 +133,7 @@ export function StorefrontPage() {
                 style={{ background: accentColor }}
               >
                 <ShoppingCart className="w-4 h-4" />
-                Commander
+                {fr ? 'Commander' : 'Order'}
               </button>
             )}
           </div>
@@ -144,7 +147,7 @@ export function StorefrontPage() {
             <img src={tenant.logo} alt={tenant.name} className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-lg" />
           )}
           <h1 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2">{tenant.name}</h1>
-          <p className="text-gray-500 text-sm sm:text-base mb-5">Découvrez nos produits · Commandez facilement</p>
+          <p className="text-gray-500 text-sm sm:text-base mb-5">{fr ? 'Découvrez nos produits · Commandez facilement' : 'Discover our products · Order easily'}</p>
           {tenant.phone && (
             <button
               onClick={() => openWhatsApp(`Bonjour ${tenant.name} ! Je voudrais passer une commande.`)}
@@ -152,7 +155,7 @@ export function StorefrontPage() {
               style={{ background: accentColor, boxShadow: `0 8px 24px ${accentColor}40` }}
             >
               <ShoppingCart className="w-4 h-4" />
-              Commander sur WhatsApp
+              {fr ? 'Commander sur WhatsApp' : 'Order on WhatsApp'}
             </button>
           )}
         </div>
@@ -164,7 +167,7 @@ export function StorefrontPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Rechercher un produit..."
+            placeholder={fr ? 'Rechercher un produit...' : 'Search products...'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:border-transparent text-sm"
@@ -177,7 +180,7 @@ export function StorefrontPage() {
               onClick={() => setSelectedCategory('')}
               className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all"
               style={!selectedCategory ? { background: accentColor, color: 'white' } : { background: 'white', color: '#6b7280', border: '1px solid #e5e7eb' }}
-            >Tous</button>
+            >{fr ? 'Tous' : 'All'}</button>
             {categories.map(cat => (
               <button
                 key={cat}
@@ -195,7 +198,7 @@ export function StorefrontPage() {
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <ShoppingCart className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm">Aucun produit trouvé</p>
+            <p className="text-sm">{fr ? 'Aucun produit trouvé' : 'No products found'}</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
@@ -209,7 +212,7 @@ export function StorefrontPage() {
                   )}
                   {product.totalStock <= 0 && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                      <span className="text-white font-bold text-xs px-2 py-1 rounded-full bg-black/40">Rupture</span>
+                      <span className="text-white font-bold text-xs px-2 py-1 rounded-full bg-black/40">{fr ? 'Rupture' : 'Out of stock'}</span>
                     </div>
                   )}
                 </div>
@@ -223,7 +226,7 @@ export function StorefrontPage() {
                         className="text-[10px] sm:text-xs px-2 py-1 rounded-lg font-bold text-white whitespace-nowrap flex-shrink-0"
                         style={{ background: accentColor }}
                       >
-                        Commander
+                        {fr ? 'Commander' : 'Order'}
                       </button>
                     )}
                   </div>

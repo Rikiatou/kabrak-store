@@ -6,6 +6,8 @@ import { getApiErrorMessage } from '@/lib/api';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+const fr = typeof navigator !== 'undefined' && (navigator.language || '').startsWith('fr');
+
 interface OrderItem {
   id: string;
   quantity: number;
@@ -46,20 +48,20 @@ interface Order {
 }
 
 const statusConfig: Record<string, { label: string; icon: typeof Clock; color: string }> = {
-  PENDING: { label: 'En attente', icon: Clock, color: 'bg-amber-100 text-amber-700' },
-  CONFIRMED: { label: 'Confirmée', icon: CheckCircle, color: 'bg-blue-100 text-blue-700' },
-  PREPARING: { label: 'En préparation', icon: Clock, color: 'bg-blue-100 text-blue-700' },
-  READY: { label: 'Prête', icon: CheckCircle, color: 'bg-green-100 text-green-700' },
-  DELIVERING: { label: 'En livraison', icon: Clock, color: 'bg-blue-100 text-blue-700' },
-  DELIVERED: { label: 'Livrée', icon: CheckCircle, color: 'bg-green-100 text-green-700' },
-  CANCELLED: { label: 'Annulée', icon: XCircle, color: 'bg-red-100 text-red-700' },
+  PENDING: { label: fr ? 'En attente' : 'Pending', icon: Clock, color: 'bg-amber-100 text-amber-700' },
+  CONFIRMED: { label: fr ? 'Confirmée' : 'Confirmed', icon: CheckCircle, color: 'bg-blue-100 text-blue-700' },
+  PREPARING: { label: fr ? 'En préparation' : 'Preparing', icon: Clock, color: 'bg-blue-100 text-blue-700' },
+  READY: { label: fr ? 'Prête' : 'Ready', icon: CheckCircle, color: 'bg-green-100 text-green-700' },
+  DELIVERING: { label: fr ? 'En livraison' : 'Out for delivery', icon: Clock, color: 'bg-blue-100 text-blue-700' },
+  DELIVERED: { label: fr ? 'Livrée' : 'Delivered', icon: CheckCircle, color: 'bg-green-100 text-green-700' },
+  CANCELLED: { label: fr ? 'Annulée' : 'Cancelled', icon: XCircle, color: 'bg-red-100 text-red-700' },
 };
 
 const paymentStatusConfig: Record<string, { label: string; color: string }> = {
-  PENDING: { label: 'En attente', color: 'text-amber-600' },
-  PARTIAL: { label: 'Partiel', color: 'text-amber-600' },
-  PAID: { label: 'Payée', color: 'text-green-600' },
-  REFUNDED: { label: 'Remboursée', color: 'text-red-600' },
+  PENDING: { label: fr ? 'En attente' : 'Pending', color: 'text-amber-600' },
+  PARTIAL: { label: fr ? 'Partiel' : 'Partial', color: 'text-amber-600' },
+  PAID: { label: fr ? 'Payée' : 'Paid', color: 'text-green-600' },
+  REFUNDED: { label: fr ? 'Remboursée' : 'Refunded', color: 'text-red-600' },
 };
 
 export function PublicOrderPage() {
@@ -89,8 +91,8 @@ export function PublicOrderPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Commande introuvable</h1>
-          <p className="text-gray-500">Cette commande n'existe pas ou a été supprimée.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">{fr ? 'Commande introuvable' : 'Order not found'}</h1>
+          <p className="text-gray-500">{fr ? 'Cette commande n\'existe pas ou a été supprimée.' : 'This order does not exist or has been deleted.'}</p>
         </div>
       </div>
     );
@@ -101,7 +103,9 @@ export function PublicOrderPage() {
   const paymentInfo = paymentStatusConfig[order.paymentStatus] || paymentStatusConfig.PENDING;
   const StatusIcon = statusInfo.icon;
 
-  const whatsappMessage = `Bonjour ${order.tenant.name}, je confirme ma commande ${order.reference} d'un montant de ${formatCurrency(order.totalAmount)}. Merci !`;
+  const whatsappMessage = fr
+    ? `Bonjour ${order.tenant.name}, je confirme ma commande ${order.reference} d'un montant de ${formatCurrency(order.totalAmount)}. Merci !`
+    : `Hello ${order.tenant.name}, I confirm my order ${order.reference} for the amount of ${formatCurrency(order.totalAmount)}. Thank you!`;
   const whatsappLink = `https://wa.me/${order.tenant.phone?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
@@ -117,7 +121,7 @@ export function PublicOrderPage() {
                 )}
                 <div>
                   <h1 className="font-bold text-xl text-gray-900">{order.tenant.name}</h1>
-                  <p className="text-sm text-gray-500">Commande #{order.reference}</p>
+                  <p className="text-sm text-gray-500">{fr ? 'Commande' : 'Order'} #{order.reference}</p>
                 </div>
               </div>
               <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${statusInfo.color}`}>
@@ -133,7 +137,7 @@ export function PublicOrderPage() {
 
           {/* Items */}
           <div className="p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Articles</h2>
+            <h2 className="font-semibold text-gray-900 mb-4">{fr ? 'Articles' : 'Items'}</h2>
             <div className="space-y-4">
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center gap-4">
@@ -147,7 +151,7 @@ export function PublicOrderPage() {
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-900">{item.product.name}</h3>
                     {item.variant && <p className="text-sm text-gray-500">{item.variant}</p>}
-                    <p className="text-sm text-gray-500">Qté: {item.quantity} × {formatCurrency(item.unitPrice)}</p>
+                    <p className="text-sm text-gray-500">{fr ? 'Qté' : 'Qty'}: {item.quantity} × {formatCurrency(item.unitPrice)}</p>
                   </div>
                   <p className="font-semibold text-gray-900">{formatCurrency(item.totalPrice)}</p>
                 </div>
@@ -159,21 +163,21 @@ export function PublicOrderPage() {
           <div className="p-6 bg-gray-50 border-t border-gray-200">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Sous-total</span>
+                <span className="text-gray-600">{fr ? 'Sous-total' : 'Subtotal'}</span>
                 <span className="font-medium">{formatCurrency(order.totalAmount)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Payé</span>
+                <span className="text-gray-600">{fr ? 'Payé' : 'Paid'}</span>
                 <span className={`font-medium ${paymentInfo.color}`}>{formatCurrency(order.amountPaid)}</span>
               </div>
               {order.amountRemaining > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Reste à payer</span>
+                  <span className="text-gray-600">{fr ? 'Reste à payer' : 'Amount due'}</span>
                   <span className="font-semibold text-amber-600">{formatCurrency(order.amountRemaining)}</span>
                 </div>
               )}
               <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-300">
-                <span className="text-gray-900">Total</span>
+                <span className="text-gray-900">{fr ? 'Total' : 'Total'}</span>
                 <span style={{ color: accentColor }}>{formatCurrency(order.totalAmount)}</span>
               </div>
             </div>
@@ -183,7 +187,7 @@ export function PublicOrderPage() {
         {/* Client info */}
         {order.client && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="font-semibold text-gray-900 mb-3">Client</h2>
+            <h2 className="font-semibold text-gray-900 mb-3">{fr ? 'Client' : 'Client'}</h2>
             <p className="text-gray-900 font-medium">{order.client.name}</p>
             {order.client.phone && (
               <p className="text-sm text-gray-600">{order.client.phone}</p>
@@ -194,7 +198,7 @@ export function PublicOrderPage() {
         {/* Notes */}
         {order.notes && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 className="font-semibold text-gray-900 mb-2">Notes</h2>
+            <h2 className="font-semibold text-gray-900 mb-2">{fr ? 'Notes' : 'Notes'}</h2>
             <p className="text-gray-600 text-sm">{order.notes}</p>
           </div>
         )}
@@ -208,14 +212,14 @@ export function PublicOrderPage() {
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500 text-white font-bold hover:bg-green-600 transition-colors"
           >
             <MessageCircle className="w-5 h-5" />
-            Confirmer sur WhatsApp
+            {fr ? 'Confirmer sur WhatsApp' : 'Confirm on WhatsApp'}
           </a>
           <button
             onClick={() => navigator.share({ title: `Commande ${order.reference}`, url: window.location.href })}
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
           >
             <Share2 className="w-5 h-5" />
-            Partager
+            {fr ? 'Partager' : 'Share'}
           </button>
         </div>
 
