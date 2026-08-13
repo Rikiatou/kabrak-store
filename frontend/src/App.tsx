@@ -11,6 +11,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { InstallPrompt } from './components/InstallPrompt';
 import { Onboarding } from './components/Onboarding';
 import { useAuthStore } from './stores/authStore';
+import { useTranslation } from './i18n/useTranslation';
 
 // Lazy-load authenticated pages to reduce initial bundle size
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
@@ -38,21 +39,21 @@ const AIReportsPage = lazy(() => import('./pages/AIReportsPage').then(m => ({ de
 const GuidePage = lazy(() => import('./pages/GuidePage').then(m => ({ default: m.GuidePage })));
 
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen text-gray-500">Chargement…</div>
+  <div className="flex items-center justify-center min-h-screen text-gray-500">Loading…</div>
 );
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
   const isLoading = useAuthStore((s) => s.isLoading);
   if (!token) return <Navigate to="/login" replace />;
-  if (isLoading) return <div className="flex items-center justify-center min-h-screen text-gray-500">Chargement…</div>;
+  if (isLoading) return <div className="flex items-center justify-center min-h-screen text-gray-500">Loading…</div>;
   return <>{children}</>;
 }
 
 function ModeGuard({ mode, children }: { mode: 'PRODUCT' | 'SERVICE'; children: React.ReactNode }) {
   const tenant = useAuthStore((s) => s.tenant);
   const isLoading = useAuthStore((s) => s.isLoading);
-  if (isLoading) return <div className="flex items-center justify-center min-h-screen text-gray-500">Chargement…</div>;
+  if (isLoading) return <div className="flex items-center justify-center min-h-screen text-gray-500">Loading…</div>;
   const businessMode = tenant?.businessMode || 'PRODUCT';
   if (businessMode !== mode) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
@@ -72,23 +73,25 @@ function DeliveriesGuard({ children }: { children: React.ReactNode }) {
 
 function PlanGuard({ plans, children }: { plans: string[]; children: React.ReactNode }) {
   const tenant = useAuthStore((s) => s.tenant);
+  const { language } = useTranslation();
+  const fr = language === 'fr';
   const plan = tenant?.plan || 'STORE';
   if (plans.includes(plan)) return <>{children}</>;
 
-  const whatsappLink = `https://wa.me/237653561862?text=${encodeURIComponent('Bonjour, je voudrais upgrader mon plan KABRAK Store vers SHOP pour accéder au stock et à la caisse.')}`;
+  const whatsappLink = `https://wa.me/237653561862?text=${encodeURIComponent(fr ? 'Bonjour, je voudrais upgrader mon plan KABRAK Store vers SHOP pour accéder au stock et à la caisse.' : 'Hello, I would like to upgrade my KABRAK Store plan to SHOP to access stock and POS.')}`;
 
-  const featuresMap: Record<string, string[]> = {
-    '/products': ['Catalogue produits', 'Gestion stock par taille/couleur', 'Alertes stock faible'],
-    '/categories': ['Catégories de produits', 'Organisation du catalogue'],
-    '/deliveries': ['Gestion des livraisons', 'Suivi commandes livrées'],
-    '/loyalty': ['Programme fidélité', 'Points & récompenses clients'],
-    '/pos': ['Caisse enregistreuse POS', 'Scan produit', 'Ticket immédiat'],
-    '/employees': ['Gestion des employés', 'Accès multi-utilisateurs'],
-    '/reports': ['Rapports avancés', 'Bénéfice net', 'Top clients & périodes'],
+  const featuresMap: Record<string, { fr: string[]; en: string[] }> = {
+    '/products': { fr: ['Catalogue produits', 'Gestion stock par taille/couleur', 'Alertes stock faible'], en: ['Product catalog', 'Stock management by size/color', 'Low stock alerts'] },
+    '/categories': { fr: ['Catégories de produits', 'Organisation du catalogue'], en: ['Product categories', 'Catalog organization'] },
+    '/deliveries': { fr: ['Gestion des livraisons', 'Suivi commandes livrées'], en: ['Delivery management', 'Delivered order tracking'] },
+    '/loyalty': { fr: ['Programme fidélité', 'Points & récompenses clients'], en: ['Loyalty program', 'Client points & rewards'] },
+    '/pos': { fr: ['Caisse enregistreuse POS', 'Scan produit', 'Ticket immédiat'], en: ['POS cash register', 'Product scanning', 'Instant receipt'] },
+    '/employees': { fr: ['Gestion des employés', 'Accès multi-utilisateurs'], en: ['Employee management', 'Multi-user access'] },
+    '/reports': { fr: ['Rapports avancés', 'Bénéfice net', 'Top clients & périodes'], en: ['Advanced reports', 'Net profit', 'Top clients & periods'] },
   };
 
   const path = window.location.pathname;
-  const features = featuresMap[path] || ['Cette fonctionnalité avancée'];
+  const features = featuresMap[path]?.[language as 'fr' | 'en'] || (fr ? ['Cette fonctionnalité avancée'] : ['This advanced feature']);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
@@ -96,11 +99,10 @@ function PlanGuard({ plans, children }: { plans: string[]; children: React.React
         <span className="text-3xl">🔒</span>
       </div>
       <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-        Fonctionnalité KABRAK SHOP
+        {fr ? 'Fonctionnalité KABRAK SHOP' : 'KABRAK SHOP Feature'}
       </h2>
       <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 max-w-xs">
-        Votre plan actuel <span className="font-semibold text-gray-700 dark:text-gray-300">{plan}</span> ne comprend pas cette section.
-        Passez à <span className="font-semibold text-amber-600">KABRAK SHOP</span> pour débloquer :
+        {fr ? <>Votre plan actuel <span className="font-semibold text-gray-700 dark:text-gray-300">{plan}</span> ne comprend pas cette section. Passez à <span className="font-semibold text-amber-600">KABRAK SHOP</span> pour débloquer :</> : <>Your current plan <span className="font-semibold text-gray-700 dark:text-gray-300">{plan}</span> does not include this section. Upgrade to <span className="font-semibold text-amber-600">KABRAK SHOP</span> to unlock:</>}
       </p>
       <ul className="text-left space-y-2 mb-8">
         {features.map((f) => (
@@ -117,10 +119,10 @@ function PlanGuard({ plans, children }: { plans: string[]; children: React.React
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-green-500 text-white font-bold hover:bg-green-600 transition-colors"
         >
-          💬 Passer à SHOP — 9 900 FCFA/mois
+          💬 {fr ? 'Passer à SHOP — 9 900 FCFA/mois' : 'Upgrade to SHOP — 9,900 FCFA/month'}
         </a>
         <a href="/billing" className="block w-full py-2.5 rounded-xl border border-border text-sm text-muted-foreground text-center hover:bg-accent transition-colors">
-          Voir mon abonnement
+          {fr ? 'Voir mon abonnement' : 'View my subscription'}
         </a>
       </div>
     </div>
