@@ -3,7 +3,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown, Globe, Copy } from 'lucide-react';
-import api from '@/lib/api';
+import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 interface DashboardData {
