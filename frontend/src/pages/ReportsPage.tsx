@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
@@ -38,7 +38,7 @@ export function ReportsPage() {
   const [period, setPeriod] = useState<'day' | 'week' | 'month'>('day');
   const [customRange, setCustomRange] = useState<{ from: string; to: string } | null>(null);
 
-  const fetchReport = () => {
+  const fetchReport = useCallback(() => {
     if (businessMode === 'SERVICE') {
       api.get('/projects')
         .then((res) => {
@@ -61,11 +61,11 @@ export function ReportsPage() {
         .catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); })
         .finally(() => setLoading(false));
     }
-  };
+  }, [businessMode, period, customRange]);
 
   useEffect(() => {
     fetchReport();
-  }, [businessMode, period, customRange]);
+  }, [fetchReport]);
 
   const exportData = async (type: string) => {
     try {

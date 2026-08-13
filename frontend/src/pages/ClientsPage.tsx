@@ -40,7 +40,7 @@ export function ClientsPage() {
     try {
       const { data } = await api.get('/orders', { params: { clientId: client.id, limit: 50 } });
       setClientOrders(data.data || []);
-    } catch { setClientOrders([]); }
+    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); setClientOrders([]); }
     finally { setHistoryLoading(false); }
   };
 
@@ -199,7 +199,7 @@ export function ClientsPage() {
               {historyLoading ? (
                 <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
               ) : clientOrders.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">Aucune commande</p>
+                <p className="text-center text-muted-foreground py-8">{t('common.noResults')}</p>
               ) : (
                 <div className="space-y-2">
                   {clientOrders.map(order => (
@@ -209,7 +209,7 @@ export function ClientsPage() {
                         <p className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-sm">{order.finalAmount?.toLocaleString()} XAF</p>
+                        <p className="font-bold text-sm">{formatCurrency(order.finalAmount)}</p>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           order.paymentStatus === 'PAID' ? 'bg-green-100 text-green-700' :
                           order.paymentStatus === 'PARTIAL' ? 'bg-amber-100 text-amber-700' :

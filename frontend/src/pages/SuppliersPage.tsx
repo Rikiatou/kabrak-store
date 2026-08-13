@@ -66,8 +66,11 @@ export function SuppliersPage() {
     setShowForm(true);
   };
 
+  const [deleting, setDeleting] = useState(false);
   const handleDelete = async (id: string) => {
     if (!confirm(language === 'fr' ? 'Supprimer ce fournisseur?' : 'Delete this supplier?')) return;
+    if (deleting) return;
+    setDeleting(true);
     try {
       await api.delete(`/suppliers/${id}`);
       toast.success(language === 'fr' ? 'Fournisseur supprimé' : 'Supplier deleted');
@@ -75,7 +78,7 @@ export function SuppliersPage() {
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
-    }
+    } finally { setDeleting(false); }
   };
 
   return (
@@ -167,13 +170,13 @@ export function SuppliersPage() {
             </div>
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Nom *</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Nom' : 'Name'} *</label>
                 <input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Tissus Douala"
+                  placeholder={language === 'fr' ? 'Ex: Tissus Douala' : 'Ex: Fabrics Douala'}
                   className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Téléphone</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Téléphone' : 'Phone'}</label>
                 <input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
                   placeholder="Ex: 699 00 00 00"
                   className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
@@ -181,26 +184,26 @@ export function SuppliersPage() {
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
                 <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-                  placeholder="Ex: contact@fournisseur.com"
+                  placeholder="Ex: contact@supplier.com"
                   className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Adresse</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Adresse' : 'Address'}</label>
                 <input type="text" value={form.address} onChange={e => setForm({ ...form, address: e.target.value })}
-                  placeholder="Ex: Marché central, Douala"
+                  placeholder={language === 'fr' ? 'Ex: Marché central, Douala' : 'Ex: Central market, Douala'}
                   className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Notes (optionnel)</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Notes (optionnel)' : 'Notes (optional)'}</label>
                 <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
-                  placeholder="Ex: Livraison tous les mardis"
+                  placeholder={language === 'fr' ? 'Ex: Livraison tous les mardis' : 'Ex: Delivery every Tuesday'}
                   rows={2}
                   className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 resize-none" />
               </div>
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-accent transition-colors">Annuler</button>
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-accent transition-colors">{language === 'fr' ? 'Annuler' : 'Cancel'}</button>
                 <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors">
-                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                  {saving ? (language === 'fr' ? 'Enregistrement...' : 'Saving...') : (language === 'fr' ? 'Enregistrer' : 'Save')}
                 </button>
               </div>
             </form>

@@ -28,20 +28,33 @@ interface Summary {
   byCategory: { category: string; _sum: { amount: number } }[];
 }
 
-const CATEGORY_CONFIG: Record<string, { label: string; icon: typeof ShoppingCart; color: string }> = {
-  STOCK:     { label: 'Achat stock',   icon: ShoppingCart, color: '#6366f1' },
-  SALARY:    { label: 'Salaires',      icon: Users,        color: '#f59e0b' },
-  RENT:      { label: 'Loyer',         icon: Home,         color: '#ec4899' },
-  TRANSPORT: { label: 'Transport',     icon: Truck,        color: '#14b8a6' },
-  MARKETING: { label: 'Marketing',     icon: Megaphone,    color: '#3b82f6' },
-  UTILITIES: { label: 'Charges',       icon: Zap,          color: '#f97316' },
-  EQUIPMENT: { label: 'Équipement',    icon: Wrench,       color: '#8b5cf6' },
-  OTHER:     { label: 'Autre',         icon: HelpCircle,   color: '#6b7280' },
+const CATEGORY_LABELS: Record<string, { fr: string; en: string }> = {
+  STOCK:     { fr: 'Achat stock',   en: 'Stock purchase' },
+  SALARY:    { fr: 'Salaires',      en: 'Salaries' },
+  RENT:      { fr: 'Loyer',         en: 'Rent' },
+  TRANSPORT: { fr: 'Transport',     en: 'Transport' },
+  MARKETING: { fr: 'Marketing',     en: 'Marketing' },
+  UTILITIES: { fr: 'Charges',       en: 'Utilities' },
+  EQUIPMENT: { fr: 'Équipement',    en: 'Equipment' },
+  OTHER:     { fr: 'Autre',         en: 'Other' },
 };
 
-const PAYMENT_LABELS: Record<string, string> = {
-  CASH: 'Espèces', ORANGE_MONEY: 'Orange Money', MTN_MOMO: 'MTN MoMo',
-  BANK_TRANSFER: 'Virement', OTHER: 'Autre',
+const CATEGORY_ICONS: Record<string, typeof ShoppingCart> = {
+  STOCK: ShoppingCart, SALARY: Users, RENT: Home, TRANSPORT: Truck,
+  MARKETING: Megaphone, UTILITIES: Zap, EQUIPMENT: Wrench, OTHER: HelpCircle,
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  STOCK: '#6366f1', SALARY: '#f59e0b', RENT: '#ec4899', TRANSPORT: '#14b8a6',
+  MARKETING: '#3b82f6', UTILITIES: '#f97316', EQUIPMENT: '#8b5cf6', OTHER: '#6b7280',
+};
+
+const PAYMENT_LABELS: Record<string, { fr: string; en: string }> = {
+  CASH: { fr: 'Espèces', en: 'Cash' },
+  ORANGE_MONEY: { fr: 'Orange Money', en: 'Orange Money' },
+  MTN_MOMO: { fr: 'MTN MoMo', en: 'MTN MoMo' },
+  BANK_TRANSFER: { fr: 'Virement', en: 'Bank transfer' },
+  OTHER: { fr: 'Autre', en: 'Other' },
 };
 
 const emptyForm = { amount: '', category: 'STOCK', description: '', reference: '', date: new Date().toISOString().slice(0, 10), paymentMethod: 'CASH', supplierId: '' };
@@ -100,10 +113,11 @@ export function ExpensesPage() {
     if (saving) return;
     setSaving(true);
     try {
+      const payload = { ...form, amount: Number(form.amount), supplierId: form.supplierId || undefined };
       if (editId) {
-        await api.put(`/expenses/${editId}`, { ...form, supplierId: form.supplierId || undefined });
+        await api.put(`/expenses/${editId}`, payload);
       } else {
-        await api.post('/expenses', { ...form, supplierId: form.supplierId || undefined });
+        await api.post('/expenses', payload);
       }
       setShowForm(false); setEditId(null); setForm(emptyForm);
       toast.success(language === 'fr' ? 'Dépense enregistrée' : 'Expense saved');
@@ -116,8 +130,11 @@ export function ExpensesPage() {
     }
   };
 
+  const [deleting, setDeleting] = useState(false);
   const handleDelete = async (id: string) => {
     if (!confirm(language === 'fr' ? 'Supprimer cette dépense?' : 'Delete this expense?')) return;
+    if (deleting) return;
+    setDeleting(true);
     try {
       await api.delete(`/expenses/${id}`);
       toast.success(language === 'fr' ? 'Dépense supprimée' : 'Expense deleted');
@@ -125,7 +142,7 @@ export function ExpensesPage() {
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Échec de la suppression' : 'Failed to delete'));
-    }
+    } finally { setDeleting(false); }
   };
 
   const profitColor = (summary?.profit ?? 0) >= 0 ? 'text-green-600' : 'text-red-500';
@@ -150,7 +167,7 @@ export function ExpensesPage() {
         {(['week', 'month', 'all'] as const).map((p) => (
           <button key={p} onClick={() => setPeriodFilter(p)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${periodFilter === p ? 'bg-foreground text-background' : 'bg-card border border-border text-muted-foreground hover:bg-accent'}`}>
-            {p === 'week' ? '7 jours' : p === 'month' ? 'Ce mois' : 'Tout'}
+            {p === 'week' ? (language === 'fr' ? '7 jours' : '7 days') : p === 'month' ? (language === 'fr' ? 'Ce mois' : 'This month') : (language === 'fr' ? 'Tout' : 'All')}
           </button>
         ))}
         <div className="w-px bg-border mx-1" />
@@ -158,11 +175,11 @@ export function ExpensesPage() {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${catFilter === 'ALL' ? 'bg-foreground text-background' : 'bg-card border border-border text-muted-foreground hover:bg-accent'}`}>
           {language === 'fr' ? 'Toutes' : 'All'}
         </button>
-        {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
+        {Object.entries(CATEGORY_LABELS).map(([key, labels]) => (
           <button key={key} onClick={() => setCatFilter(key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${catFilter === key ? 'bg-foreground text-background' : 'bg-card border border-border text-muted-foreground hover:bg-accent'}`}
-            style={catFilter === key ? {} : { borderColor: cfg.color + '40' }}>
-            {cfg.label}
+            style={catFilter === key ? {} : { borderColor: (CATEGORY_COLORS[key] || CATEGORY_COLORS.OTHER) + '40' }}>
+            {labels[language]}
           </button>
         ))}
       </div>
@@ -207,17 +224,19 @@ export function ExpensesPage() {
           <h3 className="text-sm font-semibold text-foreground mb-3">{language === 'fr' ? 'Par catégorie' : 'By category'}</h3>
           <div className="space-y-2">
             {summary.byCategory.sort((a, b) => (b._sum.amount || 0) - (a._sum.amount || 0)).map((cat) => {
-              const cfg = CATEGORY_CONFIG[cat.category] || CATEGORY_CONFIG.OTHER;
-              const Icon = cfg.icon;
+              const catLabel = (CATEGORY_LABELS[cat.category] || CATEGORY_LABELS.OTHER)[language];
+              const catColor = CATEGORY_COLORS[cat.category] || CATEGORY_COLORS.OTHER;
+              const catIcon = CATEGORY_ICONS[cat.category] || CATEGORY_ICONS.OTHER;
+              const Icon = catIcon;
               const pct = summary.totalExpenses > 0 ? Math.round(((cat._sum.amount || 0) / summary.totalExpenses) * 100) : 0;
               return (
                 <div key={cat.category} className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: cfg.color + '20' }}>
-                    <Icon className="w-3.5 h-3.5" style={{ color: cfg.color }} />
+                  <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: catColor + '20' }}>
+                    <Icon className="w-3.5 h-3.5" style={{ color: catColor }} />
                   </div>
-                  <span className="text-xs text-muted-foreground w-24 flex-shrink-0">{cfg.label}</span>
+                  <span className="text-xs text-muted-foreground w-24 flex-shrink-0">{catLabel}</span>
                   <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: cfg.color }} />
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: catColor }} />
                   </div>
                   <span className="text-xs font-semibold text-foreground w-20 text-right">{formatCurrency(cat._sum.amount || 0)}</span>
                 </div>
@@ -239,20 +258,22 @@ export function ExpensesPage() {
         ) : (
           <div className="divide-y divide-border">
             {expenses.filter(e => catFilter === 'ALL' || e.category === catFilter).map((exp) => {
-              const cfg = CATEGORY_CONFIG[exp.category] || CATEGORY_CONFIG.OTHER;
-              const Icon = cfg.icon;
+              const expCfg = CATEGORY_ICONS[exp.category] || CATEGORY_ICONS.OTHER;
+              const expColor = CATEGORY_COLORS[exp.category] || CATEGORY_COLORS.OTHER;
+              const expLabel = (CATEGORY_LABELS[exp.category] || CATEGORY_LABELS.OTHER)[language];
+              const Icon = expCfg;
               return (
                 <div key={exp.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: cfg.color + '20' }}>
-                    <Icon className="w-4 h-4" style={{ color: cfg.color }} />
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: expColor + '20' }}>
+                    <Icon className="w-4 h-4" style={{ color: expColor }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">
-                      {exp.description || cfg.label}
+                      {exp.description || expLabel}
                       {exp.supplier && <span className="text-xs text-muted-foreground ml-1">· {exp.supplier.name}</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(exp.date).toLocaleDateString('fr-FR')} · {PAYMENT_LABELS[exp.paymentMethod] || exp.paymentMethod}
+                      {new Date(exp.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')} · {(PAYMENT_LABELS[exp.paymentMethod] || PAYMENT_LABELS.OTHER)[language]}
                     </p>
                   </div>
                   <p className="font-bold text-red-500 text-sm">-{formatCurrency(exp.amount)}</p>
@@ -280,27 +301,28 @@ export function ExpensesPage() {
             <form onSubmit={handleSubmit} className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Montant *</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Montant' : 'Amount'} *</label>
                   <input type="number" min="0" required value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })}
                     placeholder="Ex: 5000"
                     className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Date</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Date' : 'Date'}</label>
                   <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })}
                     className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400" />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">Catégorie</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Catégorie' : 'Category'}</label>
                 <div className="grid grid-cols-4 gap-1.5">
-                  {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => {
-                    const Icon = cfg.icon;
+                  {Object.entries(CATEGORY_LABELS).map(([key, labels]) => {
+                    const Icon = CATEGORY_ICONS[key] || CATEGORY_ICONS.OTHER;
+                    const color = CATEGORY_COLORS[key] || CATEGORY_COLORS.OTHER;
                     return (
                       <button type="button" key={key} onClick={() => setForm({ ...form, category: key })}
                         className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all text-xs ${form.category === key ? 'border-red-400 bg-red-50 dark:bg-red-900/20' : 'border-border hover:border-gray-300'}`}>
-                        <Icon className="w-4 h-4" style={{ color: cfg.color }} />
-                        <span className="truncate w-full text-center" style={{ fontSize: '9px' }}>{cfg.label}</span>
+                        <Icon className="w-4 h-4" style={{ color }} />
+                        <span className="truncate w-full text-center" style={{ fontSize: '9px' }}>{labels[language]}</span>
                       </button>
                     );
                   })}
@@ -322,27 +344,27 @@ export function ExpensesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Paiement</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Paiement' : 'Payment'}</label>
                   <select value={form.paymentMethod} onChange={e => setForm({ ...form, paymentMethod: e.target.value })}
                     className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none">
-                    <option value="CASH">Espèces</option>
+                    <option value="CASH">{language === 'fr' ? 'Espèces' : 'Cash'}</option>
                     <option value="ORANGE_MONEY">Orange Money</option>
                     <option value="MTN_MOMO">MTN MoMo</option>
-                    <option value="BANK_TRANSFER">Virement</option>
-                    <option value="OTHER">Autre</option>
+                    <option value="BANK_TRANSFER">{language === 'fr' ? 'Virement' : 'Bank transfer'}</option>
+                    <option value="OTHER">{language === 'fr' ? 'Autre' : 'Other'}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">Fournisseur (optionnel)</label>
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">{language === 'fr' ? 'Fournisseur (optionnel)' : 'Supplier (optional)'}</label>
                   <select value={form.supplierId} onChange={e => setForm({ ...form, supplierId: e.target.value })}
                     className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none">
-                    <option value="">Aucun</option>
+                    <option value="">{language === 'fr' ? 'Aucun' : 'None'}</option>
                     {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                   </select>
                 </div>
               </div>
               <div className="flex gap-2 pt-1">
-                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-accent transition-colors">Annuler</button>
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-accent transition-colors">{language === 'fr' ? 'Annuler' : 'Cancel'}</button>
                 <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-colors">
                   {saving ? (language === 'fr' ? 'Enregistrement...' : 'Saving...') : editId ? (language === 'fr' ? 'Modifier' : 'Update') : (language === 'fr' ? 'Enregistrer' : 'Save')}
                 </button>

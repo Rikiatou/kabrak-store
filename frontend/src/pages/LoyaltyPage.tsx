@@ -48,7 +48,8 @@ const tierIcons: Record<string, string> = {
 };
 
 export function LoyaltyPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const fr = language === 'fr';
   const [config, setConfig] = useState<LoyaltyConfig | null>(null);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -136,7 +137,7 @@ export function LoyaltyPage() {
                 <div className="text-2xl mb-1">{tierIcons[tier.name]}</div>
                 <p className="font-bold text-sm">{tier.name}</p>
                 <p className="text-xs mt-1">{tier.minPoints}+ pts</p>
-                <p className="text-xs">{tier.discountPercent}% remise</p>
+                <p className="text-xs">{tier.discountPercent}% {fr ? 'remise' : 'off'}</p>
                 <div className="mt-2 flex items-center justify-center gap-1">
                   <Users className="w-3 h-3" />
                   <span className="text-xs font-bold">{count}</span>
@@ -152,8 +153,7 @@ export function LoyaltyPage() {
         <CardContent className="p-4">
           <p className="text-sm">
             <Star className="w-4 h-4 inline text-amber-500 mr-1" />
-            <strong>1 point</strong> pour chaque <strong>{formatCurrency(config?.pointsPerFCFA || 1000)} FCFA</strong> dépensé.
-            Les points sont attribués automatiquement à chaque achat.
+            <strong>1 {fr ? 'point' : 'point'}</strong> {fr ? 'pour chaque' : 'per'} <strong>{formatCurrency(config?.pointsPerFCFA || 1000)}</strong> {fr ? 'dépensé. Les points sont attribués automatiquement à chaque achat.' : 'spent. Points are automatically awarded on each purchase.'}
           </p>
         </CardContent>
       </Card>
@@ -163,10 +163,10 @@ export function LoyaltyPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Gift className="w-5 h-5" /> Récompenses
+              <Gift className="w-5 h-5" /> {fr ? 'Récompenses' : 'Rewards'}
             </CardTitle>
             <Button size="sm" onClick={() => setShowRewardForm(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Ajouter
+              <Plus className="w-4 h-4 mr-1" /> {fr ? 'Ajouter' : 'Add'}
             </Button>
           </CardHeader>
           <CardContent>
@@ -179,7 +179,7 @@ export function LoyaltyPage() {
                     <div>
                       <p className="font-medium text-sm">{r.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {r.discountPercent > 0 ? `${r.discountPercent}% de remise` : `${formatCurrency(r.discountAmount)} FCFA de remise`}
+                        {r.discountPercent > 0 ? `${r.discountPercent}% ${fr ? 'de remise' : 'off'}` : `${formatCurrency(r.discountAmount)} ${fr ? 'de remise' : 'off'}`}
                       </p>
                     </div>
                     <Badge variant="outline">{r.pointsRequired} pts</Badge>
@@ -194,7 +194,7 @@ export function LoyaltyPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="w-5 h-5" /> Top clients fidèles
+              <Trophy className="w-5 h-5" /> {fr ? 'Top clients fidèles' : 'Top loyal clients'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -208,7 +208,7 @@ export function LoyaltyPage() {
                     <div className="flex-1">
                       <p className="font-medium text-sm">{c.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatCurrency(c.totalSpent)} FCFA · {c.totalOrders} commandes
+                        {formatCurrency(c.totalSpent)} · {c.totalOrders} {fr ? 'commandes' : 'orders'}
                       </p>
                     </div>
                     <div className="text-right">
@@ -229,7 +229,7 @@ export function LoyaltyPage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <Card className="w-full max-w-md">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Nouvelle récompense</CardTitle>
+              <CardTitle>{fr ? 'Nouvelle récompense' : 'New reward'}</CardTitle>
               <Button variant="ghost" size="icon" onClick={() => setShowRewardForm(false)}>
                 <X className="w-4 h-4" />
               </Button>
@@ -237,16 +237,16 @@ export function LoyaltyPage() {
             <CardContent>
               <form onSubmit={handleCreateReward} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Nom</label>
+                  <label className="text-sm font-medium mb-1 block">{fr ? 'Nom' : 'Name'}</label>
                   <Input
                     value={rewardForm.name}
                     onChange={(e) => setRewardForm({ ...rewardForm, name: e.target.value })}
-                    placeholder="Ex: Remise fidélité 10%"
+                    placeholder={fr ? 'Ex: Remise fidélité 10%' : 'Ex: Loyalty discount 10%'}
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Points requis</label>
+                  <label className="text-sm font-medium mb-1 block">{fr ? 'Points requis' : 'Points required'}</label>
                   <Input
                     type="number"
                     value={rewardForm.pointsRequired}
@@ -257,7 +257,7 @@ export function LoyaltyPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Remise (%)</label>
+                    <label className="text-sm font-medium mb-1 block">{fr ? 'Remise (%)' : 'Discount (%)'}</label>
                     <Input
                       type="number"
                       value={rewardForm.discountPercent}
@@ -267,7 +267,7 @@ export function LoyaltyPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Remise (FCFA)</label>
+                    <label className="text-sm font-medium mb-1 block">{fr ? 'Remise (montant)' : 'Discount (amount)'}</label>
                     <Input
                       type="number"
                       value={rewardForm.discountAmount}

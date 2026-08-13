@@ -19,7 +19,7 @@ interface StoreData {
 }
 
 export function StoresPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [stores, setStores] = useState<StoreData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -74,8 +74,11 @@ export function StoresPage() {
     setShowForm(true);
   };
 
+  const [deleting, setDeleting] = useState(false);
   const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm') + '?')) return;
+    if (deleting) return;
+    setDeleting(true);
     try {
       await api.delete(`/stores/${id}`);
       toast.success(t('common.deleted') || 'Deleted');
@@ -83,7 +86,7 @@ export function StoresPage() {
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, t('common.error') || 'Error'));
-    }
+    } finally { setDeleting(false); }
   };
 
   if (loading) {
@@ -119,11 +122,11 @@ export function StoresPage() {
                   <div>
                     <h3 className="font-bold text-lg">{store.name}</h3>
                     {store.isMain && (
-                      <Badge variant="default" className="mt-1">Principal</Badge>
+                      <Badge variant="default" className="mt-1">{language === 'fr' ? 'Principal' : 'Main'}</Badge>
                     )}
                   </div>
                   <Badge variant={store.isActive ? 'success' : 'destructive'}>
-                    {store.isActive ? 'Actif' : 'Inactif'}
+                    {store.isActive ? (language === 'fr' ? 'Actif' : 'Active') : (language === 'fr' ? 'Inactif' : 'Inactive')}
                   </Badge>
                 </div>
 
@@ -141,11 +144,11 @@ export function StoresPage() {
                 <div className="flex gap-4 text-sm mb-4">
                   <div className="flex items-center gap-1">
                     <Users className="w-3 h-3 text-muted-foreground" />
-                    <span>{store._count.users} employés</span>
+                    <span>{store._count.users} {language === 'fr' ? 'employés' : 'employees'}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Package className="w-3 h-3 text-muted-foreground" />
-                    <span>{store._count.products} produits</span>
+                    <span>{store._count.products} {language === 'fr' ? 'produits' : 'products'}</span>
                   </div>
                 </div>
 
@@ -178,7 +181,7 @@ export function StoresPage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Nom du magasin</label>
+                  <label className="text-sm font-medium mb-1 block">{language === 'fr' ? 'Nom du magasin' : 'Store name'}</label>
                   <Input
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -186,14 +189,14 @@ export function StoresPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Adresse</label>
+                  <label className="text-sm font-medium mb-1 block">{language === 'fr' ? 'Adresse' : 'Address'}</label>
                   <Input
                     value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1 block">Téléphone</label>
+                  <label className="text-sm font-medium mb-1 block">{language === 'fr' ? 'Téléphone' : 'Phone'}</label>
                   <Input
                     type="tel"
                     value={form.phone}

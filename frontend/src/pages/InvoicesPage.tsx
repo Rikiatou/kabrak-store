@@ -85,7 +85,7 @@ export function InvoicesPage() {
   const [formClientId, setFormClientId] = useState('');
   const [formNotes, setFormNotes] = useState('');
   const [formDueDate, setFormDueDate] = useState('');
-  const [lineItems, setLineItems] = useState<LineItem[]>([{ description: '', quantity: 1, unitPrice: 0 }]);
+  const [lineItems, setLineItems] = useState<LineItem[]>([{ description: '', quantity: 1, unitPrice: 0 as number }]);
   const [submitting, setSubmitting] = useState(false);
 
   const loadInvoices = useCallback(async () => {
@@ -149,6 +149,7 @@ export function InvoicesPage() {
   const formTotal = lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
   const handleCreateStandalone = async () => {
+    if (submitting) return;
     const validItems = lineItems.filter((li) => li.description.trim() && li.unitPrice > 0);
     if (validItems.length === 0) return;
 
@@ -180,6 +181,7 @@ export function InvoicesPage() {
   };
 
   const handleAddPayment = async () => {
+    if (addingPayment) return;
     if (!paymentInvoice || !paymentAmount || parseFloat(paymentAmount) <= 0) return;
 
     setAddingPayment(true);

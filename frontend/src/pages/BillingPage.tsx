@@ -87,6 +87,7 @@ export function BillingPage() {
 
   const handleInitiate = async () => {
     if (!selectedPlan) return;
+    if (initiating) return;
     setInitiating(true);
     try {
       const res = await api.post('/billing/initiate', { plan: selectedPlan, months: selectedMonths });
@@ -135,7 +136,7 @@ export function BillingPage() {
     });
   };
 
-  const totalAmount = selectedPlan ? PLANS.find((p) => p.value === selectedPlan)!.price * selectedMonths : 0;
+  const totalAmount = selectedPlan ? (plans.find((p) => p.value === selectedPlan)?.price ?? 0) * selectedMonths : 0;
 
   if (loading) {
     return (

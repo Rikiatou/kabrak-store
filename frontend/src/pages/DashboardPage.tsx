@@ -252,7 +252,7 @@ export function DashboardPage() {
         api.get('/reports/dashboard', { params: dates }).catch(() => ({ data: { data: null } })),
       ]).then(([dashRes]) => {
         setProductData(dashRes.data.data);
-      }).catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); }).finally(() => setLoading(false));
+      }).finally(() => setLoading(false));
     }
   }, [businessMode, getPeriodDates]);
 

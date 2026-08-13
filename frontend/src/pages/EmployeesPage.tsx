@@ -14,7 +14,7 @@ interface Employee {
 }
 
 export function EmployeesPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -28,17 +28,17 @@ export function EmployeesPage() {
   const handleResetPassword = async () => {
     if (!resetId || !newPassword) return;
     if (newPassword.length < 6) {
-      toast.error('Mot de passe trop court (min 6 caractères)');
+      toast.error(language === 'fr' ? 'Mot de passe trop court (min 6 caractères)' : 'Password too short (min 6 characters)');
       return;
     }
     setResetLoading(true);
     try {
       await api.put(`/employees/${resetId}/password`, { password: newPassword });
       setResetId(null); setNewPassword('');
-      toast.success('Mot de passe mis à jour');
+      toast.success(language === 'fr' ? 'Mot de passe mis à jour' : 'Password updated');
     } catch (err) {
       console.error(err);
-      toast.error(getApiErrorMessage(err, 'Erreur lors de la mise à jour du mot de passe'));
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la mise à jour du mot de passe' : 'Failed to update password'));
     }
     finally { setResetLoading(false); }
   };
@@ -67,10 +67,14 @@ export function EmployeesPage() {
     } finally { setSubmitting(false); }
   };
 
+  const [deleting, setDeleting] = useState(false);
   const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm') + '?')) return;
+    if (deleting) return;
+    setDeleting(true);
     try { await api.delete(`/employees/${id}`); toast.success(t('common.deleted') || 'Deleted'); fetchEmployees(); }
     catch (err) { console.error(err); toast.error(getApiErrorMessage(err, t('common.error') || 'Error')); }
+    finally { setDeleting(false); }
   };
 
   const roleLabel = (role: string) => t(`employees.${role.toLowerCase()}`);
@@ -139,12 +143,12 @@ export function EmployeesPage() {
                     <h3 className="font-semibold">{emp.firstName} {emp.lastName}</h3>
                     <p className="text-xs text-muted-foreground">{emp.email}</p>
                   </div>
-                  <Badge variant={emp.isActive ? 'success' : 'secondary'}>{emp.isActive ? t('employees.active') : 'Inactif'}</Badge>
+                  <Badge variant={emp.isActive ? 'success' : 'secondary'}>{emp.isActive ? t('employees.active') : (language === 'fr' ? 'Inactif' : 'Inactive')}</Badge>
                 </div>
                 <Badge variant="outline" className="mb-3">{roleLabel(emp.role)}</Badge>
                 {emp.role !== 'OWNER' && (
                   <div className="flex gap-2 mt-3">
-                    <Button variant="outline" size="sm" onClick={() => { setNewPassword(''); setResetId(emp.id); }} title="Reset password">
+                    <Button variant="outline" size="sm" onClick={() => { setNewPassword(''); setResetId(emp.id); }} title={language === 'fr' ? 'Réinitialiser mot de passe' : 'Reset password'}>
                       <KeyRound className="w-3 h-3" />
                     </Button>
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => { setForm({ ...form, firstName: emp.firstName, lastName: emp.lastName, phone: emp.phone || '', role: emp.role }); setEditingId(emp.id); setShowForm(true); }}>
@@ -165,21 +169,21 @@ export function EmployeesPage() {
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <Card className="w-full max-w-sm">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base"><KeyRound className="w-4 h-4 inline mr-2" />Nouveau mot de passe</CardTitle>
+              <CardTitle className="text-base"><KeyRound className="w-4 h-4 inline mr-2" />{language === 'fr' ? 'Nouveau mot de passe' : 'New password'}</CardTitle>
               <Button variant="ghost" size="icon" onClick={() => setResetId(null)}><X className="w-4 h-4" /></Button>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
                 type="password"
-                placeholder="Nouveau mot de passe"
+                placeholder={language === 'fr' ? 'Nouveau mot de passe' : 'New password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 minLength={6}
               />
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setResetId(null)}>Annuler</Button>
+                <Button variant="outline" className="flex-1" onClick={() => setResetId(null)}>{t('common.cancel')}</Button>
                 <Button className="flex-1" onClick={handleResetPassword} disabled={resetLoading || newPassword.length < 6}>
-                  {resetLoading ? '...' : 'Confirmer'}
+                  {resetLoading ? '...' : (language === 'fr' ? 'Confirmer' : 'Confirm')}
                 </Button>
               </div>
             </CardContent>

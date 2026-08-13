@@ -91,6 +91,7 @@ export function AIReportsPage() {
   const [generatedAt, setGeneratedAt] = useState<Date | null>(null);
 
   const generateReport = async () => {
+    if (loading) return;
     setLoading(true);
     setError(null);
     try {

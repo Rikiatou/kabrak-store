@@ -55,10 +55,14 @@ export function CategoriesPage() {
     } finally { setSubmitting(false); }
   };
 
+  const [deleting, setDeleting] = useState(false);
   const handleDelete = async (id: string) => {
     if (!confirm(t('common.confirm') + '?')) return;
+    if (deleting) return;
+    setDeleting(true);
     try { await api.delete(`/categories/${id}`); toast.success(t('common.deleted') || 'Deleted'); fetchCategories(); }
     catch (err) { console.error(err); toast.error(getApiErrorMessage(err, t('common.error') || 'Error')); }
+    finally { setDeleting(false); }
   };
 
   return (
