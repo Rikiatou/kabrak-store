@@ -7,8 +7,10 @@ import { formatCurrency } from '@/lib/utils';
 import { Plus, Search, Users, Pencil, Trash2, X, Download, ShoppingCart } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
+import { usePagination } from '@/hooks/usePagination';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Pagination } from '@/components/Pagination';
 
 interface Client {
   id: string; name: string; phone?: string; email?: string;
@@ -78,6 +80,18 @@ export function ClientsPage() {
   };
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const {
+    paginatedData: paginatedClients,
+    currentPage: clientsPage,
+    totalPages: clientsTotalPages,
+    pageSize: clientsPageSize,
+    hasPrev: clientsHasPrev,
+    hasNext: clientsHasNext,
+    totalItems: clientsTotal,
+    nextPage: clientsNextPage,
+    prevPage: clientsPrevPage,
+    goToPage: clientsGoToPage,
+  } = usePagination(clients, 20);
   const handleDelete = (id: string) => setDeleteTarget(id);
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -153,7 +167,7 @@ export function ClientsPage() {
         <div className="text-center py-12"><Users className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">{t('common.noResults')}</p></div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {clients.map((client) => (
+          {paginatedClients.map((client) => (
             <Card key={client.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-start justify-between mb-3">
@@ -188,6 +202,17 @@ export function ClientsPage() {
             </Card>
           ))}
         </div>
+        <Pagination
+          currentPage={clientsPage}
+          totalPages={clientsTotalPages}
+          totalItems={clientsTotal}
+          pageSize={clientsPageSize}
+          hasPrev={clientsHasPrev}
+          hasNext={clientsHasNext}
+          onPrev={clientsPrevPage}
+          onNext={clientsNextPage}
+          onGoToPage={clientsGoToPage}
+        />
       )}
       {/* Client order history modal */}
       {historyClient && (

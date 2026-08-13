@@ -9,7 +9,9 @@ import { FileText, MessageCircle, Eye, Download, Plus, Trash2, X, DollarSign } f
 import { InvoiceModal } from '@/components/InvoiceModal';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
+import { usePagination } from '@/hooks/usePagination';
 import toast from 'react-hot-toast';
+import { Pagination } from '@/components/Pagination';
 
 interface InvoiceItem {
   product: { name: string };
@@ -79,6 +81,19 @@ export function InvoicesPage() {
   const [filterPayment, setFilterPayment] = useState('');
 
   const debouncedSearch = useDebounce(searchQuery);
+
+  const {
+    paginatedData: paginatedInvoices,
+    currentPage: invPage,
+    totalPages: invTotalPages,
+    pageSize: invPageSize,
+    hasPrev: invHasPrev,
+    hasNext: invHasNext,
+    totalItems: invTotal,
+    nextPage: invNextPage,
+    prevPage: invPrevPage,
+    goToPage: invGoToPage,
+  } = usePagination(invoices, 20);
 
   // Standalone invoice form state
   const [clients, setClients] = useState<Client[]>([]);
@@ -439,7 +454,7 @@ export function InvoicesPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {invoices.map((inv) => (
+          {paginatedInvoices.map((inv) => (
             <Card key={inv.id} className="hover:shadow-md transition-shadow dark:bg-gray-800">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
@@ -495,6 +510,17 @@ export function InvoicesPage() {
             </Card>
           ))}
         </div>
+        <Pagination
+          currentPage={invPage}
+          totalPages={invTotalPages}
+          totalItems={invTotal}
+          pageSize={invPageSize}
+          hasPrev={invHasPrev}
+          hasNext={invHasNext}
+          onPrev={invPrevPage}
+          onNext={invNextPage}
+          onGoToPage={invGoToPage}
+        />
       )}
 
       {selectedInvoice && (

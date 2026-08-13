@@ -9,7 +9,9 @@ import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { Plus, ShoppingCart, X, MessageCircle } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
+import { usePagination } from '@/hooks/usePagination';
 import toast from 'react-hot-toast';
+import { Pagination } from '@/components/Pagination';
 
 interface OrderItem {
   id: string;
@@ -101,6 +103,20 @@ export function OrdersPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const debouncedSearch = useDebounce(searchQuery);
+
+  const filteredOrders = orders.filter(o => !filterPayment || o.invoice?.paymentStatus === filterPayment);
+  const {
+    paginatedData: paginatedOrders,
+    currentPage: ordersPage,
+    totalPages: ordersTotalPages,
+    pageSize: ordersPageSize,
+    hasPrev: ordersHasPrev,
+    hasNext: ordersHasNext,
+    totalItems: ordersTotal,
+    nextPage: ordersNextPage,
+    prevPage: ordersPrevPage,
+    goToPage: ordersGoToPage,
+  } = usePagination(filteredOrders, 20);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -372,7 +388,7 @@ export function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-2 sm:space-y-3">
-          {orders.filter(o => !filterPayment || o.invoice?.paymentStatus === filterPayment).map((order) => (
+          {paginatedOrders.map((order) => (
             <Card key={order.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-3 sm:p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -425,6 +441,17 @@ export function OrdersPage() {
             </Card>
           ))}
         </div>
+        <Pagination
+          currentPage={ordersPage}
+          totalPages={ordersTotalPages}
+          totalItems={ordersTotal}
+          pageSize={ordersPageSize}
+          hasPrev={ordersHasPrev}
+          hasNext={ordersHasNext}
+          onPrev={ordersPrevPage}
+          onNext={ordersNextPage}
+          onGoToPage={ordersGoToPage}
+        />
       )}
     </div>
   );

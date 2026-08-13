@@ -5,6 +5,8 @@ import { formatCurrency } from '@/lib/utils';
 import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { usePagination } from '@/hooks/usePagination';
+import { Pagination } from '@/components/Pagination';
 
 interface Expense {
   id: string;
@@ -132,6 +134,19 @@ export function ExpensesPage() {
   };
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const filteredExpenses = expenses.filter(e => catFilter === 'ALL' || e.category === catFilter);
+  const {
+    paginatedData: paginatedExpenses,
+    currentPage: expPage,
+    totalPages: expTotalPages,
+    pageSize: expPageSize,
+    hasPrev: expHasPrev,
+    hasNext: expHasNext,
+    totalItems: expTotal,
+    nextPage: expNextPage,
+    prevPage: expPrevPage,
+    goToPage: expGoToPage,
+  } = usePagination(filteredExpenses, 20);
   const handleDelete = (id: string) => setDeleteTarget(id);
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -251,13 +266,13 @@ export function ExpensesPage() {
         <div className="px-4 py-3 border-b border-border">
           <h3 className="font-semibold text-foreground text-sm">{language === 'fr' ? 'Historique des dépenses' : 'Expense history'}</h3>
         </div>
-        {expenses.filter(e => catFilter === 'ALL' || e.category === catFilter).length === 0 ? (
+        {filteredExpenses.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground text-sm">
             {language === 'fr' ? 'Aucune dépense enregistrée' : 'No expenses recorded'}
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {expenses.filter(e => catFilter === 'ALL' || e.category === catFilter).map((exp) => {
+            {paginatedExpenses.map((exp) => {
               const expCfg = CATEGORY_ICONS[exp.category] || CATEGORY_ICONS.OTHER;
               const expColor = CATEGORY_COLORS[exp.category] || CATEGORY_COLORS.OTHER;
               const expLabel = (CATEGORY_LABELS[exp.category] || CATEGORY_LABELS.OTHER)[language];
@@ -288,6 +303,19 @@ export function ExpensesPage() {
             })}
           </div>
         )}
+        <div className="px-4 pb-4">
+          <Pagination
+            currentPage={expPage}
+            totalPages={expTotalPages}
+            totalItems={expTotal}
+            pageSize={expPageSize}
+            hasPrev={expHasPrev}
+            hasNext={expHasNext}
+            onPrev={expPrevPage}
+            onNext={expNextPage}
+            onGoToPage={expGoToPage}
+          />
+        </div>
       </div>
 
       {/* Add expense modal */}
