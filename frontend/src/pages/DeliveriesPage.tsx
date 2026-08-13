@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatDate } from '@/lib/utils';
-import { Truck, Plus, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Truck, Plus, CheckCircle, XCircle, Clock, Search } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -37,6 +37,7 @@ export function DeliveriesPage() {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [search, setSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
@@ -93,7 +94,16 @@ export function DeliveriesPage() {
         <h1 className="text-2xl font-bold">{t('delivery.title')}</h1>
         <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4 mr-1" /> {language === 'fr' ? 'Nouvelle livraison' : 'New delivery'}</Button>
       </div>
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 items-center flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
+            className="pl-9"
+          />
+        </div>
         {['', 'PENDING', 'IN_TRANSIT', 'DELIVERED', 'FAILED'].map(s => (
           <button key={s} onClick={() => setFilterStatus(s)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
@@ -154,7 +164,14 @@ export function DeliveriesPage() {
         <div className="text-center py-12"><Truck className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">{t('common.noResults')}</p></div>
       ) : (
         <div className="space-y-3">
-          {deliveries.filter(d => !filterStatus || d.status === filterStatus).map((del) => (
+          {deliveries.filter(d => {
+            const matchStatus = !filterStatus || d.status === filterStatus;
+            const matchSearch = !search ||
+              d.order?.reference?.toLowerCase().includes(search.toLowerCase()) ||
+              d.client?.name?.toLowerCase().includes(search.toLowerCase()) ||
+              d.address?.toLowerCase().includes(search.toLowerCase());
+            return matchStatus && matchSearch;
+          }).map((del) => (
             <Card key={del.id}>
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">

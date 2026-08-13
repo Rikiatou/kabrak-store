@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-import { FolderKanban, Plus, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { FolderKanban, Plus, ChevronDown, ChevronUp, CheckCircle2, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -46,6 +47,7 @@ export function ProjectsPage() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', totalBudget: 0, deadline: '', clientId: '' });
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   const fetchProjects = useCallback(async () => {
     try {
@@ -100,6 +102,16 @@ export function ProjectsPage() {
         >
           <Plus className="w-4 h-4" /> {t('projects.addProject')}
         </button>
+      </div>
+
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
+          className="pl-9"
+        />
       </div>
 
       {showForm && (
@@ -167,7 +179,13 @@ export function ProjectsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {projects.map((p) => (
+          {projects.filter((p) => {
+            if (!search) return true;
+            const q = search.toLowerCase();
+            return p.name.toLowerCase().includes(q) ||
+              (p.description || '').toLowerCase().includes(q) ||
+              (p.client?.name || '').toLowerCase().includes(q);
+          }).map((p) => (
             <div key={p.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
               <button
                 onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}

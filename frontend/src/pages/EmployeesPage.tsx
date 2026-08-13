@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
-import { Plus, UserCog, Pencil, Trash2, X, KeyRound } from 'lucide-react';
+import { Plus, UserCog, Pencil, Trash2, X, KeyRound, Search } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -69,6 +69,7 @@ export function EmployeesPage() {
   };
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const handleDelete = (id: string) => setDeleteTarget(id);
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -86,6 +87,16 @@ export function EmployeesPage() {
         <Button onClick={() => { setForm({ email: '', password: '', firstName: '', lastName: '', phone: '', role: 'EMPLOYEE' }); setEditingId(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" /> {t('employees.addEmployee')}
         </Button>
+      </div>
+
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
+          className="pl-9"
+        />
       </div>
 
       {showForm && (
@@ -135,7 +146,14 @@ export function EmployeesPage() {
         <div className="text-center py-12"><UserCog className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">{t('common.noResults')}</p></div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {employees.map((emp) => (
+          {employees.filter((emp) => {
+            if (!search) return true;
+            const q = search.toLowerCase();
+            return emp.firstName.toLowerCase().includes(q) ||
+              emp.lastName.toLowerCase().includes(q) ||
+              emp.email.toLowerCase().includes(q) ||
+              (emp.phone || '').toLowerCase().includes(q);
+          }).map((emp) => (
             <Card key={emp.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">

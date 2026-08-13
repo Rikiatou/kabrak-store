@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
-import { Package, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Package, Plus, Edit2, Trash2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
@@ -88,6 +88,7 @@ export function ServicesPage() {
   };
 
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const handleDelete = (id: string) => setDeleteTarget(id);
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -115,6 +116,16 @@ export function ServicesPage() {
         >
           <Plus className="w-4 h-4" /> {language === 'fr' ? 'Nouveau service' : 'New Service'}
         </button>
+      </div>
+
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={language === 'fr' ? 'Rechercher...' : 'Search...'}
+          className="pl-9"
+        />
       </div>
 
       {showForm && (
@@ -195,7 +206,12 @@ export function ServicesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.map((s) => (
+          {services.filter((s) => {
+            if (!search) return true;
+            const q = search.toLowerCase();
+            return s.name.toLowerCase().includes(q) ||
+              (s.description || '').toLowerCase().includes(q);
+          }).map((s) => (
             <div key={s.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
               <div className="flex items-start justify-between mb-3">
                 <h3 className="font-semibold text-gray-900 dark:text-white">{s.name}</h3>
