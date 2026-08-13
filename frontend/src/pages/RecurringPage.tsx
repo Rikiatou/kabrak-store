@@ -67,6 +67,7 @@ export function RecurringPage() {
     try {
       await api.put(`/recurring/${item.id}`, { isActive: !item.isActive });
       fetchItems();
+      toast.success(language === 'fr' ? 'Statut mis à jour' : 'Status updated');
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la mise à jour' : 'Update failed'));

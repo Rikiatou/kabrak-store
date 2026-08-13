@@ -187,9 +187,7 @@ export function InvoicesPage() {
       setLineItems([{ description: '', quantity: 1, unitPrice: 0 }]);
       setLoading(true);
       loadInvoices();
-    } catch (err) {
-      console.error(err);
-      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la création' : 'Failed to create invoice'));
+      toast.success(language === 'fr' ? 'Facture créée' : 'Invoice created');
     } finally {
       setSubmitting(false);
     }
@@ -215,6 +213,7 @@ export function InvoicesPage() {
       setPaymentNotes('');
       setLoading(true);
       loadInvoices();
+      toast.success(language === 'fr' ? 'Paiement ajouté' : 'Payment added');
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors du paiement' : 'Failed to add payment'));

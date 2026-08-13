@@ -53,6 +53,7 @@ export function SuppliersPage() {
       setEditingId(null);
       setForm(emptyForm);
       fetchSuppliers();
+      toast.success(language === 'fr' ? 'Fournisseur enregistré' : 'Supplier saved');
     } catch (err) {
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de l\'enregistrement' : 'Error saving supplier'));
