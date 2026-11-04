@@ -145,6 +145,7 @@ export const translations = {
       pPermissions: 'Permissions',
       pReports: 'Rapports avancés',
       trialNote: '14 jours d\'essai gratuit, sans carte bancaire',
+      invalidCredentials: 'Email ou mot de passe incorrect',
     },
     dashboard: {
       todaySales: "Ventes aujourd'hui",
@@ -789,6 +790,7 @@ export const translations = {
       pPermissions: 'Permissions',
       pReports: 'Advanced reports',
       trialNote: '14-day free trial, no card required',
+      invalidCredentials: 'Incorrect email or password',
     },
     dashboard: {
       todaySales: "Today's Sales",

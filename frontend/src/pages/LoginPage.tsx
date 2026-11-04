@@ -28,7 +28,8 @@ export function LoginPage() {
       setAuth(data.data);
       navigate('/dashboard');
     } catch (err) {
-      setError(getErrorMessage(err, t('auth.loginError')));
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setError(status === 401 ? t('auth.invalidCredentials') : getErrorMessage(err, t('auth.loginError')));
     } finally {
       setLoading(false);
     }
