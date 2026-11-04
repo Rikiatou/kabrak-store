@@ -6,5 +6,6 @@ const router = Router();
 router.get('/tenant/:slug', ctrl.getTenantBySlug);
 router.get('/products/:slug', ctrl.getPublicProducts);
 router.get('/order/:token', ctrl.getPublicOrder);
+router.post('/storefront/:slug/order', ctrl.createStorefrontOrder);
 
 export default router;

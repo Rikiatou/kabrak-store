@@ -5,11 +5,13 @@ import api, { getApiErrorMessage } from '@/lib/api';
 import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, Globe, CreditCard } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { storefrontAccess } from '@/lib/storefront';
 
 
 export function SettingsPage() {
   const { language } = useTranslation();
-  const { user, tenant, fetchMe } = useAuthStore();
+  const { user, tenant, fetchMe, subscription } = useAuthStore();
+  const storefront = storefrontAccess(subscription);
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState({
@@ -290,6 +292,17 @@ export function SettingsPage() {
                   {language === 'fr' ? 'Vitrine publique en ligne' : 'Public Online Storefront'}
                 </span>
               </div>
+              {storefront === 'locked' ? (
+                <div className="text-xs text-amber-800 dark:text-amber-300 space-y-2">
+                  <p>{language === 'fr'
+                    ? 'Votre vitrine en ligne est désactivée : elle est réservée à l’offre BUSINESS (gratuite pendant les 7 jours d’essai). Vos clients voient « boutique indisponible ».'
+                    : 'Your online storefront is off: it is a BUSINESS feature (free during the 7-day trial). Customers see “store unavailable”.'}</p>
+                  <Link to="/billing" className="inline-block px-3 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600">
+                    {language === 'fr' ? 'Passer à BUSINESS' : 'Upgrade to BUSINESS'}
+                  </Link>
+                </div>
+              ) : (
+              <>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
@@ -317,8 +330,15 @@ export function SettingsPage() {
                 </a>
               </div>
               <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-2">
-                {language === 'fr' ? 'Partagez ce lien pour que vos clients parcourent votre catalogue et commandent via WhatsApp.' : 'Share this link for clients to browse your catalog and order via WhatsApp.'}
+                {language === 'fr' ? 'Partagez ce lien : vos clients remplissent un panier, la commande arrive dans Commandes et sur votre WhatsApp.' : 'Share this link: customers fill a cart, the order lands in Orders and on your WhatsApp.'}
               </p>
+              {storefront === 'trial' && (
+                <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-1">
+                  {language === 'fr' ? 'Offerte pendant l’essai. Ensuite, la vitrine nécessite l’offre BUSINESS.' : 'Free during the trial. Afterwards the storefront requires the BUSINESS plan.'}
+                </p>
+              )}
+              </>
+              )}
             </div>
           )}
 

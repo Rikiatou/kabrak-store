@@ -4,7 +4,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '../../config/prisma';
 import { CreateOrderInput } from './orders.schema';
 
-function generateReference(): string {
+export function generateReference(): string {
   const date = new Date();
   const prefix = 'KB';
   const dateStr = date.toISOString().slice(2, 10).replace(/-/g, '');
@@ -12,7 +12,7 @@ function generateReference(): string {
   return `${prefix}-${dateStr}-${rand}`;
 }
 
-function generatePublicToken(): string {
+export function generatePublicToken(): string {
   return randomBytes(24).toString('hex');
 }
 
