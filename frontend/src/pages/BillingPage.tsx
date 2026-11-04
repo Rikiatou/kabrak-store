@@ -293,37 +293,22 @@ export function BillingPage() {
               <div className="text-center mb-4">
                 <p className="text-3xl font-bold text-blue-600">{formatCurrency(totalAmount)}</p>
                 <p className="text-sm text-muted-foreground">
-                  KABRAK {selectedPlan} × {selectedMonths} mois
+                  KABRAK {selectedPlan} × {selectedMonths} {language === 'en' ? 'month(s)' : 'mois'}
                 </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={handleInitiate}
-                  disabled={initiating}
-                  className="flex items-center gap-4 p-4 border-2 rounded-xl hover:border-orange-500 transition-colors cursor-pointer text-left disabled:opacity-50"
-                >
-                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center font-bold text-white text-sm">
-                    OM
-                  </div>
-                  <div>
-                    <p className="font-semibold">Orange Money</p>
-                    <p className="text-xs text-muted-foreground">Payer via Orange Money</p>
-                  </div>
-                </button>
-                <button
-                  onClick={handleInitiate}
-                  disabled={initiating}
-                  className="flex items-center gap-4 p-4 border-2 rounded-xl hover:border-yellow-500 transition-colors cursor-pointer text-left disabled:opacity-50"
-                >
-                  <div className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center font-bold text-black text-sm">
-                    MTN
-                  </div>
-                  <div>
-                    <p className="font-semibold">MTN Mobile Money</p>
-                    <p className="text-xs text-muted-foreground">Payer via MoMo</p>
-                  </div>
-                </button>
-              </div>
+              <button
+                onClick={handleInitiate}
+                disabled={initiating}
+                className="w-full flex items-center gap-4 p-4 border-2 rounded-xl hover:border-orange-500 transition-colors cursor-pointer text-left disabled:opacity-50"
+              >
+                <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center font-bold text-white text-sm">
+                  OM
+                </div>
+                <div>
+                  <p className="font-semibold">Orange Money</p>
+                  <p className="text-xs text-muted-foreground">{language === 'fr' ? 'Payer via Orange Money' : 'Pay with Orange Money'}</p>
+                </div>
+              </button>
             </CardContent>
           </Card>
         </>

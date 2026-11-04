@@ -2,72 +2,157 @@ import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { PLAN_PRICES } from '../../config/pricing';
 
-export const getDashboard = async (req: Request, res: Response): Promise<void> => {
+type SubLike = { status: string; endDate: Date; trialEndsAt: Date | null } | null | undefined;
+
+// The stored status is only updated when the merchant hits the API, so derive it from the dates.
+export function effectiveStatus(sub: SubLike): string {
+  if (!sub) return 'NONE';
+  if (sub.status === 'CANCELLED') return 'CANCELLED';
+  const end = sub.status === 'TRIAL' ? sub.trialEndsAt ?? sub.endDate : sub.endDate;
+  return end < new Date() ? 'EXPIRED' : sub.status;
+}
+
+function subscriptionEnd(sub: SubLike): Date | null {
+  if (!sub) return null;
+  return sub.status === 'TRIAL' ? sub.trialEndsAt ?? sub.endDate : sub.endDate;
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+function lastMonths(n: number): string[] {
+  const now = new Date();
+  return Array.from({ length: n }, (_, i) => monthKey(new Date(now.getFullYear(), now.getMonth() - (n - 1 - i), 1)));
+}
+
+function withReference<T extends { omOrderId: string | null }>(p: T) {
+  return { ...p, reference: p.omOrderId };
+}
+
+export const getDashboard = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const [
-      totalTenants,
-      activeSubs,
-      expiredSubs,
-      trialSubs,
-      pendingPayments,
-      totalRevenue,
-    ] = await Promise.all([
-      prisma.tenant.count(),
-      prisma.subscription.count({ where: { status: 'ACTIVE' } }),
-      prisma.subscription.count({ where: { status: 'EXPIRED' } }),
-      prisma.subscription.count({ where: { status: 'TRIAL' } }),
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const [tenants, totalUsers, pendingPayments, succeeded] = await Promise.all([
+      prisma.tenant.findMany({
+        select: {
+          id: true, name: true, phone: true, email: true, createdAt: true,
+          subscription: true,
+          users: { where: { role: 'OWNER' }, select: { email: true, phone: true }, take: 1 },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.user.count(),
       prisma.billingPayment.count({ where: { status: 'PENDING' } }),
-      prisma.billingPayment.aggregate({
+      prisma.billingPayment.findMany({
         where: { status: 'SUCCEEDED' },
-        _sum: { amountXAF: true },
+        select: { amountXAF: true, confirmedAt: true, createdAt: true, plan: true },
       }),
     ]);
+
+    const counts = { ACTIVE: 0, TRIAL: 0, EXPIRED: 0, CANCELLED: 0, NONE: 0 } as Record<string, number>;
+    const payingByPlan: Record<string, number> = { STORE: 0, SHOP: 0, BUSINESS: 0 };
+    let mrr = 0;
+    const expiringSoon: Array<Record<string, unknown>> = [];
+    for (const t of tenants) {
+      const status = effectiveStatus(t.subscription);
+      counts[status] = (counts[status] || 0) + 1;
+      if (status === 'ACTIVE' && t.subscription) {
+        mrr += PLAN_PRICES[t.subscription.plan] || t.subscription.priceMonthly;
+        payingByPlan[t.subscription.plan] = (payingByPlan[t.subscription.plan] || 0) + 1;
+      }
+      const end = subscriptionEnd(t.subscription);
+      if ((status === 'ACTIVE' || status === 'TRIAL') && end && end.getTime() - now.getTime() <= 3 * DAY) {
+        expiringSoon.push({
+          id: t.id, name: t.name, plan: t.subscription?.plan, status, endDate: end,
+          phone: t.phone || t.users[0]?.phone || null, email: t.email || t.users[0]?.email || null,
+        });
+      }
+    }
+
+    const months = lastMonths(6);
+    const revenue = Object.fromEntries(months.map((m) => [m, 0]));
+    const signups = Object.fromEntries(months.map((m) => [m, 0]));
+    let totalRevenue = 0;
+    let revenueThisMonth = 0;
+    for (const p of succeeded) {
+      const d = p.confirmedAt ?? p.createdAt;
+      totalRevenue += p.amountXAF;
+      if (d >= monthStart) revenueThisMonth += p.amountXAF;
+      const k = monthKey(d);
+      if (k in revenue) revenue[k] += p.amountXAF;
+    }
+    for (const t of tenants) {
+      const k = monthKey(t.createdAt);
+      if (k in signups) signups[k] += 1;
+    }
 
     res.json({
       success: true,
       data: {
-        totalTenants,
-        activeSubs,
-        expiredSubs,
-        trialSubs,
+        totalTenants: tenants.length,
+        totalUsers,
+        activeSubs: counts.ACTIVE,
+        trialSubs: counts.TRIAL,
+        expiredSubs: counts.EXPIRED,
+        cancelledSubs: counts.CANCELLED,
         pendingPayments,
-        totalRevenue: totalRevenue._sum.amountXAF || 0,
+        totalRevenue,
+        revenueThisMonth,
+        mrr,
+        payingByPlan,
+        newThisWeek: tenants.filter((t) => now.getTime() - t.createdAt.getTime() <= 7 * DAY).length,
+        newThisMonth: tenants.filter((t) => t.createdAt >= monthStart).length,
+        expiringSoon: expiringSoon.sort((a, b) => (a.endDate as Date).getTime() - (b.endDate as Date).getTime()),
+        recentSignups: tenants.slice(0, 5).map((t) => ({
+          id: t.id, name: t.name, createdAt: t.createdAt,
+          plan: t.subscription?.plan, status: effectiveStatus(t.subscription),
+        })),
+        monthly: months.map((m) => ({ month: m, revenue: revenue[m], signups: signups[m] })),
       },
     });
   } catch (error) {
+    console.error('[ADMIN] dashboard error:', error);
     res.status(500).json({ success: false, message: 'Erreur dashboard admin' });
   }
 };
 
 export const getAllTenants = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { search, status, mode } = req.query;
+    const { search, status, mode, plan } = req.query;
     const where: Record<string, unknown> = {};
 
     if (search) {
+      const q = search as string;
       where.OR = [
-        { name: { contains: search as string, mode: 'insensitive' } },
-        { email: { contains: search as string, mode: 'insensitive' } },
+        { name: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { slug: { contains: q, mode: 'insensitive' } },
+        { phone: { contains: q } },
+        { users: { some: { email: { contains: q, mode: 'insensitive' } } } },
       ];
     }
     if (mode) where.businessMode = mode;
+    if (plan) where.plan = plan;
 
     const tenants = await prisma.tenant.findMany({
       where,
       include: {
         subscription: true,
+        users: { where: { role: 'OWNER' }, select: { id: true, firstName: true, lastName: true, email: true, phone: true }, take: 1 },
+        billingPayments: { where: { status: 'PENDING' }, select: { id: true, status: true, amountXAF: true, plan: true, months: true, createdAt: true } },
         _count: { select: { users: true, products: true, orders: true, clients: true, projects: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: 500,
     });
 
-    const filtered = status
-      ? tenants.filter((t) => t.subscription?.status === status)
-      : tenants;
+    const data = tenants.map((t) => ({ ...t, effectiveStatus: effectiveStatus(t.subscription), subscriptionEnd: subscriptionEnd(t.subscription) }));
+    const filtered = status ? data.filter((t) => t.effectiveStatus === status) : data;
 
     res.json({ success: true, data: filtered });
   } catch (error) {
+    console.error('[ADMIN] tenants error:', error);
     res.status(500).json({ success: false, message: 'Erreur listing tenants' });
   }
 };
@@ -79,8 +164,9 @@ export const getTenantDetail = async (req: Request, res: Response): Promise<void
       where: { id: tenantId },
       include: {
         subscription: true,
-        users: { select: { id: true, firstName: true, lastName: true, email: true, role: true, isActive: true } },
-        _count: { select: { products: true, orders: true, clients: true, invoices: true, projects: true } },
+        users: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, isActive: true, createdAt: true } },
+        billingPayments: { orderBy: { createdAt: 'desc' }, take: 50 },
+        _count: { select: { products: true, orders: true, clients: true, invoices: true, projects: true, expenses: true, cashSessions: true } },
       },
     });
 
@@ -89,8 +175,32 @@ export const getTenantDetail = async (req: Request, res: Response): Promise<void
       return;
     }
 
-    res.json({ success: true, data: tenant });
+    const since30 = new Date(Date.now() - 30 * DAY);
+    const notCancelled = { tenantId, status: { not: 'CANCELLED' as const } };
+    const [allTime, last30, lastOrder] = await Promise.all([
+      prisma.order.aggregate({ where: notCancelled, _sum: { finalAmount: true }, _count: { id: true } }),
+      prisma.order.aggregate({ where: { ...notCancelled, createdAt: { gte: since30 } }, _sum: { finalAmount: true }, _count: { id: true } }),
+      prisma.order.findFirst({ where: { tenantId }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        ...tenant,
+        billingPayments: tenant.billingPayments.map(withReference),
+        effectiveStatus: effectiveStatus(tenant.subscription),
+        subscriptionEnd: subscriptionEnd(tenant.subscription),
+        activity: {
+          salesCount: allTime._count.id,
+          salesTotal: allTime._sum.finalAmount || 0,
+          salesCount30d: last30._count.id,
+          salesTotal30d: last30._sum.finalAmount || 0,
+          lastSaleAt: lastOrder?.createdAt || null,
+        },
+      },
+    });
   } catch (error) {
+    console.error('[ADMIN] tenant detail error:', error);
     res.status(500).json({ success: false, message: 'Erreur détail tenant' });
   }
 };
@@ -189,7 +299,7 @@ export const getPendingPayments = async (_req: Request, res: Response): Promise<
       },
       orderBy: { createdAt: 'desc' },
     });
-    res.json({ success: true, data: payments });
+    res.json({ success: true, data: payments.map(withReference) });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Erreur listing paiements' });
   }
@@ -203,12 +313,12 @@ export const getAllPayments = async (req: Request, res: Response): Promise<void>
     const payments = await prisma.billingPayment.findMany({
       where,
       include: {
-        tenant: { select: { id: true, name: true, phone: true, email: true } },
+        tenant: { select: { id: true, name: true, phone: true, email: true, plan: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 100,
+      take: 300,
     });
-    res.json({ success: true, data: payments });
+    res.json({ success: true, data: payments.map(withReference) });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Erreur listing paiements' });
   }
@@ -323,6 +433,7 @@ export const deleteTenant = async (req: Request, res: Response): Promise<void> =
     // Delete all tenant data in dependency order
     await prisma.$transaction([
       prisma.billingPayment.deleteMany({ where: { tenantId } }),
+      prisma.cashSession.deleteMany({ where: { tenantId } }),
       prisma.notification.deleteMany({ where: { tenantId } }),
       prisma.loyaltyReward.deleteMany({ where: { tenantId } }),
       prisma.orderItem.deleteMany({ where: { order: { tenantId } } }),
@@ -353,21 +464,33 @@ export const deleteTenant = async (req: Request, res: Response): Promise<void> =
 
 export const getAnalytics = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const [byPlan, byMode, revenueByMonth] = await Promise.all([
+    const [byPlan, byMode, tenants, succeeded] = await Promise.all([
       prisma.tenant.groupBy({ by: ['plan'], _count: { id: true } }),
       prisma.tenant.groupBy({ by: ['businessMode'], _count: { id: true } }),
-      prisma.billingPayment.groupBy({
-        by: ['createdAt'],
-        where: { status: 'SUCCEEDED' },
-        _sum: { amountXAF: true },
-      }),
+      prisma.tenant.findMany({ select: { businessCategories: true } }),
+      prisma.billingPayment.findMany({ where: { status: 'SUCCEEDED' }, select: { amountXAF: true, confirmedAt: true, createdAt: true } }),
     ]);
+
+    const months = lastMonths(12);
+    const revenue = Object.fromEntries(months.map((m) => [m, 0]));
+    for (const p of succeeded) {
+      const k = monthKey(p.confirmedAt ?? p.createdAt);
+      if (k in revenue) revenue[k] += p.amountXAF;
+    }
+    const byCategory: Record<string, number> = {};
+    for (const t of tenants) for (const c of t.businessCategories) byCategory[c] = (byCategory[c] || 0) + 1;
 
     res.json({
       success: true,
-      data: { byPlan, byMode, revenueByMonth },
+      data: {
+        byPlan,
+        byMode,
+        byCategory: Object.entries(byCategory).map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count),
+        revenueByMonth: months.map((m) => ({ month: m, revenue: revenue[m] })),
+      },
     });
   } catch (error) {
+    console.error('[ADMIN] analytics error:', error);
     res.status(500).json({ success: false, message: 'Erreur analytics' });
   }
 };

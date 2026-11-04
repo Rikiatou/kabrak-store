@@ -1,13 +1,7 @@
 import cron from 'node-cron';
 import { prisma } from '../config/prisma';
+import { generateInvoiceNumber } from '../utils/invoiceNumber';
 
-function generateInvoiceNumber(): string {
-  const date = new Date();
-  const y = date.getFullYear().toString().slice(2);
-  const m = (date.getMonth() + 1).toString().padStart(2, '0');
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `FAC-${y}${m}-${rand}`;
-}
 
 function getNextBillingDate(current: Date, frequency: string): Date {
   const next = new Date(current);
@@ -55,7 +49,7 @@ async function processRecurringBillings(): Promise<void> {
 
       const invoice = await prisma.invoice.create({
         data: {
-          invoiceNumber: generateInvoiceNumber(),
+          invoiceNumber: await generateInvoiceNumber(item.tenantId),
           totalAmount: item.amount,
           amountPaid: 0,
           amountDue: item.amount,
