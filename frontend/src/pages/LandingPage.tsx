@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import {
   ArrowRight, Check, ChevronDown, ChevronUp, Globe, MessageCircle, Minus,
-  WifiOff, Ruler, HandCoins, ClipboardCheck, Receipt, TrendingUp, X,
+  WifiOff, Ruler, HandCoins, ClipboardCheck, Receipt, TrendingUp, X, Store, Users,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -16,6 +16,7 @@ const faqsFR = [
   { q: 'Combien de personnes peuvent l\'utiliser ?', a: 'STORE : 1 personne. SHOP : 3 personnes. BUSINESS : sans limite, avec plusieurs magasins. Chaque vendeuse a son propre accès.' },
   { q: 'Si je perds mon téléphone, je perds tout ?', a: 'Non. Vos données sont enregistrées sur nos serveurs, pas seulement sur le téléphone. Vous vous reconnectez sur un autre appareil et vous retrouvez tout. Vous pouvez aussi exporter vos données à tout moment.' },
   { q: 'Y a-t-il un essai gratuit ?', a: '7 jours gratuits avec toutes les fonctions. Aucune carte bancaire.' },
+  { q: 'C\'est quoi la boutique en ligne ?', a: 'Avec l\'offre BUSINESS, vous avez un lien (kabrak-store.kabrakeng.com/storefront/votre-boutique) à partager. Vos clientes voient vos produits avec photos et prix, choisissent taille et couleur, remplissent un panier et envoient la commande. Elle arrive dans Commandes et sur votre WhatsApp, et le stock est réservé. Elle est offerte sur toutes les offres pendant les 7 jours d\'essai.' },
 ];
 const faqsEN = [
   { q: 'Does it work without internet?', a: 'Yes for the cash register. If the connection drops you keep selling: sales are kept on the phone and sent automatically when internet is back, without duplicates. The app must have been opened once online on that device.' },
@@ -25,6 +26,7 @@ const faqsEN = [
   { q: 'How many people can use it?', a: 'STORE: 1 person. SHOP: 3 people. BUSINESS: unlimited, with several stores. Each seller has their own login.' },
   { q: 'If I lose my phone, do I lose everything?', a: 'No. Your data is stored on our servers, not only on the phone. Log in on another device and everything is there. You can also export your data at any time.' },
   { q: 'Is there a free trial?', a: '7 days free with every feature. No bank card.' },
+  { q: 'What is the online shop?', a: 'With the BUSINESS plan you get a link (kabrak-store.kabrakeng.com/storefront/your-shop) to share. Customers see your products with photos and prices, pick size and colour, fill a cart and send the order. It lands in Orders and on your WhatsApp, and stock is reserved. It is included on every plan during the 7-day trial.' },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -57,9 +59,11 @@ export function LandingPage() {
     { icon: WifiOff, title: fr ? 'Caisse qui marche sans internet' : 'A register that works offline', text: fr ? 'Coupure de réseau ? Vous vendez quand même. Tout se synchronise au retour de la connexion.' : 'Network down? Keep selling. Everything syncs when the connection is back.' },
     { icon: Ruler, title: fr ? 'Stock par taille et couleur' : 'Stock by size and colour', text: fr ? 'Robe M : 4, L : 2. La vente d\'une taille baisse son stock, l\'annulation le remet.' : 'Dress M: 4, L: 2. Selling a size lowers its stock, cancelling puts it back.' },
     { icon: HandCoins, title: fr ? 'Dettes clients et rappel WhatsApp' : 'Client debts and WhatsApp reminders', text: fr ? 'Qui vous doit combien, depuis quand. Un clic pour envoyer un rappel poli sur WhatsApp.' : 'Who owes you what, since when. One tap to send a polite WhatsApp reminder.' },
-    { icon: ClipboardCheck, title: fr ? 'Clôture du jour' : 'Daily closing', text: fr ? 'Ventes, espèces, Orange Money, MTN, dépenses et bénéfice du jour, par vendeuse. À envoyer à la patronne sur WhatsApp.' : 'Sales, cash, Orange Money, MTN, expenses and profit of the day, per seller. Send it to the owner on WhatsApp.' },
+    { icon: ClipboardCheck, title: fr ? 'Ouverture, fermeture de caisse et rapport Z' : 'Open / close the drawer, Z report', text: fr ? 'Fond de caisse le matin, comptage le soir : KABRAK calcule l\'écart (manque ou surplus) et imprime le Z en ticket 58/80 mm ou l\'envoie sur WhatsApp.' : 'Float in the morning, count at night: KABRAK computes the difference (short or over) and prints the Z on a 58/80 mm receipt or sends it on WhatsApp.' },
+    { icon: Users, title: fr ? 'Qui a vendu quoi' : 'Who sold what', text: fr ? 'Chaque vendeuse a son accès. Le soir, vous voyez ses ventes, ses articles et son total, sans fouiller le cahier.' : 'Each seller has her own login. At night you see her sales, items and total, no notebook needed.' },
     { icon: Receipt, title: fr ? 'Factures et tickets' : 'Invoices and receipts', text: fr ? 'Facture PDF avec votre logo, reçu WhatsApp, ticket pour imprimante 80 mm.' : 'PDF invoice with your logo, WhatsApp receipt, 80 mm printer ticket.' },
     { icon: TrendingUp, title: fr ? 'Votre vrai bénéfice' : 'Your real profit', text: fr ? 'Prix d\'achat enregistré à chaque vente, moins le loyer, le transport et les salaires.' : 'Purchase price saved with every sale, minus rent, transport and salaries.' },
+    { icon: Store, badge: 'BUSINESS', title: fr ? 'Votre boutique en ligne' : 'Your online shop', text: fr ? 'Un lien à partager sur WhatsApp et Instagram : vos clientes choisissent taille et couleur, remplissent un panier, et la commande arrive dans KABRAK et sur votre WhatsApp.' : 'One link to share on WhatsApp and Instagram: customers pick size and colour, fill a cart, and the order lands in KABRAK and on your WhatsApp.' },
   ];
 
   const businesses = fr
@@ -73,6 +77,8 @@ export function LandingPage() {
     { label: fr ? 'Liste des dettes + rappel WhatsApp' : 'Debt list + WhatsApp reminder', cahier: false, excel: false, kabrak: true },
     { label: fr ? 'Bénéfice réel (achats et dépenses déduits)' : 'Real profit (cost and expenses deducted)', cahier: false, excel: 'partial', kabrak: true },
     { label: fr ? 'Plusieurs vendeuses, chacune son accès' : 'Several sellers, each with a login', cahier: false, excel: false, kabrak: true },
+    { label: fr ? 'Rapport Z : écart de caisse calculé' : 'Z report: drawer difference computed', cahier: false, excel: 'partial', kabrak: true },
+    { label: fr ? 'Boutique en ligne avec panier' : 'Online shop with cart', cahier: false, excel: false, kabrak: true },
     { label: fr ? 'Rien n\'est perdu si le téléphone est perdu' : 'Nothing lost if the phone is lost', cahier: false, excel: 'partial', kabrak: true },
   ];
 
@@ -81,8 +87,8 @@ export function LandingPage() {
       name: 'STORE', price: '4 900', perDay: fr ? 'soit 163 FCFA par jour' : 'about 163 FCFA a day',
       who: fr ? 'Pour une vendeuse seule' : 'For a single seller', users: fr ? '1 utilisateur' : '1 user',
       features: fr
-        ? ['Caisse, hors ligne compris', 'Produits, tailles et stock', 'Clients et dettes', 'Factures et reçus WhatsApp', 'Clôture du jour', 'Dépenses et bénéfice net', 'Agenda des commandes']
-        : ['Register, offline included', 'Products, sizes and stock', 'Clients and debts', 'Invoices and WhatsApp receipts', 'Daily closing', 'Expenses and net profit', 'Order agenda'],
+        ? ['Caisse, hors ligne compris', 'Ouverture / fermeture de caisse, rapport Z', 'Produits, tailles et stock', 'Clients et dettes', 'Factures et reçus WhatsApp', 'Clôture du jour', 'Dépenses et bénéfice net', 'Agenda des commandes']
+        : ['Register, offline included', 'Open / close drawer, Z report', 'Products, sizes and stock', 'Clients and debts', 'Invoices and WhatsApp receipts', 'Daily closing', 'Expenses and net profit', 'Order agenda'],
     },
     {
       name: 'SHOP', price: '9 900', perDay: fr ? 'soit 330 FCFA par jour' : 'about 330 FCFA a day', popular: true,
@@ -95,8 +101,8 @@ export function LandingPage() {
       name: 'BUSINESS', price: '14 900', perDay: fr ? 'soit 497 FCFA par jour' : 'about 497 FCFA a day',
       who: fr ? 'Pour plusieurs magasins' : 'For several stores', users: fr ? 'Utilisateurs illimités' : 'Unlimited users',
       features: fr
-        ? ['Tout SHOP', 'Plusieurs magasins', 'Vitrine en ligne et commande WhatsApp', 'Rapports IA']
-        : ['Everything in SHOP', 'Several stores', 'Online catalogue and WhatsApp ordering', 'AI reports'],
+        ? ['Tout SHOP', 'Plusieurs magasins', 'Boutique en ligne : panier, tailles, couleurs', 'Commandes en ligne enregistrées + WhatsApp', 'Rapports IA']
+        : ['Everything in SHOP', 'Several stores', 'Online shop: cart, sizes, colours', 'Online orders saved + WhatsApp', 'AI reports'],
     },
   ];
 
@@ -152,10 +158,13 @@ export function LandingPage() {
       <section className="py-16 px-5 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold">{fr ? 'Ce que vous faites chaque jour, en plus simple' : 'What you do every day, made simpler'}</h2>
-          <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map(({ icon: Icon, title, text }) => (
+          <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map(({ icon: Icon, title, text, badge }: { icon: typeof Store; title: string; text: string; badge?: string }) => (
               <div key={title} className="bg-white rounded-xl border border-gray-200 p-6">
-                <Icon className="w-6 h-6 text-blue-600" />
+                <div className="flex items-center justify-between">
+                  <Icon className="w-6 h-6 text-blue-600" />
+                  {badge && <span className="text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{fr ? `Offre ${badge}` : `${badge} plan`}</span>}
+                </div>
                 <h3 className="mt-4 font-semibold">{title}</h3>
                 <p className="mt-2 text-sm text-gray-600 leading-relaxed">{text}</p>
               </div>
