@@ -4,9 +4,22 @@ import axios from 'axios';
  * Extracts a human-readable message from an axios/unknown error.
  * Prefers the backend's `response.data.message`, then axios message, then a fallback.
  */
+const CODE_MESSAGES: Record<string, { fr: string; en: string }> = {
+  PLAN_REQUIRED: {
+    fr: 'Cette fonction nécessite une offre supérieure. Changez d’offre dans Abonnement.',
+    en: 'This feature requires a higher plan. Upgrade in Billing.',
+  },
+  AI_UNAVAILABLE: {
+    fr: 'Le rapport IA est indisponible pour le moment. Réessayez plus tard.',
+    en: 'The AI report is unavailable right now. Please try again later.',
+  },
+};
+
 export function getApiErrorMessage(err: unknown, fallback = 'Une erreur est survenue'): string {
   if (axios.isAxiosError(err)) {
-    const data = err.response?.data as { message?: string; error?: string } | undefined;
+    const data = err.response?.data as { message?: string; error?: string; code?: string } | undefined;
+    const known = data?.code ? CODE_MESSAGES[data.code] : undefined;
+    if (known) return localStorage.getItem('kabrak_lang') === 'en' ? known.en : known.fr;
     return data?.message || data?.error || err.message || fallback;
   }
   if (err instanceof Error && err.message) return err.message;

@@ -8,6 +8,6 @@ export const PLAN_PRICES: Record<string, number> = {
 
 export const PLAN_LIMITS: Record<string, { stores: number; users: number; aiReportsPerMonth: number }> = {
   STORE: { stores: 1, users: 1, aiReportsPerMonth: 0 },
-  SHOP: { stores: 1, users: 3, aiReportsPerMonth: 3 },
+  SHOP: { stores: 1, users: 3, aiReportsPerMonth: 0 },
   BUSINESS: { stores: 999, users: 999, aiReportsPerMonth: 999 },
 };
