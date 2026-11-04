@@ -22,6 +22,7 @@ import { ServicesPage } from './pages/ServicesPage';
 import { RecurringPage } from './pages/RecurringPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { useAuthStore } from './stores/authStore';
+import { LoadingState } from './components/ui/spinner';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token);
@@ -31,7 +32,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function ModeGuard({ mode, children }: { mode: 'PRODUCT' | 'SERVICE'; children: React.ReactNode }) {
   const tenant = useAuthStore((s) => s.tenant);
-  const businessMode = tenant?.businessMode || 'PRODUCT';
+  if (!tenant) return <LoadingState />;
+  const businessMode = tenant.businessMode || 'PRODUCT';
   if (businessMode !== mode) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }

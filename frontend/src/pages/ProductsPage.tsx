@@ -1,12 +1,22 @@
 import { useEffect, useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, Spinner } from '@/components/ui/spinner';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { getErrorMessage } from '@/lib/errors';
+import { downloadFile } from '@/lib/download';
+import { businessTypeKey } from '@/lib/businessType';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Search, Package, Pencil, Trash2, X, ScanLine, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Package, Pencil, Trash2, ScanLine, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -25,28 +35,28 @@ interface Product {
   category?: { id: string; name: string } | null;
 }
 
-const ADAPTIVE_FIELDS: Record<string, { label: string; labelEn: string; fields: string[] }> = {
-  CLOTHING: { label: 'Vêtements', labelEn: 'Clothing', fields: ['color', 'sizes'] },
-  SHOES: { label: 'Chaussures', labelEn: 'Shoes', fields: ['brand', 'color', 'sizes'] },
-  PERFUMES: { label: 'Parfums', labelEn: 'Perfumes', fields: ['brand', 'volume'] },
-  COSMETICS: { label: 'Cosmétiques', labelEn: 'Cosmetics', fields: ['brand', 'type'] },
-  HIJABS_ABAYAS: { label: 'Hijabs/Abayas', labelEn: 'Hijabs/Abayas', fields: ['color', 'sizes'] },
-  JEWELRY: { label: 'Bijoux', labelEn: 'Jewelry', fields: ['material', 'type'] },
-  BAGS: { label: 'Sacs', labelEn: 'Bags', fields: ['brand', 'color', 'material'] },
-  ELECTRONICS: { label: 'Électronique', labelEn: 'Electronics', fields: ['brand', 'model', 'warranty'] },
-  HOUSE_PRODUCTS: { label: 'Maison', labelEn: 'House', fields: ['type', 'material'] },
-  KITCHEN_PRODUCTS: { label: 'Cuisine', labelEn: 'Kitchen', fields: ['type', 'material'] },
-  DECORATION: { label: 'Décoration', labelEn: 'Decoration', fields: ['type', 'color'] },
-  MINI_MARKET: { label: 'Mini Market', labelEn: 'Mini Market', fields: ['brand', 'weight'] },
-  WHOLESALE: { label: 'Grossiste', labelEn: 'Wholesale', fields: ['brand', 'minQuantity'] },
-  MIXED_SHOP: { label: 'Boutique Mixte', labelEn: 'Mixed Shop', fields: ['type'] },
-  CAKES: { label: 'Gâteaux', labelEn: 'Cakes', fields: ['flavors', 'sizes', 'deliveryDate'] },
-  FOOD_BUSINESS: { label: 'Food Business', labelEn: 'Food Business', fields: ['menuItems', 'portions'] },
-  FOOD_DELIVERY: { label: 'Food Delivery', labelEn: 'Food Delivery', fields: ['menuItems', 'deliveryZone'] },
-  HOME_COOKING: { label: 'Cuisine Maison', labelEn: 'Home Cooking', fields: ['menuItems', 'portions'] },
-  WHATSAPP_SELLER: { label: 'Vendeur WhatsApp', labelEn: 'WhatsApp Seller', fields: ['color', 'sizes'] },
-  MADE_TO_ORDER: { label: 'Sur Commande', labelEn: 'Made to Order', fields: ['measurements', 'deliveryDate', 'deposit'] },
-  OTHER: { label: 'Autre', labelEn: 'Other', fields: [] },
+const ADAPTIVE_FIELDS: Record<string, string[]> = {
+  CLOTHING: ['color', 'sizes'],
+  SHOES: ['brand', 'color', 'sizes'],
+  PERFUMES: ['brand', 'volume'],
+  COSMETICS: ['brand', 'type'],
+  HIJABS_ABAYAS: ['color', 'sizes'],
+  JEWELRY: ['material', 'type'],
+  BAGS: ['brand', 'color', 'material'],
+  ELECTRONICS: ['brand', 'model', 'warranty'],
+  HOUSE_PRODUCTS: ['type', 'material'],
+  KITCHEN_PRODUCTS: ['type', 'material'],
+  DECORATION: ['type', 'color'],
+  MINI_MARKET: ['brand', 'weight'],
+  WHOLESALE: ['brand', 'minQuantity'],
+  MIXED_SHOP: ['type'],
+  CAKES: ['flavors', 'sizes', 'deliveryDate'],
+  FOOD_BUSINESS: ['menuItems', 'portions'],
+  FOOD_DELIVERY: ['menuItems', 'deliveryZone'],
+  HOME_COOKING: ['menuItems', 'portions'],
+  WHATSAPP_SELLER: ['color', 'sizes'],
+  MADE_TO_ORDER: ['measurements', 'deliveryDate', 'deposit'],
+  OTHER: [],
 };
 
 const defaultForm = {
@@ -58,6 +68,8 @@ const defaultForm = {
 export function ProductsPage() {
   const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
+  const confirm = useConfirm();
+  const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -77,15 +89,17 @@ export function ProductsPage() {
       const totalCount = data.pagination?.total || data.data.length;
       setTotal(totalCount);
       setTotalPages(Math.max(1, Math.ceil(totalCount / PAGE_SIZE)));
-    } catch (err) { console.error(err); }
+    } catch (err) { toast.error(getErrorMessage(err, t('common.loadError'))); }
     finally { setLoading(false); }
-  }, [search, page]);
+  }, [search, page, t]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
   useEffect(() => { setPage(1); }, [search]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.sellingPrice <= 0) { toast.error(t('products.priceError')); return; }
+    setSaving(true);
     try {
       if (editingId) {
         await api.put(`/products/${editingId}`, form);
@@ -95,8 +109,10 @@ export function ProductsPage() {
       setShowForm(false);
       setEditingId(null);
       setForm(defaultForm);
+      toast.success(t('common.saved'));
       fetchProducts();
-    } catch (err) { console.error(err); }
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+    finally { setSaving(false); }
   };
 
   const handleEdit = (product: Product) => {
@@ -115,11 +131,12 @@ export function ProductsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(t('common.confirm') + '?')) return;
+    if (!(await confirm({ title: t('products.deleteTitle'), description: t('common.deleteDesc') }))) return;
     try {
       await api.delete(`/products/${id}`);
+      toast.success(t('common.deleted'));
       fetchProducts();
-    } catch (err) { console.error(err); }
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
   };
 
   const handleBarcodeScan = async (code: string) => {
@@ -130,21 +147,15 @@ export function ProductsPage() {
         setShowScanner(false);
       }
     } catch {
-      alert('Produit non trouvé pour ce code');
+      toast.error(t('products.notFoundBarcode'));
     }
   };
 
   const handleExport = async () => {
     try {
-      const res = await api.get('/exports/products', { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `produits-${Date.now()}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadFile('/exports/products', `products-${Date.now()}.csv`);
     } catch (err) {
-      console.error(err);
+      toast.error(getErrorMessage(err, t('common.exportError')));
     }
   };
 
@@ -153,22 +164,19 @@ export function ProductsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <h1 className="text-xl sm:text-2xl font-bold">{t('products.title')}</h1>
-        <div className="flex gap-2 flex-wrap">
+      <PageHeader title={t('products.title')} actions={<>
           <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">CSV</span>
+            <Download className="w-4 h-4 mr-1.5" /> {t('common.exportCsv')}
           </Button>
           {canScan && (
             <Button variant="outline" size="sm" onClick={() => setShowScanner(true)}>
-              <ScanLine className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Scanner</span>
+              <ScanLine className="w-4 h-4 mr-1.5" /> {t('common.scanner')}
             </Button>
           )}
           <Button size="sm" onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> {t('products.addProduct')}
+            <Plus className="w-4 h-4 mr-1.5" /> {t('products.addProduct')}
           </Button>
-        </div>
-      </div>
+      </>} />
 
       {/* Search */}
       <div className="relative">
@@ -182,64 +190,60 @@ export function ProductsPage() {
       </div>
 
       {/* Form Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>{editingId ? t('common.edit') : t('products.addProduct')}</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}><X className="w-4 h-4" /></Button>
-            </CardHeader>
-            <CardContent>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editingId ? t('products.editProduct') : t('products.addProduct')}</DialogTitle></DialogHeader>
+            <div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-1 block">{t('products.name')}</label>
-                  <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                  <Label htmlFor="p-name">{t('products.name')} *</Label>
+                  <Input id="p-name" autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-1 block">{t('products.category')}</label>
+                  <Label>{t('products.type')}</Label>
                   <div className="flex flex-wrap gap-2">
                     {businessTypes.map((bt) => (
                       <button key={bt} type="button"
                         onClick={() => setForm({ ...form, businessType: bt })}
                         className={cn('px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer',
-                          form.businessType === bt ? 'bg-kabrak-500 text-white border-kabrak-500' : 'border-border hover:border-kabrak-300'
+                          form.businessType === bt ? 'bg-primary text-primary-foreground border-primary' : 'border-border hover:border-primary/50 hover:bg-accent'
                         )}>
-                        {ADAPTIVE_FIELDS[bt]?.label || bt}
+                        {t(businessTypeKey(bt))}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">{t('products.costPrice')} (FCFA)</label>
-                    <Input type="number" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: +e.target.value })} />
+                    <Label>{t('products.costPrice')} (FCFA)</Label>
+                    <Input type="number" min={0} inputMode="numeric" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: +e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">{t('products.sellingPrice')} (FCFA)</label>
-                    <Input type="number" value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: +e.target.value })} />
+                    <Label>{t('products.sellingPrice')} (FCFA)</Label>
+                    <Input type="number" min={0} inputMode="numeric" required value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: +e.target.value })} />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">{t('products.stock')}</label>
-                    <Input type="number" value={form.totalStock} onChange={(e) => setForm({ ...form, totalStock: +e.target.value })} />
+                    <Label>{t('products.stock')}</Label>
+                    <Input type="number" min={0} inputMode="numeric" value={form.totalStock} onChange={(e) => setForm({ ...form, totalStock: +e.target.value })} />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">{t('products.lowStock')}</label>
-                    <Input type="number" value={form.lowStockAlert} onChange={(e) => setForm({ ...form, lowStockAlert: +e.target.value })} />
+                    <Label>{t('products.lowStock')}</Label>
+                    <Input type="number" min={0} inputMode="numeric" value={form.lowStockAlert} onChange={(e) => setForm({ ...form, lowStockAlert: +e.target.value })} />
                   </div>
                 </div>
 
                 {/* Adaptive Fields */}
-                {form.businessType && ADAPTIVE_FIELDS[form.businessType]?.fields.map((field) => (
+                {form.businessType && ADAPTIVE_FIELDS[form.businessType]?.map((field) => (
                   <div key={field}>
-                    <label className="text-sm font-medium mb-1 block capitalize">{field}</label>
+                    <Label>{t(`productFields.${field}`)}</Label>
                     {field === 'sizes' ? (
                       <Input
-                        placeholder="Ex: S:5, M:10, L:7"
+                        placeholder={t('products.sizesHint')}
                         value={typeof form.adaptiveFields[field] === 'string' ? form.adaptiveFields[field] as string : ''}
                         onChange={(e) => setForm({ ...form, adaptiveFields: { ...form.adaptiveFields, [field]: e.target.value } })}
                       />
@@ -252,30 +256,23 @@ export function ProductsPage() {
                   </div>
                 ))}
 
-                <div className="flex gap-3 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">
-                    {t('common.cancel')}
-                  </Button>
-                  <Button type="submit" className="flex-1">
-                    {t('common.save')}
-                  </Button>
-                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+                  <Button type="submit" disabled={saving}>{saving && <Spinner className="mr-2" />}{t('common.save')}</Button>
+                </DialogFooter>
               </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Products Grid */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kabrak-500" />
-        </div>
+        <LoadingState />
       ) : products.length === 0 ? (
-        <div className="text-center py-12">
-          <Package className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground">{t('common.noResults')}</p>
-        </div>
+        search ? <EmptyState icon={Search} title={t('common.noResults')} /> : (
+          <EmptyState icon={Package} title={t('products.empty')} description={t('products.emptyDesc')}
+            action={<Button onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}><Plus className="w-4 h-4 mr-2" /> {t('products.addProduct')}</Button>} />
+        )
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
@@ -285,10 +282,10 @@ export function ProductsPage() {
                   <div className="flex items-start justify-between mb-2 sm:mb-3">
                     <div className="min-w-0 flex-1 mr-2">
                       <h3 className="font-semibold text-sm truncate">{product.name}</h3>
-                      <p className="text-xs text-muted-foreground">{ADAPTIVE_FIELDS[product.businessType]?.label || product.businessType}</p>
+                      <p className="text-xs text-muted-foreground">{t(businessTypeKey(product.businessType))}</p>
                     </div>
-                    <Badge variant={product.totalStock <= product.lowStockAlert ? 'warning' : 'secondary'} className="shrink-0 text-xs">
-                      {product.totalStock}
+                    <Badge variant={product.totalStock <= product.lowStockAlert ? 'warning' : 'secondary'} className="shrink-0 text-xs" title={t('products.stock')}>
+                      {product.totalStock} {t('products.inStock')}
                     </Badge>
                   </div>
 
@@ -299,7 +296,7 @@ export function ProductsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.sellingPrice')}</p>
-                      <p className="text-xs sm:text-sm font-bold text-kabrak-500">{formatCurrency(product.sellingPrice)}</p>
+                      <p className="text-xs sm:text-sm font-bold text-primary">{formatCurrency(product.sellingPrice)}</p>
                     </div>
                   </div>
 
@@ -307,7 +304,7 @@ export function ProductsPage() {
                     <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => handleEdit(product)}>
                       <Pencil className="w-3 h-3 mr-1" /> {t('common.edit')}
                     </Button>
-                    <Button variant="outline" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(product.id)}>
+                    <Button variant="outline" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(product.id)} aria-label={t('common.delete')} title={t('common.delete')}>
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>

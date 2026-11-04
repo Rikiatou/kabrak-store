@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState } from '@/components/ui/spinner';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
-import { formatCurrency } from '@/lib/utils';
-import { BarChart3, TrendingUp, DollarSign, ShoppingCart, Download, FolderKanban, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { cn, formatCurrency } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/errors';
+import { downloadFile } from '@/lib/download';
+import { BarChart3, TrendingUp, DollarSign, ShoppingCart, Download, FolderKanban, FileText, Trophy, type LucideIcon } from 'lucide-react';
 import api from '@/lib/api';
 
 interface SalesReport {
@@ -27,8 +32,31 @@ interface ServiceReport {
   }>;
 }
 
+function StatCard({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: string | number; tone: string }) {
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-4 p-4">
+        <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-lg', tone)}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm text-muted-foreground">{label}</p>
+          <p className="truncate text-xl font-bold sm:text-2xl">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const TONES = {
+  primary: 'bg-primary/10 text-primary',
+  gold: 'bg-gold-100 text-gold-600 dark:bg-gold-500/15 dark:text-gold-400',
+  green: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400',
+  amber: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+};
+
 export function ReportsPage() {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const businessMode = tenant?.businessMode || 'PRODUCT';
   const [report, setReport] = useState<SalesReport | null>(null);
@@ -36,6 +64,7 @@ export function ReportsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const onError = (err: unknown) => toast.error(getErrorMessage(err, t('common.loadError')));
     if (businessMode === 'SERVICE') {
       api.get('/projects')
         .then((res) => {
@@ -45,122 +74,72 @@ export function ReportsPage() {
           const totalPending = projects.reduce((s: number, p: { amountRemaining: number }) => s + (p.amountRemaining || 0), 0);
           setServiceReport({ totalProjects: projects.length, activeProjects: active.length, totalRevenue, totalPending, projects });
         })
-        .catch(console.error)
+        .catch(onError)
         .finally(() => setLoading(false));
     } else {
       api.get('/reports/sales')
         .then((res) => setReport(res.data.data))
-        .catch(console.error)
+        .catch(onError)
         .finally(() => setLoading(false));
     }
-  }, [businessMode]);
+  }, [businessMode, t]);
 
   const exportData = async (type: string) => {
     try {
-      const res = await api.get(`/exports/${type}`, { responseType: 'blob' });
-      const url = URL.createObjectURL(res.data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${type}-${Date.now()}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadFile(`/exports/${type}`, `${type}-${Date.now()}.csv`);
     } catch (err) {
-      console.error(err);
+      toast.error(getErrorMessage(err, t('common.exportError')));
     }
   };
 
-  if (loading) {
-    return <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kabrak-500" /></div>;
-  }
+  if (loading) return <LoadingState />;
 
   if (businessMode === 'SERVICE') {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold dark:text-white">{t('nav.reports')}</h1>
-          <Button variant="outline" size="sm" onClick={() => exportData('clients')}>
-            <Download className="w-4 h-4 mr-1" /> Clients
-          </Button>
+        <PageHeader
+          title={t('nav.reports')}
+          actions={
+            <Button variant="outline" size="sm" onClick={() => exportData('clients')}>
+              <Download className="mr-1.5 h-4 w-4" /> {t('reports.exportClients')}
+            </Button>
+          }
+        />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard icon={FolderKanban} tone={TONES.primary} label={t('reports.totalProjects')} value={serviceReport?.totalProjects || 0} />
+          <StatCard icon={FolderKanban} tone={TONES.gold} label={t('reports.activeProjects')} value={serviceReport?.activeProjects || 0} />
+          <StatCard icon={DollarSign} tone={TONES.green} label={t('reports.revenueReceived')} value={formatCurrency(serviceReport?.totalRevenue || 0)} />
+          <StatCard icon={FileText} tone={TONES.amber} label={t('reports.pendingPayments')} value={formatCurrency(serviceReport?.totalPending || 0)} />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-l-4 border-l-violet-500">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                <FolderKanban className="w-6 h-6 text-violet-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Total Projets' : 'Total Projects'}</p>
-                <p className="text-2xl font-bold dark:text-white">{serviceReport?.totalProjects || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-blue-500">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <FolderKanban className="w-6 h-6 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Projets Actifs' : 'Active Projects'}</p>
-                <p className="text-2xl font-bold dark:text-white">{serviceReport?.activeProjects || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-green-500">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                <DollarSign className="w-6 h-6 text-green-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Revenus Reçus' : 'Revenue Received'}</p>
-                <p className="text-2xl font-bold dark:text-white">{formatCurrency(serviceReport?.totalRevenue || 0)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-amber-500">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                <FileText className="w-6 h-6 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Paiements en Attente' : 'Pending Payments'}</p>
-                <p className="text-2xl font-bold dark:text-white">{formatCurrency(serviceReport?.totalPending || 0)}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Projects list */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 dark:text-white">
-              <FolderKanban className="w-5 h-5 text-violet-500" />
-              {language === 'fr' ? 'Tous les projets' : 'All Projects'}
+            <CardTitle className="flex items-center gap-2 text-base">
+              <FolderKanban className="h-5 w-5 text-muted-foreground" /> {t('reports.allProjects')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             {serviceReport?.projects?.length ? (
               <div className="space-y-2">
                 {serviceReport.projects.map((project) => (
-                  <div key={project.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div>
-                      <p className="font-medium dark:text-white">{project.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {project.client?.name || (language === 'fr' ? 'Pas de client' : 'No client')}
-                      </p>
+                  <div key={project.id} className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{project.name}</p>
+                      <p className="text-xs text-muted-foreground">{project.client?.name || t('dashboard.noClient')}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold dark:text-white">{formatCurrency(project.totalBudget)}</p>
-                      <div className="flex gap-2 text-xs">
-                        <span className="text-green-600">{language === 'fr' ? 'Reçu' : 'Paid'}: {formatCurrency(project.amountPaid)}</span>
-                        <span className="text-amber-600">{language === 'fr' ? 'Reste' : 'Due'}: {formatCurrency(project.amountRemaining)}</span>
+                    <div className="sm:text-right">
+                      <p className="font-bold">{formatCurrency(project.totalBudget)}</p>
+                      <div className="flex gap-3 text-xs">
+                        <span className="text-success">{t('reports.paid')} : {formatCurrency(project.amountPaid)}</span>
+                        <span className="text-warning">{t('reports.due')} : {formatCurrency(project.amountRemaining)}</span>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm text-center py-8">{t('common.noResults')}</p>
+              <p className="py-8 text-center text-sm text-muted-foreground">{t('reports.noProjects')}</p>
             )}
           </CardContent>
         </Card>
@@ -168,107 +147,80 @@ export function ReportsPage() {
     );
   }
 
-  // PRODUCT mode reports
+  const maxRevenue = Math.max(0, ...(report?.salesByPeriod || []).map((p) => p.revenue));
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold dark:text-white">{t('nav.reports')}</h1>
-        <div className="flex gap-2">
+      <PageHeader
+        title={t('nav.reports')}
+        actions={<>
           <Button variant="outline" size="sm" onClick={() => exportData('orders')}>
-            <Download className="w-4 h-4 mr-1" /> {language === 'fr' ? 'Commandes' : 'Orders'}
+            <Download className="mr-1.5 h-4 w-4" /> {t('reports.exportOrders')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => exportData('clients')}>
-            <Download className="w-4 h-4 mr-1" /> Clients
+            <Download className="mr-1.5 h-4 w-4" /> {t('reports.exportClients')}
           </Button>
           <Button variant="outline" size="sm" onClick={() => exportData('products')}>
-            <Download className="w-4 h-4 mr-1" /> {language === 'fr' ? 'Produits' : 'Products'}
+            <Download className="mr-1.5 h-4 w-4" /> {t('reports.exportProducts')}
           </Button>
-        </div>
+        </>}
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard icon={DollarSign} tone={TONES.primary} label={t('reports.revenue30')} value={formatCurrency(report?.totalRevenue || 0)} />
+        <StatCard icon={TrendingUp} tone={TONES.gold} label={t('reports.profit30')} value={formatCurrency(report?.totalProfit || 0)} />
+        <StatCard icon={ShoppingCart} tone={TONES.green} label={t('reports.orders30')} value={report?.totalOrders || 0} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="border-l-4 border-l-kabrak-500">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-kabrak-100 dark:bg-kabrak-900/30 flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-kabrak-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Revenus (30j)' : 'Revenue (30d)'}</p>
-              <p className="text-2xl font-bold dark:text-white">{formatCurrency(report?.totalRevenue || 0)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-gold-500">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-gold-100 dark:bg-gold-600/20 flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-gold-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Bénéfices (30j)' : 'Profit (30d)'}</p>
-              <p className="text-2xl font-bold dark:text-white">{formatCurrency(report?.totalProfit || 0)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-emerald-500">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{language === 'fr' ? 'Commandes (30j)' : 'Orders (30d)'}</p>
-              <p className="text-2xl font-bold dark:text-white">{report?.totalOrders || 0}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sales by period */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 dark:text-white">
-            <BarChart3 className="w-5 h-5" /> {language === 'fr' ? 'Ventes par période' : 'Sales by period'}
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BarChart3 className="h-5 w-5 text-muted-foreground" /> {t('reports.salesByPeriod')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {report?.salesByPeriod.length ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {report.salesByPeriod.map((period) => {
-                const maxRevenue = Math.max(...report.salesByPeriod.map((p) => p.revenue));
                 const width = maxRevenue > 0 ? (period.revenue / maxRevenue) * 100 : 0;
                 return (
-                  <div key={period.period} className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-20 shrink-0">{period.period}</span>
-                    <div className="flex-1 bg-muted rounded-full h-6 overflow-hidden">
-                      <div className="bg-kabrak-500 h-full rounded-full flex items-center justify-end px-2 transition-all" style={{ width: `${Math.max(width, 5)}%` }}>
-                        <span className="text-white text-xs font-medium">{formatCurrency(period.revenue)}</span>
-                      </div>
+                  <div key={period.period} className="grid grid-cols-[4.5rem_1fr_auto] items-center gap-3">
+                    <span className="truncate text-xs text-muted-foreground">{period.period}</span>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.max(width, 2)}%` }} />
                     </div>
-                    <span className="text-xs text-muted-foreground w-8 text-right">{period.orders}</span>
+                    <span className="text-right text-xs font-medium tabular-nums">
+                      {formatCurrency(period.revenue)}
+                      <span className="ml-2 text-muted-foreground" title={t('reports.ordersCount')}>· {period.orders}</span>
+                    </span>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm text-center py-8">{t('common.noResults')}</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{t('reports.noSales')}</p>
           )}
         </CardContent>
       </Card>
 
-      {/* Top sellers */}
       {report?.topSellers && report.topSellers.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="dark:text-white">{language === 'fr' ? 'Meilleures vendeuses/vendeurs' : 'Top sellers'}</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Trophy className="h-5 w-5 text-muted-foreground" /> {t('reports.topSellers')}
+            </CardTitle>
+          </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {report.topSellers.map((seller, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-gold-100 dark:bg-gold-600/20 flex items-center justify-center text-sm font-bold text-gold-600">{i + 1}</span>
-                    <span className="font-medium dark:text-white">{seller.name}</span>
+                <div key={i} className="flex items-center justify-between gap-3 rounded-lg bg-muted/50 p-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-background text-sm font-semibold">{i + 1}</span>
+                    <span className="truncate font-medium">{seller.name}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold dark:text-white">{formatCurrency(seller.revenue)}</p>
-                    <p className="text-xs text-muted-foreground">{seller.orders} {language === 'fr' ? 'commandes' : 'orders'}</p>
+                  <div className="shrink-0 text-right">
+                    <p className="font-bold">{formatCurrency(seller.revenue)}</p>
+                    <p className="text-xs text-muted-foreground">{seller.orders} {t('reports.orders')}</p>
                   </div>
                 </div>
               ))}

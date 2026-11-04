@@ -1,26 +1,45 @@
 import { useEffect, useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState, Spinner } from '@/components/ui/spinner';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/errors';
 import { Check, Crown, Copy, Clock, ArrowLeft, Shield, Zap, Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
 const PLANS = [
-  { value: 'STORE', price: 4900, icon: Shield, features: ['Commandes', 'Clients', 'Facturation', 'WhatsApp', 'Dashboard simple'] },
-  { value: 'SHOP', price: 7900, icon: Zap, features: ['Tout STORE +', 'Gestion stock', 'Caisse POS', 'Employés légers', 'Dashboard avancé'] },
-  { value: 'BUSINESS', price: 12900, icon: Star, features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Multi-magasins', 'Rapports avancés'] },
+  { value: 'STORE', price: 4900, icon: Shield, features: ['orders', 'clients', 'invoicing', 'whatsapp', 'simpleDashboard'] },
+  { value: 'SHOP', price: 7900, icon: Zap, features: ['allStore', 'stock', 'pos', 'lightEmployees', 'advancedDashboard'] },
+  { value: 'BUSINESS', price: 12900, icon: Star, features: ['allShop', 'multiEmployees', 'permissions', 'multiStores', 'advancedReports'] },
 ];
 
-const DURATIONS = [
-  { months: 1, label: '1 mois' },
-  { months: 3, label: '3 mois' },
-  { months: 6, label: '6 mois' },
-  { months: 12, label: '1 an' },
+const DURATIONS = [1, 3, 6, 12];
+
+const PAYMENT_PROVIDERS = [
+  { key: 'om', name: 'Orange Money', short: 'OM', badge: 'bg-orange-500 text-white', hover: 'hover:border-orange-500' },
+  { key: 'mtn', name: 'MTN Mobile Money', short: 'MTN', badge: 'bg-yellow-400 text-black', hover: 'hover:border-yellow-500' },
 ];
+
+function CopyRow({ label, value, copied, onCopy, copyLabel, copiedLabel }: {
+  label: string; value: string; copied: boolean; onCopy: () => void; copyLabel: string; copiedLabel: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-muted p-3">
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="truncate font-mono font-semibold">{value}</p>
+      </div>
+      <Button variant="ghost" size="icon" onClick={onCopy} aria-label={copyLabel} title={copied ? copiedLabel : copyLabel}>
+        {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+}
 
 interface Subscription {
   id: string;
@@ -57,7 +76,7 @@ export function BillingPage() {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [copied, setCopied] = useState('');
   const [pollCount, setPollCount] = useState(0);
-  const [initiating, setInitiating] = useState(false);
+  const [initiating, setInitiating] = useState<string | null>(null);
 
   useEffect(() => {
     api.get('/billing/subscription')
@@ -65,26 +84,26 @@ export function BillingPage() {
         setSub(res.data.data);
         setSelectedPlan(res.data.data.plan);
       })
-      .catch(console.error)
+      .catch((err) => toast.error(getErrorMessage(err, t('common.loadError'))))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
-  const handleInitiate = async () => {
+  const handleInitiate = async (provider: string) => {
     if (!selectedPlan) return;
-    setInitiating(true);
+    setInitiating(provider);
     try {
       const res = await api.post('/billing/initiate', { plan: selectedPlan, months: selectedMonths });
       const data = res.data?.data;
       setPaymentData(data);
       if (data.mode === 'redirect' && data.paymentUrl) {
-        window.location.href = data.paymentUrl;
+        window.location.assign(data.paymentUrl);
       } else {
         setStep(2);
       }
     } catch (err) {
-      console.error(err);
+      toast.error(getErrorMessage(err, t('billing.paymentError')));
     } finally {
-      setInitiating(false);
+      setInitiating(null);
     }
   };
 
@@ -97,13 +116,14 @@ export function BillingPage() {
         setSub(data.data);
         setStep(1);
         setPaymentData(null);
+        toast.success(t('billing.paymentConfirmed'));
       } else {
         setPollCount((c) => c + 1);
       }
     } catch {
-      // silent
+      setPollCount((c) => c + 1);
     }
-  }, [paymentData]);
+  }, [paymentData, t]);
 
   useEffect(() => {
     if (step !== 3) return;
@@ -118,252 +138,178 @@ export function BillingPage() {
     });
   };
 
-  const totalAmount = selectedPlan ? PLANS.find((p) => p.value === selectedPlan)!.price * selectedMonths : 0;
+  const durationLabel = (m: number) => t(`billing.month${m}`);
+  const totalAmount = selectedPlan ? (PLANS.find((p) => p.value === selectedPlan)?.price || 0) * selectedMonths : 0;
 
-  if (loading) {
-    return (
-      <div className="flex justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kabrak-500" />
-      </div>
-    );
-  }
+  if (loading) return <LoadingState />;
 
   return (
     <div className="space-y-6">
       {step > 1 && (
-        <Button variant="ghost" onClick={() => setStep(step - 1)}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> Retour
+        <Button variant="ghost" size="sm" onClick={() => setStep(step - 1)} className="-ml-2">
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t('billing.back')}
         </Button>
       )}
 
-      <h1 className="text-2xl font-bold">{t('billing.title')}</h1>
+      <PageHeader title={t('billing.title')} />
 
       {step === 1 && (
         <>
-          {/* Current Subscription */}
           {sub && (
-            <Card className="border-2 border-kabrak-500">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Crown className="w-5 h-5 text-gold-500" />
-                      <h2 className="text-xl font-bold">KABRAK {sub.plan}</h2>
-                      <Badge
-                        variant={
-                          sub.isExpired ? 'destructive' : sub.status === 'TRIAL' ? 'warning' : 'success'
-                        }
-                      >
-                        {sub.isExpired
-                          ? t('billing.expired')
-                          : sub.status === 'TRIAL'
-                            ? t('billing.trial')
-                            : t('billing.active')}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {formatCurrency(sub.priceMonthly)} FCFA{t('billing.perMonth')} · {sub.daysRemaining}{' '}
-                      {t('billing.daysRemaining')}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">Expire le {formatDate(sub.endDate)}</p>
+            <Card className="border-primary">
+              <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                <div className="min-w-0">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <Crown className="h-5 w-5 text-gold-500" />
+                    <h2 className="text-lg font-bold sm:text-xl">KABRAK {sub.plan}</h2>
+                    <Badge variant={sub.isExpired ? 'destructive' : sub.status === 'TRIAL' ? 'warning' : 'success'}>
+                      {sub.isExpired ? t('billing.expired') : sub.status === 'TRIAL' ? t('billing.trial') : t('billing.active')}
+                    </Badge>
                   </div>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold text-kabrak-500">{formatCurrency(sub.priceMonthly)}</p>
-                    <p className="text-sm text-muted-foreground">FCFA/mois</p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {sub.daysRemaining} {t('billing.daysRemaining').toLowerCase()}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">{t('billing.expiresOn', { date: formatDate(sub.endDate) })}</p>
+                </div>
+                <div className="sm:text-right">
+                  <p className="text-2xl font-bold text-primary sm:text-3xl">{formatCurrency(sub.priceMonthly)}</p>
+                  <p className="text-sm text-muted-foreground">{t('billing.perMonth')}</p>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Duration selector */}
           <Card>
             <CardHeader>
-              <CardTitle>Durée d'abonnement</CardTitle>
+              <CardTitle className="text-base">{t('billing.duration')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-4 gap-2">
-                {DURATIONS.map((d) => (
+              <div role="radiogroup" aria-label={t('billing.duration')} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {DURATIONS.map((m) => (
                   <button
-                    key={d.months}
-                    onClick={() => setSelectedMonths(d.months)}
+                    key={m}
+                    role="radio"
+                    aria-checked={selectedMonths === m}
+                    onClick={() => setSelectedMonths(m)}
                     className={cn(
-                      'py-3 px-2 rounded-lg text-sm font-medium transition-all border-2',
-                      selectedMonths === d.months
-                        ? 'border-kabrak-500 bg-kabrak-50 dark:bg-kabrak-900/20 text-kabrak-700'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                      'rounded-lg border-2 px-2 py-3 text-sm font-medium transition-colors',
+                      selectedMonths === m ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/40'
                     )}
                   >
-                    {d.label}
+                    {durationLabel(m)}
                   </button>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Plans */}
           <div>
-            <h2 className="text-lg font-semibold mb-4">{t('billing.changePlan')}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <h2 className="mb-4 text-lg font-semibold">{t('billing.changePlan')}</h2>
+            <div role="radiogroup" aria-label={t('billing.changePlan')} className="grid grid-cols-1 gap-4 md:grid-cols-3">
               {PLANS.map((plan) => {
                 const PlanIcon = plan.icon;
                 const isSelected = selectedPlan === plan.value;
                 return (
-                  <Card
+                  <button
                     key={plan.value}
-                    className={cn(
-                      'transition-all cursor-pointer',
-                      isSelected ? 'border-2 border-kabrak-500 shadow-lg' : 'hover:shadow-md'
-                    )}
+                    role="radio"
+                    aria-checked={isSelected}
                     onClick={() => setSelectedPlan(plan.value)}
+                    className={cn(
+                      'rounded-xl border-2 bg-card p-5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:p-6',
+                      isSelected ? 'border-primary shadow-md' : 'border-border hover:shadow-sm'
+                    )}
                   >
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-2 mb-2">
-                        <PlanIcon className="w-5 h-5 text-kabrak-500" />
-                        <h3 className="font-bold text-lg">KABRAK {plan.value}</h3>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <PlanIcon className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-bold">KABRAK {plan.value}</h3>
                       </div>
-                      <p className="text-2xl font-bold text-kabrak-500 mb-4">
-                        {formatCurrency(plan.price)}{' '}
-                        <span className="text-sm font-normal text-muted-foreground">/mois</span>
-                      </p>
-                      <ul className="space-y-2 mb-6">
-                        {plan.features.map((f) => (
-                          <li key={f} className="flex items-center gap-2 text-sm">
-                            <Check className="w-4 h-4 text-gold-500" /> {f}
-                          </li>
-                        ))}
-                      </ul>
-                      {tenant?.plan === plan.value && (
-                        <Badge variant="outline" className="w-full justify-center">
-                          Plan actuel
-                        </Badge>
-                      )}
-                    </CardContent>
-                  </Card>
+                      {isSelected && <Check className="h-5 w-5 text-primary" />}
+                    </div>
+                    <p className="mb-4 text-2xl font-bold">
+                      {formatCurrency(plan.price)}{' '}
+                      <span className="text-sm font-normal text-muted-foreground">{t('billing.perMonth')}</span>
+                    </p>
+                    <ul className="mb-4 space-y-2">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-center gap-2 text-sm">
+                          <Check className="h-4 w-4 shrink-0 text-success" /> {t(`planFeatures.${f}`)}
+                        </li>
+                      ))}
+                    </ul>
+                    {tenant?.plan === plan.value && (
+                      <Badge variant="outline" className="w-full justify-center">{t('billing.currentPlan')}</Badge>
+                    )}
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          {/* Payment buttons */}
           <Card>
             <CardHeader>
-              <CardTitle>{t('billing.payNow')}</CardTitle>
+              <CardTitle className="text-base">{t('billing.payNow')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-center mb-4">
-                <p className="text-3xl font-bold text-kabrak-500">{formatCurrency(totalAmount)} FCFA</p>
-                <p className="text-sm text-muted-foreground">
-                  KABRAK {selectedPlan} × {selectedMonths} mois
-                </p>
+              <div className="mb-4 text-center">
+                <p className="text-3xl font-bold text-primary">{formatCurrency(totalAmount)}</p>
+                <p className="text-sm text-muted-foreground">KABRAK {selectedPlan} × {durationLabel(selectedMonths)}</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={handleInitiate}
-                  disabled={initiating}
-                  className="flex items-center gap-4 p-4 border-2 rounded-xl hover:border-orange-500 transition-colors cursor-pointer text-left disabled:opacity-50"
-                >
-                  <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center font-bold text-white text-sm">
-                    OM
-                  </div>
-                  <div>
-                    <p className="font-semibold">Orange Money</p>
-                    <p className="text-xs text-muted-foreground">Payer via Orange Money</p>
-                  </div>
-                </button>
-                <button
-                  onClick={handleInitiate}
-                  disabled={initiating}
-                  className="flex items-center gap-4 p-4 border-2 rounded-xl hover:border-yellow-500 transition-colors cursor-pointer text-left disabled:opacity-50"
-                >
-                  <div className="w-12 h-12 rounded-full bg-yellow-400 flex items-center justify-center font-bold text-black text-sm">
-                    MTN
-                  </div>
-                  <div>
-                    <p className="font-semibold">MTN Mobile Money</p>
-                    <p className="text-xs text-muted-foreground">Payer via MoMo</p>
-                  </div>
-                </button>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                {PAYMENT_PROVIDERS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => handleInitiate(p.key)}
+                    disabled={!!initiating}
+                    className={cn('flex items-center gap-4 rounded-xl border-2 p-4 text-left transition-colors disabled:opacity-50', p.hover)}
+                  >
+                    <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-sm font-bold', p.badge)}>
+                      {initiating === p.key ? <Spinner /> : p.short}
+                    </div>
+                    <div>
+                      <p className="font-semibold">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{t('billing.payWith', { name: p.name })}</p>
+                    </div>
+                  </button>
+                ))}
               </div>
             </CardContent>
           </Card>
         </>
       )}
 
-      {/* Step 2: Payment Instructions */}
       {step === 2 && paymentData?.instructions && (
-        <Card>
+        <Card className="mx-auto max-w-xl">
           <CardHeader>
-            <CardTitle>Instructions de paiement</CardTitle>
+            <CardTitle className="text-base">{t('billing.instructions')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center mb-4">
-              <p className="text-3xl font-bold text-kabrak-500">
-                {formatCurrency(paymentData.amountXAF)} FCFA
-              </p>
-            </div>
-
-            {/* Reference */}
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Référence</p>
-                <p className="font-mono font-bold">{paymentData.instructions.reference}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => copy(paymentData.instructions!.reference, 'ref')}
-              >
-                {copied === 'ref' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-
-            {/* USSD */}
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-              <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Code USSD</p>
-                <p className="font-mono font-bold">{paymentData.instructions.ussd}</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => copy(paymentData.instructions!.ussd, 'ussd')}
-              >
-                {copied === 'ussd' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-              </Button>
-            </div>
-
-            {/* Steps */}
-            <div className="space-y-2">
+            <p className="text-center text-3xl font-bold text-primary">{formatCurrency(paymentData.amountXAF)}</p>
+            <CopyRow label={t('billing.reference')} value={paymentData.instructions.reference} copied={copied === 'ref'}
+              onCopy={() => copy(paymentData.instructions!.reference, 'ref')} copyLabel={t('billing.copy')} copiedLabel={t('billing.copied')} />
+            <CopyRow label={t('billing.ussd')} value={paymentData.instructions.ussd} copied={copied === 'ussd'}
+              onCopy={() => copy(paymentData.instructions!.ussd, 'ussd')} copyLabel={t('billing.copy')} copiedLabel={t('billing.copied')} />
+            <ol className="space-y-2">
               {paymentData.instructions.steps.map((s, i) => (
-                <div key={i} className="flex gap-3 text-sm">
-                  <span className="w-6 h-6 rounded-full bg-kabrak-500 text-white flex items-center justify-center text-xs shrink-0">
-                    {i + 1}
-                  </span>
+                <li key={i} className="flex gap-3 text-sm">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">{i + 1}</span>
                   <span>{s}</span>
-                </div>
+                </li>
               ))}
-            </div>
-
-            <Button onClick={() => setStep(3)} className="w-full">
-              J'ai effectué le paiement
-            </Button>
+            </ol>
+            <Button onClick={() => setStep(3)} className="w-full">{t('billing.iHavePaid')}</Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Step 3: Waiting for confirmation */}
       {step === 3 && (
-        <Card>
+        <Card className="mx-auto max-w-xl">
           <CardContent className="p-8 text-center">
-            <Clock className="w-16 h-16 mx-auto text-kabrak-500 mb-4 animate-pulse" />
-            <h2 className="text-xl font-bold mb-2">En attente de confirmation...</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Nous vérifions votre paiement. Cela peut prendre quelques minutes.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Vérification #{pollCount + 1}
-            </p>
+            <Clock className="mx-auto mb-4 h-14 w-14 animate-pulse text-primary" />
+            <h2 className="mb-2 text-xl font-bold">{t('billing.waiting')}</h2>
+            <p className="mb-4 text-sm text-muted-foreground">{t('billing.waitingDesc')}</p>
+            <p className="text-xs text-muted-foreground">{t('billing.check', { n: pollCount + 1 })}</p>
           </CardContent>
         </Card>
       )}

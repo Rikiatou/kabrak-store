@@ -92,7 +92,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user: data.data.user,
         tenant: data.data.tenant,
         subscription: data.data.subscription,
-        language: data.data.tenant.language || get().language,
+        language: localStorage.getItem('kabrak_lang') || data.data.tenant.language || get().language,
         isLoading: false,
       });
     } catch {

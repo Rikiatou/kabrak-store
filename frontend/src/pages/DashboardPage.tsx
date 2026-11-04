@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { LoadingState } from '@/components/ui/spinner';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
-import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw } from 'lucide-react';
+import { cn, formatCurrency, formatDateTime } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/errors';
+import {
+  ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText,
+  Zap, Plus, ArrowRight, Briefcase, type LucideIcon,
+} from 'lucide-react';
 import api from '@/lib/api';
 
 interface DashboardData {
@@ -35,47 +44,46 @@ interface ServiceDashboardData {
   }>;
 }
 
-const statusColors: Record<string, string> = {
-  PENDING: 'bg-amber-100 text-amber-700',
-  CONFIRMED: 'bg-blue-100 text-blue-700',
-  PREPARING: 'bg-blue-100 text-blue-700',
-  READY: 'bg-green-100 text-green-700',
-  DELIVERING: 'bg-blue-100 text-blue-700',
-  DELIVERED: 'bg-green-100 text-green-700',
-  CANCELLED: 'bg-red-100 text-red-700',
-  PAID: 'bg-green-100 text-green-700',
-  PARTIAL: 'bg-amber-100 text-amber-700',
-  ACTIVE: 'bg-blue-100 text-blue-700',
-  COMPLETED: 'bg-green-100 text-green-700',
-  DRAFT: 'bg-gray-100 text-gray-600',
-  ON_HOLD: 'bg-amber-100 text-amber-700',
+const statusVariant: Record<string, 'success' | 'warning' | 'default' | 'secondary' | 'destructive'> = {
+  PENDING: 'warning', PARTIAL: 'warning', ON_HOLD: 'warning',
+  PAID: 'success', COMPLETED: 'success', DELIVERED: 'success', READY: 'success',
+  ACTIVE: 'default', CONFIRMED: 'default', PREPARING: 'default', DELIVERING: 'default',
+  DRAFT: 'secondary', CANCELLED: 'destructive',
 };
 
-const productStatCards = [
-  { key: 'todayOrders', labelKey: 'dashboard.todaySales', icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
-  { key: 'todayRevenue', labelKey: 'dashboard.todayRevenue', icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
-  { key: 'totalProducts', labelKey: 'dashboard.totalProducts', icon: Package, gradient: 'from-emerald-500 to-emerald-600' },
-  { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, gradient: 'from-violet-500 to-violet-600' },
+interface StatCard { key: string; labelKey: string; icon: LucideIcon; tone: string; isCurrency?: boolean }
+
+const productStatCards: StatCard[] = [
+  { key: 'todayOrders', labelKey: 'dashboard.todaySales', icon: ShoppingCart, tone: 'bg-primary/10 text-primary' },
+  { key: 'todayRevenue', labelKey: 'dashboard.todayRevenue', icon: DollarSign, tone: 'bg-gold-100 text-gold-600 dark:bg-gold-500/15 dark:text-gold-400', isCurrency: true },
+  { key: 'totalProducts', labelKey: 'dashboard.totalProducts', icon: Package, tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' },
+  { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, tone: 'bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300' },
 ];
 
-const serviceStatCards = [
-  { key: 'activeProjects', label: { fr: 'Projets actifs', en: 'Active Projects' }, icon: FolderKanban, gradient: 'from-violet-500 to-violet-600' },
-  { key: 'totalRevenue', label: { fr: 'Revenus totaux', en: 'Total Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
-  { key: 'totalProjects', label: { fr: 'Total projets', en: 'Total Projects' }, icon: FileText, gradient: 'from-blue-500 to-blue-600' },
-  { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, gradient: 'from-emerald-500 to-emerald-600' },
+const serviceStatCards: StatCard[] = [
+  { key: 'activeProjects', labelKey: 'dashboard.activeProjects', icon: FolderKanban, tone: 'bg-primary/10 text-primary' },
+  { key: 'totalRevenue', labelKey: 'dashboard.totalRevenue', icon: DollarSign, tone: 'bg-gold-100 text-gold-600 dark:bg-gold-500/15 dark:text-gold-400', isCurrency: true },
+  { key: 'totalProjects', labelKey: 'dashboard.totalProjects', icon: FileText, tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400' },
+  { key: 'totalClients', labelKey: 'dashboard.totalClients', icon: Users, tone: 'bg-slate-100 text-slate-700 dark:bg-slate-500/15 dark:text-slate-300' },
 ];
+
+function EmptyLine({ children }: { children: React.ReactNode }) {
+  return <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
+}
 
 export function DashboardPage() {
   const { t, language } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
   const businessMode = tenant?.businessMode || 'PRODUCT';
+  const isService = businessMode === 'SERVICE';
 
   const [productData, setProductData] = useState<DashboardData | null>(null);
   const [serviceData, setServiceData] = useState<ServiceDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!tenant) return;
     if (businessMode === 'SERVICE') {
       Promise.all([
         api.get('/projects?limit=5').catch(() => ({ data: { data: [], pagination: { total: 0 } } })),
@@ -95,225 +103,166 @@ export function DashboardPage() {
     } else {
       api.get('/reports/dashboard')
         .then((res) => setProductData(res.data.data))
-        .catch(console.error)
+        .catch((err) => toast.error(getErrorMessage(err, t('common.loadError'))))
         .finally(() => setLoading(false));
     }
-  }, [businessMode]);
+  }, [tenant, businessMode, t]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-200 border-t-blue-600" />
-      </div>
-    );
-  }
+  if (loading) return <LoadingState />;
 
-  const isService = businessMode === 'SERVICE';
-  const welcomeGradient = isService
-    ? 'from-violet-600 to-violet-700'
-    : 'from-blue-600 to-blue-700';
-  const welcomeShadow = isService ? 'shadow-violet-200/50' : 'shadow-blue-200/50';
+  const cards = isService ? serviceStatCards : productStatCards;
+  const data = (isService ? serviceData : productData) as unknown as Record<string, number> | null;
+
+  const quickActions = isService
+    ? [
+        { to: '/projects', label: t('dashboard.newProject'), icon: FolderKanban },
+        { to: '/services', label: t('dashboard.newService'), icon: Briefcase },
+        { to: '/invoices', label: t('dashboard.newInvoice'), icon: FileText },
+      ]
+    : [
+        { to: '/pos', label: t('dashboard.newSale'), icon: ShoppingCart },
+        { to: '/products', label: t('dashboard.addProduct'), icon: Package },
+        { to: '/clients', label: t('clients.addClient'), icon: Users },
+      ];
 
   return (
-    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
-      {/* Welcome */}
-      <div className={`bg-gradient-to-r ${welcomeGradient} rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white shadow-lg ${welcomeShadow}`}>
-        <h1 className="text-base sm:text-xl font-bold">
-          {t('dashboard.welcome')}, {user?.firstName}
-        </h1>
-        <p className="text-white/70 text-sm mt-1">
-          {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          {isService && (
-            <span className="ml-2 bg-white/20 px-2 py-0.5 rounded-full text-xs">
-              {language === 'fr' ? 'Mode Services' : 'Service Mode'}
-            </span>
-          )}
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
-        {isService ? (
-          serviceStatCards.map((card) => {
-            const Icon = card.icon;
-            const value = serviceData?.[card.key as keyof ServiceDashboardData] as number || 0;
-            const label = card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] || '');
-            return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  </div>
-                </div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
-                  {card.isCurrency ? formatCurrency(value) : value}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{label}</p>
-              </div>
-            );
-          })
-        ) : (
-          productStatCards.map((card) => {
-            const Icon = card.icon;
-            const value = productData?.[card.key as keyof DashboardData] as number || 0;
-            return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br ${card.gradient} flex items-center justify-center shadow-sm`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  </div>
-                </div>
-                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white truncate">
-                  {card.isCurrency ? formatCurrency(value) : value}
-                </p>
-                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5 sm:mt-1 truncate">{t(card.labelKey)}</p>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Content area */}
-      {isService ? (
-        /* Service Dashboard */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div className="p-3 sm:p-5 pb-2 sm:pb-3 border-b border-gray-50 dark:border-gray-700">
-              <h2 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center gap-2">
-                <FolderKanban className="w-4 h-4 text-violet-500" />
-                {language === 'fr' ? 'Projets récents' : 'Recent Projects'}
-              </h2>
-            </div>
-            <div className="p-3 sm:p-5 pt-2 sm:pt-3">
-              <div className="space-y-2">
-                {serviceData?.projects?.length ? serviceData.projects.map((project) => (
-                  <div key={project.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <div>
-                      <p className="font-medium text-sm text-gray-900 dark:text-white">{project.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {project.client?.name || (language === 'fr' ? 'Pas de client' : 'No client')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm text-gray-900 dark:text-white">{formatCurrency(project.totalBudget)}</p>
-                      <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 ${statusColors[project.status] || 'bg-gray-100 text-gray-600'}`}>
-                        {t(`status.${project.status.toLowerCase()}`)}
-                      </span>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-gray-400 text-sm text-center py-8">{t('common.noResults')}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
-              <h3 className="font-semibold text-gray-900 dark:text-white text-sm flex items-center gap-2 mb-4">
-                <RefreshCw className="w-4 h-4 text-violet-500" />
-                {language === 'fr' ? 'Actions rapides' : 'Quick Actions'}
-              </h3>
-              <div className="space-y-2">
-                <a href="/projects" className="block p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 text-sm font-medium hover:bg-violet-100 dark:hover:bg-violet-900/30 transition-colors">
-                  + {language === 'fr' ? 'Nouveau projet' : 'New project'}
-                </a>
-                <a href="/services" className="block p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                  + {language === 'fr' ? 'Nouveau service' : 'New service'}
-                </a>
-                <a href="/invoices" className="block p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-sm font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
-                  + {language === 'fr' ? 'Nouvelle facture' : 'New invoice'}
-                </a>
-              </div>
-            </div>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+            {t('dashboard.welcome')}, {user?.firstName}
+          </h1>
+          <p className="mt-1 text-sm capitalize text-muted-foreground">
+            {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
         </div>
-      ) : (
-        /* Product Dashboard */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div className="p-3 sm:p-5 pb-2 sm:pb-3 border-b border-gray-50 dark:border-gray-700">
-              <h2 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4 text-gray-400" />
-                {t('dashboard.recentOrders')}
-              </h2>
-            </div>
-            <div className="p-3 sm:p-5 pt-2 sm:pt-3">
-              <div className="space-y-2">
-                {productData?.recentOrders?.length ? productData.recentOrders.map((order) => (
-                  <div key={order.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <div>
-                      <p className="font-medium text-sm text-gray-900 dark:text-white">{order.reference}</p>
-                      <p className="text-xs text-gray-400">
-                        {order.client?.name || (language === 'fr' ? 'Client anonyme' : 'Anonymous client')} · {formatDateTime(order.createdAt)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-sm text-gray-900 dark:text-white">{formatCurrency(order.finalAmount)}</p>
-                      <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full mt-1 ${statusColors[order.paymentStatus] || 'bg-gray-100 text-gray-600'}`}>
-                        {t(`status.${order.paymentStatus.toLowerCase()}`)}
-                      </span>
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-gray-400 text-sm text-center py-8">{t('common.noResults')}</p>
-                )}
-              </div>
-            </div>
-          </div>
+        {isService && <Badge variant="secondary" className="self-start sm:self-auto">{t('dashboard.serviceMode')}</Badge>}
+      </div>
 
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-              <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
-                <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
-                  <TrendingUp className="w-4 h-4 text-amber-500" />
-                  {t('dashboard.topProducts')}
-                </h2>
-              </div>
-              <div className="p-5 pt-3">
-                <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 sm:gap-4">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          const value = data?.[card.key] || 0;
+          return (
+            <Card key={card.key}>
+              <CardContent className="p-4 sm:p-5">
+                <div className={cn('mb-3 flex h-9 w-9 items-center justify-center rounded-lg sm:h-10 sm:w-10', card.tone)}>
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                </div>
+                <p className="truncate text-lg font-bold sm:text-2xl">{card.isCurrency ? formatCurrency(value) : value}</p>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">{t(card.labelKey)}</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 sm:gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b p-4 sm:px-5">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              {isService ? <FolderKanban className="h-4 w-4 text-muted-foreground" /> : <ShoppingCart className="h-4 w-4 text-muted-foreground" />}
+              {isService ? t('dashboard.recentProjects') : t('dashboard.recentOrders')}
+            </CardTitle>
+            <Link to={isService ? '/projects' : '/orders'} className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+              {t('dashboard.viewAll')} <ArrowRight className="h-3 w-3" />
+            </Link>
+          </CardHeader>
+          <CardContent className="p-2 sm:p-3">
+            {isService ? (
+              serviceData?.projects?.length ? serviceData.projects.map((project) => (
+                <div key={project.id} className="flex items-center justify-between gap-3 rounded-lg p-3 transition-colors hover:bg-accent/50">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{project.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{project.client?.name || t('dashboard.noClient')}</p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold">{formatCurrency(project.totalBudget)}</p>
+                    <Badge variant={statusVariant[project.status] || 'secondary'} className="mt-1 text-[10px]">
+                      {t(`status.${project.status === 'ON_HOLD' ? 'onHold' : project.status.toLowerCase()}`)}
+                    </Badge>
+                  </div>
+                </div>
+              )) : <EmptyLine>{t('dashboard.noProjects')}</EmptyLine>
+            ) : (
+              productData?.recentOrders?.length ? productData.recentOrders.map((order) => (
+                <div key={order.id} className="flex items-center justify-between gap-3 rounded-lg p-3 transition-colors hover:bg-accent/50">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{order.reference}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {order.client?.name || t('common.anonymousClient')} · {formatDateTime(order.createdAt)}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold">{formatCurrency(order.finalAmount)}</p>
+                    <Badge variant={statusVariant[order.paymentStatus] || 'secondary'} className="mt-1 text-[10px]">
+                      {t(`status.${order.paymentStatus.toLowerCase()}`)}
+                    </Badge>
+                  </div>
+                </div>
+              )) : <EmptyLine>{t('dashboard.noRecentOrders')}</EmptyLine>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4 sm:space-y-6">
+          <Card>
+            <CardHeader className="border-b p-4 sm:px-5">
+              <CardTitle className="flex items-center gap-2 text-sm">
+                <Zap className="h-4 w-4 text-muted-foreground" /> {t('dashboard.quickActions')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 p-2 sm:p-3">
+              {quickActions.map(({ to, label, icon: Icon }) => (
+                <Link key={to} to={to} className="flex items-center gap-3 rounded-lg p-3 text-sm font-medium transition-colors hover:bg-accent">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10 text-primary"><Icon className="h-4 w-4" /></span>
+                  <span className="flex-1">{label}</span>
+                  <Plus className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              ))}
+            </CardContent>
+          </Card>
+
+          {!isService && (
+            <>
+              <Card>
+                <CardHeader className="border-b p-4 sm:px-5">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" /> {t('dashboard.topProducts')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 p-4 sm:px-5">
                   {productData?.topProducts?.length ? productData.topProducts.map((tp, i) => (
-                    <div key={tp.product?.id || i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <span className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-xs font-bold text-amber-600">
-                          {i + 1}
-                        </span>
-                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[130px]">{tp.product?.name || '—'}</span>
+                    <div key={tp.product?.id || i} className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-muted text-xs font-semibold">{i + 1}</span>
+                        <span className="truncate text-sm">{tp.product?.name || '—'}</span>
                       </div>
-                      <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(tp.totalRevenue || 0)}</span>
+                      <span className="shrink-0 text-sm font-semibold">{formatCurrency(tp.totalRevenue || 0)}</span>
                     </div>
-                  )) : (
-                    <p className="text-gray-400 text-sm text-center py-4">{t('common.noResults')}</p>
-                  )}
-                </div>
-              </div>
-            </div>
+                  )) : <EmptyLine>{t('dashboard.noTopProducts')}</EmptyLine>}
+                </CardContent>
+              </Card>
 
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-              <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
-                <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
-                  <AlertTriangle className="w-4 h-4 text-amber-500" />
-                  {t('dashboard.lowStock')}
-                </h2>
-              </div>
-              <div className="p-5 pt-3">
-                <div className="space-y-3">
+              <Card>
+                <CardHeader className="border-b p-4 sm:px-5">
+                  <CardTitle className="flex items-center gap-2 text-sm">
+                    <AlertTriangle className="h-4 w-4 text-warning" /> {t('dashboard.lowStock')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 p-4 sm:px-5">
                   {productData?.lowStockProducts?.length ? productData.lowStockProducts.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[140px]">{product.name}</span>
-                      <span className="text-xs font-medium bg-amber-50 dark:bg-amber-900/20 text-amber-600 px-2.5 py-1 rounded-full">
-                        {product.totalStock} {language === 'fr' ? 'restant(s)' : 'left'}
-                      </span>
+                    <div key={product.id} className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm">{product.name}</span>
+                      <Badge variant="warning" className="shrink-0">{product.totalStock} {t('dashboard.left')}</Badge>
                     </div>
-                  )) : (
-                    <p className="text-gray-400 text-sm text-center py-4">{t('common.noResults')}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+                  )) : <EmptyLine>{t('dashboard.noLowStock')}</EmptyLine>}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

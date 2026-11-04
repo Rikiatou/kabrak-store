@@ -59,20 +59,20 @@ export function NotificationsDropdown() {
       case 'STOCK_ALERT':
         return <AlertTriangle className="w-4 h-4 text-amber-500" />;
       case 'NEW_ORDER':
-        return <ShoppingCart className="w-4 h-4 text-kabrak-500" />;
+        return <ShoppingCart className="w-4 h-4 text-primary" />;
       default:
-        return <Package className="w-4 h-4 text-gray-500" />;
+        return <Package className="w-4 h-4 text-muted-foreground" />;
     }
   };
 
   const timeAgo = (date: string) => {
     const diff = now - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'À l\'instant';
-    if (mins < 60) return `${mins}min`;
+    if (mins < 1) return t('common.justNow');
+    if (mins < 60) return t('notifications.minutesAgo', { n: mins });
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h`;
-    return `${Math.floor(hours / 24)}j`;
+    if (hours < 24) return t('notifications.hoursAgo', { n: hours });
+    return t('notifications.daysAgo', { n: Math.floor(hours / 24) });
   };
 
   return (
@@ -82,10 +82,12 @@ export function NotificationsDropdown() {
         size="icon"
         onClick={() => setOpen(!open)}
         className="relative"
+        aria-label={t('notifications.heading')}
+        title={t('notifications.heading')}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -94,15 +96,15 @@ export function NotificationsDropdown() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-              <span className="text-sm font-bold">Notifications</span>
+          <div className="absolute right-0 top-full mt-2 w-[min(20rem,calc(100vw-1.5rem))] -mr-16 sm:mr-0 bg-popover text-popover-foreground rounded-xl shadow-lg border z-50 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="text-sm font-semibold">{t('notifications.heading')}</span>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="text-xs text-kabrak-500 hover:underline flex items-center gap-1"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
                 >
-                  <Check className="w-3 h-3" /> Tout lire
+                  <Check className="w-3 h-3" /> {t('notifications.markAll')}
                 </button>
               )}
             </div>
@@ -110,14 +112,14 @@ export function NotificationsDropdown() {
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className="text-center py-8 text-sm text-muted-foreground">
-                  {t('common.noResults')}
+                  {t('notifications.empty')}
                 </div>
               ) : (
                 notifications.map((notif) => (
                   <div
                     key={notif.id}
-                    className={`flex gap-3 px-4 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0 ${
-                      !notif.isRead ? 'bg-kabrak-50 dark:bg-kabrak-900/10' : ''
+                    className={`flex gap-3 px-4 py-3 border-b last:border-0 ${
+                      !notif.isRead ? 'bg-primary/5' : ''
                     }`}
                   >
                     <div className="mt-0.5">{getIcon(notif.type)}</div>
@@ -127,7 +129,7 @@ export function NotificationsDropdown() {
                       <p className="text-[10px] text-muted-foreground mt-1">{timeAgo(notif.createdAt)}</p>
                     </div>
                     {!notif.isRead && (
-                      <div className="w-2 h-2 bg-kabrak-500 rounded-full mt-2 shrink-0" />
+                      <div className="w-2 h-2 bg-primary rounded-full mt-2 shrink-0" />
                     )}
                   </div>
                 ))

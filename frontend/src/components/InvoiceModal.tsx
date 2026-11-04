@@ -43,18 +43,9 @@ interface Props {
   onClose: () => void;
 }
 
-const paymentLabels: Record<string, string> = {
-  CASH: 'Espèces',
-  MOBILE_MONEY: 'Mobile Money',
-  ORANGE_MONEY: 'Orange Money',
-  MTN_MOMO: 'MTN MoMo',
-  BANK_TRANSFER: 'Virement',
-  OTHER: 'Autre',
-};
-
 export function InvoiceModal({ invoice, onClose }: Props) {
   const tenant = useAuthStore((s) => s.tenant);
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const printRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
   const [printFormat, setPrintFormat] = useState<'standard' | 'thermal'>('standard');
@@ -70,9 +61,9 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const due = invoice.amountDue;
   const phone = invoice.client?.phone?.replace(/\D/g, '');
   const fullPhone = phone ? (phone.startsWith('237') ? phone : `237${phone}`) : null;
-  const dateStr = new Date(invoice.createdAt).toLocaleDateString('fr-FR');
+  const dateStr = new Date(invoice.createdAt).toLocaleDateString(language === 'en' ? 'en-GB' : 'fr-FR');
   const paymentMethod = invoice.order?.paymentMethod || 'CASH';
-  const paymentLabel = paymentLabels[paymentMethod] || paymentMethod;
+  const paymentLabel = t(`payment.${paymentMethod}`);
   const invoiceColor = '#2563eb';
 
   const shareAsImage = async () => {
@@ -88,17 +79,17 @@ export function InvoiceModal({ invoice, onClose }: Props) {
       });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
-        const file = new File([blob], `facture-${invoice.invoiceNumber}.png`, { type: 'image/png' });
+        const file = new File([blob], `${t('invoiceDoc.fileName')}-${invoice.invoiceNumber}.png`, { type: 'image/png' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             files: [file],
-            title: `Facture ${invoice.invoiceNumber} — ${tenant?.name}`,
+            title: `${t('invoiceDoc.invoice')} ${invoice.invoiceNumber} — ${tenant?.name}`,
           });
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `facture-${invoice.invoiceNumber}.png`;
+          a.download = `${t('invoiceDoc.fileName')}-${invoice.invoiceNumber}.png`;
           a.click();
           URL.revokeObjectURL(url);
         }
@@ -113,21 +104,22 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const sendWhatsAppText = () => {
     if (!fullPhone) return;
     const lines = displayItems
-      .map((i) => `  • ${i.name} x${i.quantity}: ${formatCurrency(i.totalPrice)} F`)
+      .map((i) => `- ${i.name} x${i.quantity} : ${formatCurrency(i.totalPrice)}`)
       .join('\n');
+    const statusLine = invoice.paymentStatus === 'PAID'
+      ? t('invoiceDoc.paidInvoice')
+      : due > 0 ? `${t('invoiceDoc.remaining')} : ${formatCurrency(due)}` : t('invoiceDoc.statusPending');
     const msg = encodeURIComponent(
-      `Bonjour ${invoice.client?.name || 'cher(e) client(e)'} 👋\n\n` +
-        `🧾 *REÇU DE PAIEMENT*\n` +
-        `━━━━━━━━━━━━━━━━━━\n` +
-        `🏪 *${tenant?.name || 'KABRAK Store'}*\n` +
-        `📅 ${dateStr}\n` +
-        `📋 N° ${invoice.invoiceNumber}\n\n` +
-        `*Articles :*\n${lines}\n\n` +
-        `━━━━━━━━━━━━━━━━━━\n` +
-        `💰 *TOTAL : ${formatCurrency(total)} FCFA*\n` +
-        `💳 Paiement : ${paymentLabel}\n` +
-        `✅ *${invoice.paymentStatus === 'PAID' ? 'Facture payée' : due > 0 ? `Reste: ${formatCurrency(due)} FCFA` : 'En attente'}*\n\n` +
-        `Merci pour votre confiance 🙏`
+      `${t('invoiceDoc.hello', { name: invoice.client?.name || t('invoiceDoc.dearClient') })}\n\n` +
+        `*${t('invoiceDoc.receipt')}*\n` +
+        `*${tenant?.name || 'KABRAK Store'}*\n` +
+        `${t('invoiceDoc.date')} : ${dateStr}\n` +
+        `${t('invoiceDoc.invoiceNo')} ${invoice.invoiceNumber}\n\n` +
+        `*${t('invoiceDoc.items')} :*\n${lines}\n\n` +
+        `*TOTAL : ${formatCurrency(total)}*\n` +
+        `${t('invoiceDoc.payment')} : ${paymentLabel}\n` +
+        `*${statusLine}*\n\n` +
+        `${t('invoiceDoc.thanksTrust')}`
     );
     window.open(`https://wa.me/${fullPhone}?text=${msg}`, '_blank');
   };
@@ -165,18 +157,18 @@ export function InvoiceModal({ invoice, onClose }: Props) {
             <Button variant="ghost" size="icon" onClick={() => window.print()} title={t('common.print')}>
               <Printer className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={shareAsImage} disabled={sharing} title="Télécharger">
+            <Button variant="ghost" size="icon" onClick={shareAsImage} disabled={sharing} title={t('invoiceDoc.download')} aria-label={t('invoiceDoc.download')}>
               <Download className="w-4 h-4" />
             </Button>
             {fullPhone && (
-              <Button variant="ghost" size="icon" onClick={sendWhatsAppText} className="text-green-500" title="WhatsApp">
+              <Button variant="ghost" size="icon" onClick={sendWhatsAppText} className="text-success" title={t('invoiceDoc.whatsapp')} aria-label={t('invoiceDoc.whatsapp')}>
                 <MessageCircle className="w-4 h-4" />
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={shareAsImage} disabled={sharing} title="Partager">
+            <Button variant="ghost" size="icon" onClick={shareAsImage} disabled={sharing} title={t('invoiceDoc.share')} aria-label={t('invoiceDoc.share')}>
               <Share2 className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} title={t('common.close')} aria-label={t('common.close')}>
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -192,7 +184,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
           >
-            📋 Standard
+            {t('invoiceDoc.standard')}
           </button>
           <button
             onClick={() => setPrintFormat('thermal')}
@@ -202,7 +194,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
           >
-            🎫 Ticket 80mm
+            {t('invoiceDoc.thermal')}
           </button>
         </div>
 
@@ -241,7 +233,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                     {tenant?.name}
                   </div>
                   <div style={{ margin: '8px 0', borderTop: '1px dashed #000' }} />
-                  <div style={{ fontSize: '13px', fontWeight: 'bold' }}>TICKET DE CAISSE</div>
+                  <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('invoiceDoc.cashTicket')}</div>
                   <div style={{ fontSize: '11px' }}>N° {invoice.invoiceNumber}</div>
                   <div style={{ fontSize: '11px' }}>Date: {dateStr}</div>
                 </div>
@@ -250,7 +242,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
                 <div style={{ marginBottom: '10px', fontSize: '11px' }}>
                   <div>
-                    Client: <strong>{invoice.client?.name || 'Client Anonyme'}</strong>
+                    {t('invoiceDoc.client')} : <strong>{invoice.client?.name || t('invoiceDoc.anonymous')}</strong>
                   </div>
                   <div>Paiement: {paymentLabel}</div>
                   <div>
@@ -263,7 +255,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #000', fontWeight: 'bold' }}>
-                      <th style={{ textAlign: 'left', paddingBottom: '4px' }}>Article</th>
+                      <th style={{ textAlign: 'left', paddingBottom: '4px' }}>{t('invoiceDoc.article')}</th>
                       <th style={{ textAlign: 'right', paddingBottom: '4px' }}>Total</th>
                     </tr>
                   </thead>
@@ -285,23 +277,23 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px' }}>
                   <span>TOTAL</span>
-                  <span>{formatCurrency(total)} FCFA</span>
+                  <span>{formatCurrency(total)}</span>
                 </div>
                 {due > 0 && (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
-                      <span>Payé</span>
+                      <span>{t('invoiceDoc.paid')}</span>
                       <span>{formatCurrency(paid)} F</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', color: '#c00' }}>
-                      <span>Reste</span>
+                      <span>{t('invoiceDoc.remaining')}</span>
                       <span>{formatCurrency(due)} F</span>
                     </div>
                   </>
                 )}
 
                 <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '11px', color: '#666' }}>
-                  Merci pour votre achat !
+                  {t('invoiceDoc.thanksPurchase')}
                   <br />
                   {tenant?.name}
                 </div>
@@ -320,20 +312,20 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   }}
                 >
                   <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{tenant?.name}</div>
-                  <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '4px' }}>FACTURE</div>
+                  <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '4px' }}>{t('invoiceDoc.invoice')}</div>
                 </div>
 
                 {/* Invoice details */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', fontSize: '11px' }}>
                   <div>
-                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Facture N°</div>
+                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{t('invoiceDoc.invoiceNo')}</div>
                     <div>{invoice.invoiceNumber}</div>
-                    <div style={{ marginTop: '8px', fontWeight: 'bold' }}>Date</div>
+                    <div style={{ marginTop: '8px', fontWeight: 'bold' }}>{t('invoiceDoc.date')}</div>
                     <div>{dateStr}</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>Client</div>
-                    <div>{invoice.client?.name || 'Client Anonyme'}</div>
+                    <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{t('invoiceDoc.client')}</div>
+                    <div>{invoice.client?.name || t('invoiceDoc.anonymous')}</div>
                     {invoice.client?.phone && <div>{invoice.client.phone}</div>}
                   </div>
                 </div>
@@ -342,9 +334,9 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse', marginBottom: '16px' }}>
                   <thead>
                     <tr style={{ borderBottom: `2px solid ${invoiceColor}` }}>
-                      <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 'bold' }}>Article</th>
-                      <th style={{ textAlign: 'center', padding: '8px 4px', fontWeight: 'bold' }}>Qté</th>
-                      <th style={{ textAlign: 'right', padding: '8px 4px', fontWeight: 'bold' }}>P.U.</th>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 'bold' }}>{t('invoiceDoc.article')}</th>
+                      <th style={{ textAlign: 'center', padding: '8px 4px', fontWeight: 'bold' }}>{t('invoiceDoc.qty')}</th>
+                      <th style={{ textAlign: 'right', padding: '8px 4px', fontWeight: 'bold' }}>{t('invoiceDoc.unitPrice')}</th>
                       <th style={{ textAlign: 'right', padding: '8px 4px', fontWeight: 'bold' }}>Total</th>
                     </tr>
                   </thead>
@@ -372,17 +364,17 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>Sous-total</span>
-                    <span>{formatCurrency(total)} FCFA</span>
+                    <span>{t('invoiceDoc.subtotal')}</span>
+                    <span>{formatCurrency(total)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>Payé</span>
-                    <span style={{ color: '#16a34a' }}>{formatCurrency(paid)} FCFA</span>
+                    <span>{t('invoiceDoc.paid')}</span>
+                    <span style={{ color: '#16a34a' }}>{formatCurrency(paid)}</span>
                   </div>
                   {due > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#dc2626' }}>
-                      <span>Reste à payer</span>
-                      <span>{formatCurrency(due)} FCFA</span>
+                      <span>{t('invoiceDoc.remainingToPay')}</span>
+                      <span>{formatCurrency(due)}</span>
                     </div>
                   )}
                   <div
@@ -398,25 +390,25 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                     }}
                   >
                     <span>TOTAL</span>
-                    <span>{formatCurrency(total)} FCFA</span>
+                    <span>{formatCurrency(total)}</span>
                   </div>
                 </div>
 
                 {/* Payment info */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '10px', color: '#666' }}>
-                  <span>Paiement: {paymentLabel}</span>
+                  <span>{t('invoiceDoc.payment')} : {paymentLabel}</span>
                   <span>
                     {invoice.paymentStatus === 'PAID'
-                      ? '✅ Payée'
+                      ? t('invoiceDoc.statusPaid')
                       : invoice.paymentStatus === 'PARTIAL'
-                        ? '⏳ Partiel'
-                        : '⏳ En attente'}
+                        ? t('invoiceDoc.statusPartial')
+                        : t('invoiceDoc.statusPending')}
                   </span>
                 </div>
 
                 {/* Footer */}
                 <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: '#999' }}>
-                  Merci pour votre confiance !
+                  {t('invoiceDoc.thanksTrust')}
                   <br />
                   {tenant?.name} — Powered by KABRAK
                 </div>

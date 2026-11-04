@@ -79,7 +79,9 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Auth routes (no subscription check — must be accessible to login/register)
-app.use('/api/auth', authLimiter, authRoutes);
+// Throttle credential endpoints only; /me is called on every page load.
+app.use(['/api/auth/login', '/api/auth/register'], authLimiter);
+app.use('/api/auth', authRoutes);
 
 // Billing routes (subscription check skipped — must be accessible to renew expired accounts)
 app.use('/api/billing', billingRoutes);
