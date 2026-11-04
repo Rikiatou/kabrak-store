@@ -9,7 +9,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { cn, formatCurrency } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
-import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, X, Package } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, Landmark, X, Package } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
 
@@ -34,7 +34,8 @@ interface Client {
   phone?: string;
 }
 
-type PaymentMethod = 'CASH' | 'ORANGE_MONEY' | 'CARD';
+// Must match the backend order schema's paymentMethod enum.
+type PaymentMethod = 'CASH' | 'MOBILE_MONEY' | 'BANK_TRANSFER' | 'OTHER';
 
 export function POSPage() {
   const { t } = useTranslation();
@@ -160,8 +161,9 @@ export function POSPage() {
 
   const paymentOptions: { key: PaymentMethod; icon: typeof Banknote; label: string }[] = [
     { key: 'CASH', icon: Banknote, label: t('payment.CASH') },
-    { key: 'ORANGE_MONEY', icon: Smartphone, label: t('payment.ORANGE_MONEY') },
-    { key: 'CARD', icon: CreditCard, label: t('payment.CARD') },
+    { key: 'MOBILE_MONEY', icon: Smartphone, label: t('payment.MOBILE_MONEY') },
+    { key: 'BANK_TRANSFER', icon: Landmark, label: t('payment.BANK_TRANSFER') },
+    { key: 'OTHER', icon: CreditCard, label: t('payment.OTHER') },
   ];
 
   return (
@@ -320,7 +322,7 @@ export function POSPage() {
             </div>
           </div>
 
-          <div role="radiogroup" aria-label={t('pos.paymentMethod')} className="grid grid-cols-3 gap-2">
+          <div role="radiogroup" aria-label={t('pos.paymentMethod')} className="grid grid-cols-2 gap-2">
             {paymentOptions.map(({ key, icon: Icon, label }) => (
               <button
                 key={key}
