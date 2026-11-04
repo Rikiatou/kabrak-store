@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { register, login, me, updateProfile, changePassword } from './auth.controller';
+import { register, login, me, updateProfile, changePassword, updateTenant } from './auth.controller';
 import { validate } from '../../middleware/validate';
-import { authenticate } from '../../middleware/auth';
-import { registerSchema, loginSchema } from './auth.schema';
+import { authenticate, authorize } from '../../middleware/auth';
+import { registerSchema, loginSchema, updateTenantSchema } from './auth.schema';
 
 const router = Router();
 
@@ -11,5 +11,6 @@ router.post('/login', validate(loginSchema), login);
 router.get('/me', authenticate, me);
 router.put('/profile', authenticate, updateProfile);
 router.put('/password', authenticate, changePassword);
+router.put('/tenant', authenticate, authorize('OWNER'), validate(updateTenantSchema), updateTenant);
 
 export default router;

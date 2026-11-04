@@ -2,77 +2,47 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
+import { getErrorMessage } from '@/lib/errors';
+import { businessTypeKey } from '@/lib/businessType';
+import { CATEGORY_ICONS, PRODUCT_CATEGORY_GROUPS, SERVICE_CATEGORIES } from '@/lib/categoryIcons';
 import api from '@/lib/api';
-import { ArrowLeft, Check, Eye, EyeOff, ChevronRight, ChevronLeft, ShoppingBag, Briefcase } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, Eye, EyeOff, ChevronRight, ChevronLeft, ShoppingBag, Briefcase, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type BusinessMode = 'PRODUCT' | 'SERVICE';
 
-const PRODUCT_CATEGORIES = [
-  { value: 'CLOTHING', icon: '👗' },
-  { value: 'SHOES', icon: '👟' },
-  { value: 'PERFUMES', icon: '🧴' },
-  { value: 'COSMETICS', icon: '💄' },
-  { value: 'HIJABS_ABAYAS', icon: '🧕' },
-  { value: 'JEWELRY', icon: '💍' },
-  { value: 'BAGS', icon: '👜' },
-  { value: 'ELECTRONICS', icon: '📱' },
-  { value: 'HOUSE_PRODUCTS', icon: '🏠' },
-  { value: 'KITCHEN_PRODUCTS', icon: '🍳' },
-  { value: 'DECORATION', icon: '🪴' },
-  { value: 'MINI_MARKET', icon: '🏪' },
-  { value: 'WHOLESALE', icon: '📦' },
-  { value: 'MIXED_SHOP', icon: '🛒' },
-  { value: 'CAKES', icon: '🎂' },
-  { value: 'FOOD_BUSINESS', icon: '🍽️' },
-  { value: 'FOOD_DELIVERY', icon: '🛵' },
-  { value: 'HOME_COOKING', icon: '🥘' },
-  { value: 'WHATSAPP_SELLER', icon: '💬' },
-  { value: 'MADE_TO_ORDER', icon: '✂️' },
-  { value: 'OTHER', icon: '📋' },
-];
-
-const SERVICE_CATEGORIES = [
-  { value: 'DIGITAL_MARKETING', icon: '📈' },
-  { value: 'FREELANCER', icon: '💻' },
-  { value: 'AGENCY', icon: '🏢' },
-  { value: 'CONSULTANT', icon: '🎯' },
-  { value: 'DESIGNER', icon: '🎨' },
-  { value: 'DEVELOPER', icon: '⚙️' },
-  { value: 'SOCIAL_MEDIA', icon: '📱' },
-  { value: 'PRINTING', icon: '🖨️' },
-  { value: 'BUSINESS_SERVICES', icon: '💼' },
-  { value: 'OTHER', icon: '📋' },
-];
 
 const PLANS = [
-  { value: 'STORE', price: '4 900', features: ['Commandes', 'Clients', 'Facturation', 'WhatsApp'] },
-  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Gestion stock', 'Caisse POS', 'Employés'] },
-  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Rapports avancés'] },
+  { value: 'STORE', price: '4 900', features: ['featOrders', 'pClients', 'pInvoicing', 'pWhatsapp'] },
+  { value: 'SHOP', price: '7 900', features: ['allStore', 'pStock', 'pPos', 'pEmployees'] },
+  { value: 'BUSINESS', price: '12 900', features: ['allShop', 'pMultiEmployees', 'pPermissions', 'pReports'] },
 ];
 
 const SERVICE_PLANS = [
-  { value: 'STORE', price: '4 900', features: ['Projets', 'Clients', 'Facturation', 'WhatsApp'] },
-  { value: 'SHOP', price: '7 900', features: ['Tout STORE +', 'Récurrent', 'Milestones', 'Employés'] },
-  { value: 'BUSINESS', price: '12 900', features: ['Tout SHOP +', 'Multi-employés', 'Permissions', 'Rapports avancés'] },
+  { value: 'STORE', price: '4 900', features: ['featProjects', 'pClients', 'pInvoicing', 'pWhatsapp'] },
+  { value: 'SHOP', price: '7 900', features: ['allStore', 'featRecurring', 'featMilestones', 'pEmployees'] },
+  { value: 'BUSINESS', price: '12 900', features: ['allShop', 'pMultiEmployees', 'pPermissions', 'pReports'] },
 ];
 
-const categoryKeyMap: Record<string, string> = {
-  CLOTHING: 'clothing', SHOES: 'shoes', PERFUMES: 'perfumes', COSMETICS: 'cosmetics',
-  HIJABS_ABAYAS: 'hijabsAbayas', JEWELRY: 'jewelry', BAGS: 'bags',
-  ELECTRONICS: 'electronics', HOUSE_PRODUCTS: 'houseProducts',
-  KITCHEN_PRODUCTS: 'kitchenProducts', DECORATION: 'decoration',
-  MINI_MARKET: 'miniMarket', WHOLESALE: 'wholesale', MIXED_SHOP: 'mixedShop',
-  CAKES: 'cakes', FOOD_BUSINESS: 'foodBusiness', FOOD_DELIVERY: 'foodDelivery',
-  HOME_COOKING: 'homeCooking', WHATSAPP_SELLER: 'whatsappSeller', MADE_TO_ORDER: 'madeToOrder',
-  DIGITAL_MARKETING: 'digitalMarketing', FREELANCER: 'freelancer', AGENCY: 'agency',
-  CONSULTANT: 'consultant', DESIGNER: 'designer', DEVELOPER: 'developer',
-  SOCIAL_MEDIA: 'socialMedia', PRINTING: 'printing', BUSINESS_SERVICES: 'businessServices',
-  OTHER: 'other',
-};
+const MODES: Array<{ value: BusinessMode; icon: typeof ShoppingBag; title: string; desc: string; features: string[] }> = [
+  { value: 'PRODUCT', icon: ShoppingBag, title: 'productsMode', desc: 'productsModeDesc', features: ['featStock', 'featPos', 'featOrders', 'featDelivery'] },
+  { value: 'SERVICE', icon: Briefcase, title: 'servicesMode', desc: 'servicesModeDesc', features: ['featProjects', 'featInvoices', 'featRecurring', 'featMilestones'] },
+];
+
+function BackButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <Button type="button" variant="outline" className="flex-1" onClick={onClick}>
+      <ChevronLeft className="mr-1 h-4 w-4" /> {label}
+    </Button>
+  );
+}
 
 export function RegisterPage() {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
   const [step, setStep] = useState(1);
@@ -86,12 +56,11 @@ export function RegisterPage() {
     businessCategories: [] as string[],
   });
 
-  const stepLabels = language === 'fr'
-    ? ['Votre activité', 'Informations', 'Catégories', 'Plan']
-    : ['Your Business', 'Your Info', 'Categories', 'Plan'];
-
-  const categories = form.businessMode === 'SERVICE' ? SERVICE_CATEGORIES : PRODUCT_CATEGORIES;
-  const plans = form.businessMode === 'SERVICE' ? SERVICE_PLANS : PLANS;
+  const stepLabels = [t('auth.stepBusiness'), t('auth.stepInfo'), t('auth.stepCategories'), t('auth.stepPlan')];
+  const isService = form.businessMode === 'SERVICE';
+  const categoryGroups = isService ? [{ key: '', cats: SERVICE_CATEGORIES }] : PRODUCT_CATEGORY_GROUPS;
+  const plans = isService ? SERVICE_PLANS : PLANS;
+  const tooShort = form.password.length > 0 && form.password.length < 6;
 
   const toggleCategory = (cat: string) => {
     setForm((prev) => ({
@@ -102,333 +71,239 @@ export function RegisterPage() {
     }));
   };
 
+  const selectMode = (mode: BusinessMode) => {
+    setForm((prev) => ({ ...prev, businessMode: mode, businessCategories: prev.businessMode === mode ? prev.businessCategories : [] }));
+    setStep(2);
+  };
+
+  const handleInfoSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (form.password.length < 6) return;
+    setError('');
+    setStep(3);
+  };
+
   const handleSubmit = async () => {
     setError('');
     setLoading(true);
     try {
-      const payload = {
-        ...form,
-        businessMode: form.businessMode || 'PRODUCT',
-      };
+      const payload = { ...form, businessMode: form.businessMode || 'PRODUCT' };
       const { data } = await api.post('/auth/register', payload);
       setAuth(data.data);
       navigate('/dashboard');
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setError(axiosErr.response?.data?.message || "Erreur lors de l'inscription");
+    } catch (err) {
+      setError(getErrorMessage(err, t('auth.registerError')));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-start justify-center p-4 py-8 overflow-auto dark:bg-gray-900"
-      style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #f5f3ff 50%, #fefce8 100%)' }}>
-
-      <Link to="/" className="fixed top-5 left-5 z-10 flex items-center gap-2 text-sm text-gray-500 hover:text-blue-600 font-medium transition-colors bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-3 py-2 rounded-xl shadow-sm">
-        <ArrowLeft className="w-4 h-4" /> {language === 'fr' ? 'Accueil' : 'Home'}
+    <div className="flex min-h-screen items-start justify-center bg-muted/40 p-4 py-8">
+      <Link
+        to="/"
+        className="fixed left-4 top-4 z-10 flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm font-medium text-muted-foreground shadow-sm transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" /> {t('auth.home')}
       </Link>
 
       <div className="w-full max-w-lg pt-14 sm:pt-4">
-        <div className="text-center mb-6">
-          <img src="/logo.png" alt="KABRAK Store" className="mx-auto h-16 sm:h-20 object-contain mb-1" />
-          <p className="text-gray-400 mt-1 text-sm">
-            {language === 'fr' ? 'Créez votre espace en 4 étapes' : 'Create your space in 4 steps'}
-          </p>
+        <div className="mb-6 text-center">
+          <img src="/logo.png" alt="KABRAK Store" className="mx-auto mb-1 h-16 object-contain sm:h-20" />
+          <p className="text-sm text-muted-foreground">{t('auth.registerSubtitle')}</p>
         </div>
 
-        {/* Step progress */}
-        <div className="flex items-center justify-center gap-1 mb-6">
+        <ol className="mb-6 flex items-center justify-center gap-1" aria-label={t('auth.registerSubtitle')}>
           {[1, 2, 3, 4].map((s) => (
-            <div key={s} className="flex items-center">
+            <li key={s} className="flex items-center" aria-current={s === step ? 'step' : undefined}>
               <div className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all',
-                s === step ? 'bg-blue-600 text-white shadow-md shadow-blue-200' :
-                s < step ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                'flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors',
+                s === step ? 'bg-primary text-primary-foreground' : s < step ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground'
               )}>
-                {s < step ? <Check className="w-4 h-4" /> : s}
+                {s < step ? <Check className="h-4 w-4" /> : s}
               </div>
-              <span className={cn(
-                'text-xs ml-1.5 font-medium hidden sm:inline',
-                s === step ? 'text-blue-600' : 'text-gray-400'
-              )}>
+              <span className={cn('ml-1.5 hidden text-xs font-medium sm:inline', s === step ? 'text-primary' : 'text-muted-foreground')}>
                 {stepLabels[s - 1]}
               </span>
-              {s < 4 && <div className={cn('w-6 h-0.5 mx-1', s < step ? 'bg-blue-400' : 'bg-gray-200')} />}
-            </div>
+              {s < 4 && <div className={cn('mx-1 h-0.5 w-6', s < step ? 'bg-primary/50' : 'bg-border')} />}
+            </li>
           ))}
-        </div>
+        </ol>
 
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl shadow-blue-100/50 dark:shadow-gray-900/50 p-6 sm:p-8 border border-gray-100 dark:border-gray-700">
+        <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm p-3 rounded-xl border border-red-100 dark:border-red-800 mb-4">{error}</div>
+            <div role="alert" className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400">
+              <AlertCircle className="h-4 w-4 shrink-0" /> {error}
+            </div>
           )}
 
-          {/* Step 1: Business Mode */}
           {step === 1 && (
             <div className="space-y-4">
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 text-center mb-1">
-                {language === 'fr' ? 'Que gérez-vous principalement ?' : 'What do you mainly manage?'}
-              </h3>
-              <p className="text-xs text-gray-400 text-center mb-2">
-                {language === 'fr'
-                  ? 'Choisissez le type qui correspond le mieux à votre activité'
-                  : 'Choose the type that best matches your business'}
-              </p>
-              <div className="space-y-3">
-                <button
-                  onClick={() => { setForm({ ...form, businessMode: 'PRODUCT', businessCategories: [] }); setStep(2); }}
-                  className={cn(
-                    'w-full flex items-start gap-4 p-5 rounded-xl border-2 transition-all text-left cursor-pointer group hover:shadow-md',
-                    form.businessMode === 'PRODUCT'
-                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
-                      : 'border-gray-100 dark:border-gray-600 hover:border-blue-200'
-                  )}
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                    <ShoppingBag className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-bold text-gray-900 dark:text-white text-base">
-                      {language === 'fr' ? 'Produits à vendre' : 'Products to sell'}
-                    </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                      {language === 'fr'
-                        ? 'Boutique, restaurant, gâteaux, livraison, vente en ligne, mini-marché...'
-                        : 'Shop, restaurant, cakes, delivery, online selling, mini-market...'}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {['Stock', 'POS', language === 'fr' ? 'Commandes' : 'Orders', language === 'fr' ? 'Livraison' : 'Delivery'].map((f) => (
-                        <span key={f} className="text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full font-medium">{f}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-blue-400 mt-3 flex-shrink-0" />
-                </button>
-
-                <button
-                  onClick={() => { setForm({ ...form, businessMode: 'SERVICE', businessCategories: [] }); setStep(2); }}
-                  className={cn(
-                    'w-full flex items-start gap-4 p-5 rounded-xl border-2 transition-all text-left cursor-pointer group hover:shadow-md',
-                    form.businessMode === 'SERVICE'
-                      ? 'border-violet-500 bg-violet-50/50 dark:bg-violet-900/20'
-                      : 'border-gray-100 dark:border-gray-600 hover:border-violet-200'
-                  )}
-                >
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-violet-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                    <Briefcase className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-bold text-gray-900 dark:text-white text-base">
-                      {language === 'fr' ? 'Services clients' : 'Client services'}
-                    </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                      {language === 'fr'
-                        ? 'Marketing digital, freelance, agence, consultant, design, développement...'
-                        : 'Digital marketing, freelance, agency, consultant, design, development...'}
-                    </p>
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {[language === 'fr' ? 'Projets' : 'Projects', language === 'fr' ? 'Factures' : 'Invoices', language === 'fr' ? 'Récurrent' : 'Recurring', 'Milestones'].map((f) => (
-                        <span key={f} className="text-[10px] text-violet-600 bg-violet-50 dark:bg-violet-900/30 px-2 py-0.5 rounded-full font-medium">{f}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-violet-400 mt-3 flex-shrink-0" />
-                </button>
+              <div className="text-center">
+                <h2 className="text-base font-semibold">{t('auth.whatDoYouManage')}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{t('auth.modeHint')}</p>
               </div>
+              {MODES.map((m) => {
+                const Icon = m.icon;
+                const selected = form.businessMode === m.value;
+                return (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => selectMode(m.value)}
+                    className={cn(
+                      'group flex w-full items-start gap-4 rounded-xl border-2 p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      selected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
+                    )}
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold">{t(`auth.${m.title}`)}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{t(`auth.${m.desc}`)}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {m.features.map((f) => (
+                          <span key={f} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{t(`auth.${f}`)}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <ChevronRight className="mt-3 h-5 w-5 shrink-0 text-muted-foreground group-hover:text-primary" />
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {/* Step 2: Personal info */}
           {step === 2 && (
-            <div className="space-y-4">
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 text-center mb-2">
-                {language === 'fr' ? 'Vos informations' : 'Your information'}
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
+            <form onSubmit={handleInfoSubmit} className="space-y-4">
+              <h2 className="text-center text-base font-semibold">{t('auth.yourInfo')}</h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('auth.firstName')}</label>
-                  <input
-                    value={form.firstName}
-                    onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                    className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-gray-50/50 dark:bg-gray-700 dark:text-white"
-                    required
-                  />
+                  <Label htmlFor="rg-first">{t('auth.firstName')} *</Label>
+                  <Input id="rg-first" required autoComplete="given-name" value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('auth.lastName')}</label>
-                  <input
-                    value={form.lastName}
-                    onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                    className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-gray-50/50 dark:bg-gray-700 dark:text-white"
-                    required
-                  />
+                  <Label htmlFor="rg-last">{t('auth.lastName')} *</Label>
+                  <Input id="rg-last" required autoComplete="family-name" value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('auth.email')}</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder={language === 'fr' ? 'vous@exemple.com' : 'you@example.com'}
-                  className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-gray-50/50 dark:bg-gray-700 dark:text-white"
-                  required
-                />
+                <Label htmlFor="rg-email">{t('auth.email')} *</Label>
+                <Input id="rg-email" type="email" required autoComplete="email" value={form.email} placeholder={t('auth.emailPlaceholder')}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('auth.password')}</label>
+                <Label htmlFor="rg-pass">{t('auth.password')} *</Label>
                 <div className="relative">
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all pr-12 bg-gray-50/50 dark:bg-gray-700 dark:text-white"
-                    required
-                  />
+                  <Input id="rg-pass" type={showPass ? 'text' : 'password'} required minLength={6} autoComplete="new-password"
+                    value={form.password} placeholder="••••••••" aria-invalid={tooShort}
+                    className={cn('pr-10', tooShort && 'border-destructive focus-visible:ring-destructive')}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })} />
                   <button type="button" onClick={() => setShowPass(!showPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    aria-label={showPass ? t('auth.hidePassword') : t('auth.showPassword')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {tooShort && <p className="mt-1 text-xs text-destructive">{t('common.minPassword')}</p>}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{t('auth.phone')}</label>
-                <input
-                  type="tel"
-                  value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                  placeholder="6 XX XX XX XX"
-                  className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-gray-50/50 dark:bg-gray-700 dark:text-white"
-                />
+                <Label htmlFor="rg-phone">{t('auth.phone')}</Label>
+                <Input id="rg-phone" type="tel" autoComplete="tel" value={form.phone} placeholder="6 XX XX XX XX"
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  {form.businessMode === 'SERVICE'
-                    ? (language === 'fr' ? 'Nom de votre entreprise' : 'Your business name')
-                    : t('auth.storeName')}
-                </label>
-                <input
-                  value={form.storeName}
-                  onChange={(e) => setForm({ ...form, storeName: e.target.value })}
-                  placeholder={form.businessMode === 'SERVICE'
-                    ? (language === 'fr' ? 'Ex: Mon Agence Marketing' : 'Ex: My Marketing Agency')
-                    : (language === 'fr' ? 'Nom de votre boutique' : 'Your store name')}
-                  className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition-all bg-gray-50/50 dark:bg-gray-700 dark:text-white"
-                  required
-                />
+                <Label htmlFor="rg-store">{isService ? t('auth.businessName') : t('auth.storeName')} *</Label>
+                <Input id="rg-store" required value={form.storeName}
+                  placeholder={isService ? t('auth.businessNameHint') : t('auth.storeNameHint')}
+                  onChange={(e) => setForm({ ...form, storeName: e.target.value })} />
               </div>
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-1"
-                >
-                  <ChevronLeft className="w-4 h-4" /> {language === 'fr' ? 'Retour' : 'Back'}
-                </button>
-                <button
-                  onClick={() => setStep(3)}
-                  disabled={!form.firstName || !form.lastName || !form.email || !form.password || !form.storeName}
-                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-200 disabled:opacity-40 flex items-center justify-center gap-2"
-                >
-                  {language === 'fr' ? 'Continuer' : 'Continue'} <ChevronRight className="w-4 h-4" />
-                </button>
+                <BackButton onClick={() => setStep(1)} label={t('auth.back')} />
+                <Button type="submit" className="flex-1">{t('auth.continue')} <ChevronRight className="ml-1 h-4 w-4" /></Button>
               </div>
-            </div>
+            </form>
           )}
 
-          {/* Step 3: Categories */}
           {step === 3 && (
             <div className="space-y-4">
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 text-center">
-                {form.businessMode === 'SERVICE'
-                  ? (language === 'fr' ? 'Quel type de service ?' : 'What type of service?')
-                  : (language === 'fr' ? 'Que vendez-vous ?' : 'What do you sell?')}
-              </h3>
-              <p className="text-xs text-gray-400 text-center">
-                {language === 'fr' ? 'Sélectionnez une ou plusieurs catégories' : 'Select one or more categories'}
-              </p>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-[320px] overflow-y-auto pr-1">
-                {categories.map((cat) => {
-                  const isSelected = form.businessCategories.includes(cat.value);
-                  return (
-                    <button
-                      key={cat.value}
-                      onClick={() => toggleCategory(cat.value)}
-                      className={cn(
-                        'flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all cursor-pointer',
-                        isSelected
-                          ? form.businessMode === 'SERVICE'
-                            ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20 shadow-sm'
-                            : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm'
-                          : 'border-gray-100 dark:border-gray-600 hover:border-gray-200 bg-gray-50/50 dark:bg-gray-700'
-                      )}
-                    >
-                      <span className="text-xl">{cat.icon}</span>
-                      <span className="text-[11px] font-medium text-center text-gray-600 dark:text-gray-300 leading-tight">
-                        {t(`categories.${categoryKeyMap[cat.value]}`) || cat.value.replace(/_/g, ' ')}
-                      </span>
-                      {isSelected && <Check className={cn('w-3.5 h-3.5', form.businessMode === 'SERVICE' ? 'text-violet-500' : 'text-blue-500')} />}
-                    </button>
-                  );
-                })}
+              <div className="text-center">
+                <h2 className="text-base font-semibold">{isService ? t('auth.whatService') : t('auth.whatDoYouSell')}</h2>
+                <p className="mt-1 text-xs text-muted-foreground">{t('auth.selectCategories')}</p>
+              </div>
+              <div className="max-h-[360px] space-y-4 overflow-y-auto pr-1">
+                {categoryGroups.map((group) => (
+                  <div key={group.key || 'all'}>
+                    {group.key && <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t(`categories.${group.key}`)}</p>}
+                    <div className="grid grid-cols-2 gap-2.5 min-[400px]:grid-cols-3 sm:grid-cols-4">
+                      {group.cats.map((cat) => {
+                        const isSelected = form.businessCategories.includes(cat);
+                        const Icon = CATEGORY_ICONS[cat] || ClipboardList;
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() => toggleCategory(cat)}
+                            className={cn(
+                              'relative flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              isSelected ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/40'
+                            )}
+                          >
+                            {isSelected && <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5" />}
+                            <Icon className={cn('h-5 w-5', !isSelected && 'text-muted-foreground')} />
+                            <span className="text-center text-[11px] font-medium leading-tight text-foreground">{t(businessTypeKey(cat))}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setStep(2)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-1"
-                >
-                  <ChevronLeft className="w-4 h-4" /> {language === 'fr' ? 'Retour' : 'Back'}
-                </button>
-                <button
-                  onClick={() => setStep(4)}
-                  disabled={form.businessCategories.length === 0}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-200 disabled:opacity-40 flex items-center justify-center gap-1"
-                >
-                  {language === 'fr' ? 'Continuer' : 'Continue'} <ChevronRight className="w-4 h-4" />
-                </button>
+                <BackButton onClick={() => setStep(2)} label={t('auth.back')} />
+                <Button className="flex-1" onClick={() => setStep(4)} disabled={form.businessCategories.length === 0}>
+                  {t('auth.continue')} <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
               </div>
             </div>
           )}
 
-          {/* Step 4: Choose plan */}
           {step === 4 && (
             <div className="space-y-4">
-              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 text-center">
-                {t('auth.selectPlan')}
-              </h3>
-              <div className="space-y-3">
+              <h2 className="text-center text-base font-semibold">{t('auth.selectPlan')}</h2>
+              <div role="radiogroup" aria-label={t('auth.selectPlan')} className="space-y-3">
                 {plans.map((plan) => {
                   const isSelected = form.plan === plan.value;
                   return (
                     <button
                       key={plan.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
                       onClick={() => setForm({ ...form, plan: plan.value })}
                       className={cn(
-                        'w-full flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left cursor-pointer',
-                        isSelected
-                          ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 shadow-sm'
-                          : 'border-gray-100 dark:border-gray-600 hover:border-gray-200'
+                        'flex w-full items-start gap-4 rounded-xl border-2 p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'
                       )}
                     >
                       <div className={cn(
-                        'w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center',
-                        isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300 dark:border-gray-500'
+                        'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2',
+                        isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40'
                       )}>
-                        {isSelected && <Check className="w-3 h-3 text-white" />}
+                        {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline justify-between">
-                          <span className="font-bold text-gray-900 dark:text-white">KABRAK {plan.value}</span>
-                          <span className="text-lg font-bold text-blue-600">
-                            {plan.price} <span className="text-xs font-normal text-gray-400">FCFA/mois</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
+                          <span className="font-bold">KABRAK {plan.value}</span>
+                          <span className="text-lg font-bold text-primary">
+                            {plan.price} <span className="text-xs font-normal text-muted-foreground">{t('auth.perMonth')}</span>
                           </span>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 mt-2">
+                        <div className="mt-2 flex flex-wrap gap-1.5">
                           {plan.features.map((f) => (
-                            <span key={f} className="text-[11px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-                              {f}
-                            </span>
+                            <span key={f} className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">{t(`auth.${f}`)}</span>
                           ))}
                         </div>
                       </div>
@@ -436,32 +311,20 @@ export function RegisterPage() {
                   );
                 })}
               </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setStep(3)}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 font-medium text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all flex items-center justify-center gap-1"
-                >
-                  <ChevronLeft className="w-4 h-4" /> {language === 'fr' ? 'Retour' : 'Back'}
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-blue-200 disabled:opacity-60"
-                >
-                  {loading
-                    ? (language === 'fr' ? 'Création...' : 'Creating...')
-                    : (language === 'fr' ? 'Créer mon compte' : 'Create my account')
-                  }
-                </button>
+              <p className="text-center text-xs text-muted-foreground">{t('auth.trialNote')}</p>
+              <div className="flex gap-3 pt-1">
+                <BackButton onClick={() => setStep(3)} label={t('auth.back')} />
+                <Button className="flex-1" onClick={handleSubmit} disabled={loading}>
+                  {loading && <Spinner className="mr-2" />}
+                  {loading ? t('auth.creating') : t('auth.createAccount')}
+                </Button>
               </div>
             </div>
           )}
 
-          <p className="text-center text-sm text-gray-400 mt-5">
+          <p className="mt-5 text-center text-sm text-muted-foreground">
             {t('auth.alreadyHaveAccount')}{' '}
-            <Link to="/login" className="text-blue-600 font-medium hover:underline">
-              {t('auth.login')}
-            </Link>
+            <Link to="/login" className="font-medium text-primary hover:underline">{t('auth.login')}</Link>
           </p>
         </div>
       </div>

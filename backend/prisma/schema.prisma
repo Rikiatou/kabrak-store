@@ -92,6 +92,7 @@ enum BusinessCategory {
   PERFUMES
   COSMETICS
   HIJABS_ABAYAS
+  FABRICS
   JEWELRY
   BAGS
   ELECTRONICS
@@ -104,10 +105,6 @@ enum BusinessCategory {
   // Product mode — Order-based
   CAKES
   FOOD_BUSINESS
-  FOOD_DELIVERY
-  HOME_COOKING
-  WHATSAPP_SELLER
-  MADE_TO_ORDER
   // Service mode
   DIGITAL_MARKETING
   FREELANCER
@@ -229,6 +226,7 @@ model Product {
   barcode         String?
   sku             String?
   adaptiveFields  Json?
+  variants        Json?            // [{ name, stock }] e.g. sizes/colours with their own stock
 
   // Service mode fields
   isService       Boolean          @default(false)
@@ -291,6 +289,7 @@ model Order {
   paymentMethod   PaymentMethod @default(CASH)
   paymentStatus   PaymentStatus @default(PENDING)
   notes           String?
+  offlineId       String?       @unique
   tenantId        String
   clientId        String?
   createdById     String
@@ -316,6 +315,7 @@ model OrderItem {
   quantity    Int     @default(1)
   unitPrice   Float
   totalPrice  Float
+  unitCost    Float?
   variant     String?
   orderId     String
   productId   String

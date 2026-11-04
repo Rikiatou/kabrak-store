@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { CreateProductInput, UpdateProductInput } from './products.schema';
 
@@ -7,7 +8,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
     const { page = '1', limit = '20', search, categoryId, businessType } = req.query;
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    const where: Record<string, unknown> = { tenantId: req.user!.tenantId };
+    const where: Record<string, unknown> = { tenantId: req.user!.tenantId, isActive: true };
     if (search) where.name = { contains: search as string, mode: 'insensitive' };
     if (categoryId) where.categoryId = categoryId as string;
     if (businessType) where.businessType = businessType as string;
@@ -59,13 +60,20 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+// When a product has variants, its total stock is the sum of the variant stocks.
+function variantData(variants: { name: string; stock: number }[] | null | undefined) {
+  if (!variants || variants.length === 0) return { variants: Prisma.JsonNull };
+  return { variants, totalStock: variants.reduce((sum, v) => sum + v.stock, 0) };
+}
+
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
-    const data = req.body as CreateProductInput;
+    const { variants, ...data } = req.body as CreateProductInput;
 
     const product = await prisma.product.create({
       data: {
         ...data,
+        ...variantData(variants),
         tenantId: req.user!.tenantId,
       },
       include: { category: true },
@@ -81,7 +89,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 export const update = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const data = req.body as UpdateProductInput;
+    const { variants, ...data } = req.body as UpdateProductInput;
 
     const existing = await prisma.product.findFirst({
       where: { id, tenantId: req.user!.tenantId },
@@ -94,7 +102,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
 
     const product = await prisma.product.update({
       where: { id },
-      data,
+      data: { ...data, ...(variants !== undefined ? variantData(variants) : {}) },
       include: { category: true },
     });
 
@@ -117,7 +125,13 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    await prisma.product.delete({ where: { id } });
+    // Products that were already sold are archived so past orders, invoices and reports stay intact.
+    const sold = await prisma.orderItem.count({ where: { productId: id } });
+    if (sold > 0) {
+      await prisma.product.update({ where: { id }, data: { isActive: false } });
+    } else {
+      await prisma.product.delete({ where: { id } });
+    }
     res.json({ success: true, message: 'Produit supprimé' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete product';
@@ -131,6 +145,7 @@ export const findByBarcode = async (req: Request, res: Response): Promise<void> 
     const product = await prisma.product.findFirst({
       where: {
         tenantId: req.user!.tenantId,
+        isActive: true,
         OR: [{ barcode: code }, { sku: code }],
       },
       include: { category: true },

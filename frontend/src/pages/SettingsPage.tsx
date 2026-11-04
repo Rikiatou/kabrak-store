@@ -1,11 +1,48 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PageHeader } from '@/components/ui/page-header';
+import { LoadingState, Spinner } from '@/components/ui/spinner';
+import { cn } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/errors';
 import api from '@/lib/api';
-import { User, Lock, Save, CheckCircle, AlertCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { businessTypeKey } from '@/lib/businessType';
+import { CATEGORY_ICONS, PRODUCT_CATEGORY_GROUPS, SERVICE_CATEGORIES } from '@/lib/categoryIcons';
+import { User, Lock, Save, CheckCircle, AlertCircle, Store, Check, ClipboardList } from 'lucide-react';
+
+type Msg = { type: 'success' | 'error'; text: string } | null;
+
+function FormMessage({ msg }: { msg: Msg }) {
+  if (!msg) return null;
+  return (
+    <div
+      role={msg.type === 'error' ? 'alert' : 'status'}
+      className={cn(
+        'mb-4 flex items-center gap-2 rounded-lg border p-3 text-sm',
+        msg.type === 'success'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-900/20 dark:text-emerald-400'
+          : 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400'
+      )}
+    >
+      {msg.type === 'success' ? <CheckCircle className="h-4 w-4 shrink-0" /> : <AlertCircle className="h-4 w-4 shrink-0" />}
+      {msg.text}
+    </div>
+  );
+}
 
 export function SettingsPage() {
-  const { language } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  if (!user) return <LoadingState />;
+  return <SettingsForm key={user.id} />;
+}
+
+function SettingsForm() {
+  const { t } = useTranslation();
   const { user, fetchMe } = useAuthStore();
 
   const [profile, setProfile] = useState({
@@ -20,10 +57,13 @@ export function SettingsPage() {
     confirmPassword: '',
   });
 
-  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [passMsg, setPassMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [profileMsg, setProfileMsg] = useState<Msg>(null);
+  const [passMsg, setPassMsg] = useState<Msg>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
+
+  const mismatch = passwords.confirmPassword.length > 0 && passwords.newPassword !== passwords.confirmPassword;
+  const tooShort = passwords.newPassword.length > 0 && passwords.newPassword.length < 6;
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,16 +72,9 @@ export function SettingsPage() {
     try {
       await api.put('/auth/profile', profile);
       await fetchMe();
-      setProfileMsg({
-        type: 'success',
-        text: language === 'fr' ? 'Profil mis à jour avec succès' : 'Profile updated successfully',
-      });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setProfileMsg({
-        type: 'error',
-        text: axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur de mise à jour' : 'Update failed'),
-      });
+      setProfileMsg({ type: 'success', text: t('settings.profileUpdated') });
+    } catch (err) {
+      setProfileMsg({ type: 'error', text: getErrorMessage(err, t('settings.updateFailed')) });
     } finally {
       setProfileLoading(false);
     }
@@ -52,18 +85,11 @@ export function SettingsPage() {
     setPassMsg(null);
 
     if (passwords.newPassword !== passwords.confirmPassword) {
-      setPassMsg({
-        type: 'error',
-        text: language === 'fr' ? 'Les mots de passe ne correspondent pas' : 'Passwords do not match',
-      });
+      setPassMsg({ type: 'error', text: t('settings.mismatch') });
       return;
     }
-
     if (passwords.newPassword.length < 6) {
-      setPassMsg({
-        type: 'error',
-        text: language === 'fr' ? 'Minimum 6 caractères' : 'Minimum 6 characters',
-      });
+      setPassMsg({ type: 'error', text: t('common.minPassword') });
       return;
     }
 
@@ -73,172 +99,226 @@ export function SettingsPage() {
         currentPassword: passwords.currentPassword,
         newPassword: passwords.newPassword,
       });
-      setPassMsg({
-        type: 'success',
-        text: language === 'fr' ? 'Mot de passe modifié avec succès' : 'Password changed successfully',
-      });
+      setPassMsg({ type: 'success', text: t('settings.passwordChanged') });
       setPasswords({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string } } };
-      setPassMsg({
-        type: 'error',
-        text: axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur' : 'Error'),
-      });
+    } catch (err) {
+      setPassMsg({ type: 'error', text: getErrorMessage(err, t('common.error')) });
     } finally {
       setPassLoading(false);
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">
-        {language === 'fr' ? 'Paramètres' : 'Settings'}
-      </h1>
+    <div className="mx-auto max-w-2xl space-y-6">
+      <PageHeader title={t('settings.title')} />
 
-      {/* Profile Section */}
-      <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-foreground">
-            {language === 'fr' ? 'Informations personnelles' : 'Personal Information'}
-          </h2>
-        </div>
+      <ShopSection />
 
-        {profileMsg && (
-          <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${
-            profileMsg.type === 'success'
-              ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-              : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-          }`}>
-            {profileMsg.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-            {profileMsg.text}
-          </div>
-        )}
-
-        <form onSubmit={handleProfileSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                {language === 'fr' ? 'Prénom' : 'First Name'}
-              </label>
-              <input
-                type="text"
-                value={profile.firstName}
-                onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
-                className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-              />
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-base">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><User className="h-5 w-5" /></span>
+            {t('settings.personalInfo')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FormMessage msg={profileMsg} />
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="st-first">{t('settings.firstName')}</Label>
+                <Input id="st-first" value={profile.firstName} required onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="st-last">{t('settings.lastName')}</Label>
+                <Input id="st-last" value={profile.lastName} required onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} />
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                {language === 'fr' ? 'Nom' : 'Last Name'}
-              </label>
-              <input
-                type="text"
-                value={profile.lastName}
-                onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
-                className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-              />
+              <Label htmlFor="st-email">{t('settings.email')}</Label>
+              <Input id="st-email" type="email" value={profile.email} required onChange={(e) => setProfile({ ...profile, email: e.target.value })} />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={profile.email}
-              onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-              className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={profileLoading}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            <Save className="w-4 h-4" />
-            {profileLoading
-              ? (language === 'fr' ? 'Enregistrement...' : 'Saving...')
-              : (language === 'fr' ? 'Enregistrer' : 'Save')}
-          </button>
-        </form>
-      </div>
+            <Button type="submit" disabled={profileLoading}>
+              {profileLoading ? <Spinner className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
+              {profileLoading ? t('common.saving') : t('common.save')}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-      {/* Password Section */}
-      <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-            <Lock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-foreground">
-            {language === 'fr' ? 'Changer le mot de passe' : 'Change Password'}
-          </h2>
-        </div>
-
-        {passMsg && (
-          <div className={`flex items-center gap-2 p-3 rounded-lg mb-4 text-sm ${
-            passMsg.type === 'success'
-              ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-              : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-          }`}>
-            {passMsg.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-            {passMsg.text}
-          </div>
-        )}
-
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">
-              {language === 'fr' ? 'Mot de passe actuel' : 'Current Password'}
-            </label>
-            <input
-              type="password"
-              value={passwords.currentPassword}
-              onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
-              required
-              className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-base">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-foreground"><Lock className="h-5 w-5" /></span>
+            {t('settings.changePassword')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FormMessage msg={passMsg} />
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                {language === 'fr' ? 'Nouveau mot de passe' : 'New Password'}
-              </label>
-              <input
-                type="password"
-                value={passwords.newPassword}
-                onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
-                required
-                className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
-              />
+              <Label htmlFor="st-cur">{t('settings.currentPassword')}</Label>
+              <Input id="st-cur" type="password" autoComplete="current-password" required value={passwords.currentPassword}
+                onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">
-                {language === 'fr' ? 'Confirmer' : 'Confirm'}
-              </label>
-              <input
-                type="password"
-                value={passwords.confirmPassword}
-                onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
-                required
-                className="w-full border border-border rounded-lg px-3 py-2.5 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-orange-200 focus:border-orange-400"
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="st-new">{t('settings.newPassword')}</Label>
+                <Input id="st-new" type="password" autoComplete="new-password" required minLength={6} value={passwords.newPassword}
+                  aria-invalid={tooShort} className={cn(tooShort && 'border-destructive focus-visible:ring-destructive')}
+                  onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} />
+                {tooShort && <p className="mt-1 text-xs text-destructive">{t('common.minPassword')}</p>}
+              </div>
+              <div>
+                <Label htmlFor="st-conf">{t('settings.confirmPassword')}</Label>
+                <Input id="st-conf" type="password" autoComplete="new-password" required value={passwords.confirmPassword}
+                  aria-invalid={mismatch} className={cn(mismatch && 'border-destructive focus-visible:ring-destructive')}
+                  onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })} />
+                {mismatch && <p className="mt-1 text-xs text-destructive">{t('settings.mismatch')}</p>}
+              </div>
             </div>
-          </div>
-          <button
-            type="submit"
-            disabled={passLoading}
-            className="flex items-center gap-2 px-4 py-2.5 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors disabled:opacity-50"
-          >
-            <Lock className="w-4 h-4" />
-            {passLoading
-              ? (language === 'fr' ? 'Modification...' : 'Changing...')
-              : (language === 'fr' ? 'Modifier le mot de passe' : 'Change Password')}
-          </button>
-        </form>
-      </div>
+            <Button type="submit" variant="outline" disabled={passLoading}>
+              {passLoading ? <Spinner className="mr-2" /> : <Lock className="mr-2 h-4 w-4" />}
+              {passLoading ? t('settings.changing') : t('settings.changePassword')}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
+  );
+}
+
+function ShopSection() {
+  const tenant = useAuthStore((s) => s.tenant);
+  return tenant ? <ShopSettings key={tenant.id} /> : null;
+}
+
+function ShopSettings() {
+  const { t } = useTranslation();
+  const { tenant, user, fetchMe } = useAuthStore();
+  const isOwner = user?.role === 'OWNER';
+  const [shop, setShop] = useState({
+    name: tenant?.name || '',
+    phone: tenant?.phone || '',
+    email: tenant?.email || '',
+    address: tenant?.address || '',
+    invoiceHeader: tenant?.invoiceHeader || '',
+    invoiceColor: tenant?.invoiceColor || '#2563eb',
+    businessCategories: tenant?.businessCategories || [],
+  });
+  const [msg, setMsg] = useState<Msg>(null);
+  const [loading, setLoading] = useState(false);
+  const groups = tenant?.businessMode === 'SERVICE' ? [{ key: '', cats: SERVICE_CATEGORIES }] : PRODUCT_CATEGORY_GROUPS;
+
+  const toggle = (cat: string) =>
+    setShop((prev) => ({
+      ...prev,
+      businessCategories: prev.businessCategories.includes(cat)
+        ? prev.businessCategories.filter((c) => c !== cat)
+        : [...prev.businessCategories, cat],
+    }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg(null);
+    if (!shop.name.trim() || shop.businessCategories.length === 0) {
+      setMsg({ type: 'error', text: t('settings.shopMissing') });
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.put('/auth/tenant', shop);
+      await fetchMe();
+      setMsg({ type: 'success', text: t('settings.shopUpdated') });
+    } catch (err) {
+      setMsg({ type: 'error', text: getErrorMessage(err, t('settings.updateFailed')) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-3 text-base">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><Store className="h-5 w-5" /></span>
+          {t('settings.shop')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <FormMessage msg={msg} />
+        {!isOwner && <p className="mb-4 text-sm text-muted-foreground">{t('settings.ownerOnly')}</p>}
+        <form onSubmit={handleSubmit} noValidate>
+          <fieldset disabled={!isOwner || loading} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label htmlFor="shop-name">{t('settings.shopName')} *</Label>
+                <Input id="shop-name" value={shop.name} onChange={(e) => setShop({ ...shop, name: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="shop-phone">{t('settings.phone')}</Label>
+                <Input id="shop-phone" type="tel" value={shop.phone} onChange={(e) => setShop({ ...shop, phone: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="shop-email">{t('settings.shopEmail')}</Label>
+                <Input id="shop-email" type="email" value={shop.email} onChange={(e) => setShop({ ...shop, email: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="shop-address">{t('settings.address')}</Label>
+                <Input id="shop-address" value={shop.address} onChange={(e) => setShop({ ...shop, address: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="shop-note">{t('settings.invoiceNote')}</Label>
+                <Textarea id="shop-note" rows={2} maxLength={300} placeholder={t('settings.invoiceNoteHint')} value={shop.invoiceHeader} onChange={(e) => setShop({ ...shop, invoiceHeader: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="shop-color">{t('settings.invoiceColor')}</Label>
+                <Input id="shop-color" type="color" className="h-10 w-20 cursor-pointer p-1" value={shop.invoiceColor} onChange={(e) => setShop({ ...shop, invoiceColor: e.target.value })} />
+              </div>
+            </div>
+
+            <div>
+              <Label>{t('settings.activities')} *</Label>
+              <p className="mb-3 text-xs text-muted-foreground">{t('settings.activitiesHint')}</p>
+              <div className="space-y-3">
+                {groups.map((group) => (
+                  <div key={group.key || 'all'}>
+                    {group.key && <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t(`categories.${group.key}`)}</p>}
+                    <div className="flex flex-wrap gap-2">
+                      {group.cats.map((cat) => {
+                        const selected = shop.businessCategories.includes(cat);
+                        const Icon = CATEGORY_ICONS[cat] || ClipboardList;
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => toggle(cat)}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed',
+                              selected ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'
+                            )}
+                          >
+                            {selected ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                            {t(businessTypeKey(cat))}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {isOwner && (
+              <Button type="submit" disabled={loading}>
+                {loading ? <Spinner className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
+                {t('common.save')}
+              </Button>
+            )}
+          </fieldset>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

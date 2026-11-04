@@ -1,11 +1,10 @@
 import { z } from 'zod';
 
 const BUSINESS_CATEGORIES = [
-  'CLOTHING', 'SHOES', 'PERFUMES', 'COSMETICS', 'HIJABS_ABAYAS',
+  'CLOTHING', 'SHOES', 'PERFUMES', 'COSMETICS', 'HIJABS_ABAYAS', 'FABRICS',
   'JEWELRY', 'BAGS', 'ELECTRONICS', 'HOUSE_PRODUCTS', 'KITCHEN_PRODUCTS',
   'DECORATION', 'MINI_MARKET', 'WHOLESALE', 'MIXED_SHOP',
-  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING',
-  'WHATSAPP_SELLER', 'MADE_TO_ORDER',
+  'CAKES', 'FOOD_BUSINESS',
   'DIGITAL_MARKETING', 'FREELANCER', 'AGENCY', 'CONSULTANT',
   'DESIGNER', 'DEVELOPER', 'SOCIAL_MEDIA', 'PRINTING', 'BUSINESS_SERVICES',
   'OTHER',
@@ -24,6 +23,7 @@ export const createProductSchema = z.object({
   barcode: z.string().optional().nullable(),
   sku: z.string().optional().nullable(),
   adaptiveFields: z.any().optional(),
+  variants: z.array(z.object({ name: z.string().min(1), stock: z.number().int().min(0) })).optional().nullable(),
   isService: z.boolean().default(false),
   duration: z.string().optional().nullable(),
   recurringType: z.string().optional().nullable(),

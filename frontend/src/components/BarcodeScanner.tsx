@@ -38,7 +38,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
           videoRef.current.play();
         }
       } catch {
-        setCameraError('Impossible d\'accéder à la caméra');
+        setCameraError(t('scanner.cameraError'));
         setMode('manual');
       }
     };
@@ -52,7 +52,7 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
         streamRef.current = null;
       }
     };
-  }, [mode]);
+  }, [mode, t]);
 
   useEffect(() => {
     return () => {
@@ -71,10 +71,10 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          <span className="text-sm font-bold">Scanner code-barres</span>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+      <div className="bg-card text-card-foreground rounded-xl border shadow-lg w-full max-w-sm">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <span className="text-sm font-semibold">{t('scanner.title')}</span>
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('common.close')} title={t('common.close')}>
             <X className="w-4 h-4" />
           </Button>
         </div>
@@ -86,28 +86,28 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
               onClick={() => setMode('manual')}
               className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                 mode === 'manual'
-                  ? 'bg-kabrak-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-accent'
               }`}
             >
-              <Keyboard className="w-4 h-4" /> Manuel
+              <Keyboard className="w-4 h-4" /> {t('scanner.manual')}
             </button>
             <button
               onClick={() => setMode('camera')}
               className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
                 mode === 'camera'
-                  ? 'bg-kabrak-500 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-accent'
               }`}
             >
-              <Camera className="w-4 h-4" /> Caméra
+              <Camera className="w-4 h-4" /> {t('scanner.camera')}
             </button>
           </div>
 
           {mode === 'camera' ? (
             <div className="relative">
               {cameraError ? (
-                <div className="text-center py-8 text-sm text-red-500">{cameraError}</div>
+                <div className="text-center py-8 text-sm text-destructive">{cameraError}</div>
               ) : (
                 <>
                   <video
@@ -117,10 +117,10 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
                   />
                   <canvas ref={canvasRef} className="hidden" />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-48 h-32 border-2 border-kabrak-500 rounded-lg opacity-50" />
+                    <div className="w-48 h-32 border-2 border-primary rounded-lg opacity-60" />
                   </div>
                   <p className="text-xs text-center text-muted-foreground mt-2">
-                    Placez le code-barres dans le cadre
+                    {t('scanner.hint')}
                   </p>
                 </>
               )}
@@ -128,16 +128,17 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
           ) : (
             <form onSubmit={handleManualSubmit} className="space-y-3">
               <div>
-                <label className="text-sm font-medium mb-1 block">Code-barres / SKU</label>
+                <label htmlFor="scan-code" className="text-sm font-medium mb-1.5 block">{t('scanner.code')}</label>
                 <Input
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value)}
-                  placeholder="Entrez ou scannez le code..."
+                  id="scan-code"
+                  placeholder={t('scanner.placeholder')}
                   autoFocus
                 />
               </div>
               <Button type="submit" className="w-full" disabled={!manualCode.trim()}>
-                {t('common.confirm')}
+                {t('scanner.search')}
               </Button>
             </form>
           )}

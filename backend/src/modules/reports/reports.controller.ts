@@ -19,10 +19,10 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       topProducts,
     ] = await Promise.all([
       prisma.order.count({
-        where: { tenantId, createdAt: { gte: today, lt: tomorrow } },
+        where: { tenantId, status: { not: 'CANCELLED' }, createdAt: { gte: today, lt: tomorrow } },
       }),
       prisma.order.aggregate({
-        where: { tenantId, createdAt: { gte: today, lt: tomorrow } },
+        where: { tenantId, status: { not: 'CANCELLED' }, createdAt: { gte: today, lt: tomorrow } },
         _sum: { amountPaid: true },
       }),
       prisma.product.count({ where: { tenantId, isActive: true } }),
@@ -44,7 +44,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       }),
       prisma.orderItem.groupBy({
         by: ['productId'],
-        where: { order: { tenantId } },
+        where: { order: { tenantId, status: { not: 'CANCELLED' } } },
         _sum: { quantity: true, totalPrice: true },
         orderBy: { _sum: { totalPrice: 'desc' } },
         take: 5,
@@ -95,6 +95,7 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
     const orders = await prisma.order.findMany({
       where: {
         tenantId,
+        status: { not: 'CANCELLED' },
         createdAt: { gte: startDate, lte: endDate },
       },
       include: {
@@ -125,7 +126,7 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       salesByPeriod[key].orders += 1;
 
       for (const item of order.items) {
-        salesByPeriod[key].profit += (item.unitPrice - (item.product.costPrice || 0)) * item.quantity;
+        salesByPeriod[key].profit += (item.unitPrice - (item.unitCost ?? item.product.costPrice ?? 0)) * item.quantity;
       }
     }
 

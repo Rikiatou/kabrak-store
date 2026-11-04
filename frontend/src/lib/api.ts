@@ -16,7 +16,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isCredentialRequest = /\/auth\/(login|register)$/.test(error.config?.url || '');
+    if (error.response?.status === 401 && !isCredentialRequest) {
       localStorage.removeItem('kabrak_token');
       window.location.href = '/login';
     }

@@ -1,8 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
+import toast from 'react-hot-toast';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState, Spinner } from '@/components/ui/spinner';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useTranslation } from '@/i18n/useTranslation';
+import { cn, formatCurrency, formatDate } from '@/lib/utils';
+import { getErrorMessage } from '@/lib/errors';
 import api from '@/lib/api';
-import { RefreshCw, Plus, Trash2, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { RefreshCw, Plus, Trash2, Pause, Play, Calendar, Pencil } from 'lucide-react';
 
 interface RecurringBilling {
   id: string;
@@ -25,29 +38,30 @@ interface ServiceProduct {
   sellingPrice: number;
 }
 
+const FREQUENCIES = ['weekly', 'monthly', 'quarterly', 'yearly'];
+const emptyForm = { clientId: '', productId: '', amount: 0, frequency: 'monthly', nextBillingDate: '' };
+
 export function RecurringPage() {
-  const { t, language } = useTranslation();
+  const { t } = useTranslation();
+  const confirm = useConfirm();
   const [items, setItems] = useState<RecurringBilling[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<ServiceProduct[]>([]);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    clientId: '',
-    productId: '',
-    amount: 0,
-    frequency: 'monthly',
-    nextBillingDate: '',
-  });
+  const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     try {
       const { data } = await api.get('/recurring');
       setItems(data.data);
-    } catch { /* ignore */ }
+    } catch (err) {
+      toast.error(getErrorMessage(err, t('common.loadError')));
+    }
     setLoading(false);
-  }, []);
+  }, [t]);
 
   useEffect(() => { fetchItems(); }, [fetchItems]);
 
@@ -64,32 +78,64 @@ export function RecurringPage() {
     try {
       await api.put(`/recurring/${item.id}`, { isActive: !item.isActive });
       fetchItems();
-    } catch { /* ignore */ }
+    } catch (err) {
+      toast.error(getErrorMessage(err, t('common.error')));
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm(language === 'fr' ? 'Supprimer ?' : 'Delete?')) return;
+    if (!(await confirm({ title: t('recurring.deleteTitle'), description: t('common.deleteDesc') }))) return;
     try {
       await api.delete(`/recurring/${id}`);
+      toast.success(t('common.deleted'));
       fetchItems();
-    } catch { /* ignore */ }
+    } catch (err) {
+      toast.error(getErrorMessage(err, t('common.error')));
+    }
   };
 
-  const handleCreate = async () => {
-    if (!form.clientId || !form.amount || !form.nextBillingDate) return;
+  const openCreate = () => { setEditingId(null); setForm(emptyForm); setShowForm(true); };
+
+  const openEdit = (item: RecurringBilling) => {
+    setEditingId(item.id);
+    setForm({
+      clientId: item.client?.id || '',
+      productId: item.product?.id || '',
+      amount: item.amount,
+      frequency: item.frequency,
+      nextBillingDate: item.nextBillingDate.slice(0, 10),
+    });
+    setShowForm(true);
+  };
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.clientId || !form.amount || !form.nextBillingDate) {
+      toast.error(t('recurring.missing'));
+      return;
+    }
     setSaving(true);
     try {
-      await api.post('/recurring', {
+      const payload = {
         clientId: form.clientId,
         productId: form.productId || undefined,
         amount: form.amount,
         frequency: form.frequency,
         nextBillingDate: form.nextBillingDate,
-      });
+      };
+      if (editingId) {
+        await api.put(`/recurring/${editingId}`, payload);
+      } else {
+        await api.post('/recurring', payload);
+      }
+      toast.success(t(editingId ? 'recurring.updated' : 'recurring.created'));
+      setEditingId(null);
       setShowForm(false);
-      setForm({ clientId: '', productId: '', amount: 0, frequency: 'monthly', nextBillingDate: '' });
+      setForm(emptyForm);
       fetchItems();
-    } catch { /* ignore */ }
+    } catch (err) {
+      toast.error(getErrorMessage(err, t('common.error')));
+    }
     setSaving(false);
   };
 
@@ -100,184 +146,95 @@ export function RecurringPage() {
     });
   };
 
-  const formatCurrency = (n: number) => n.toLocaleString('fr-FR') + ' FCFA';
-  const formatDate = (d: string) => new Date(d).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US');
-
-  const FREQ_LABELS: Record<string, Record<string, string>> = {
-    fr: { weekly: 'Hebdomadaire', monthly: 'Mensuel', quarterly: 'Trimestriel', yearly: 'Annuel' },
-    en: { weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', yearly: 'Yearly' },
-  };
-
-  const FREQ_OPTIONS = [
-    { value: 'weekly', label: language === 'fr' ? 'Hebdomadaire' : 'Weekly' },
-    { value: 'monthly', label: language === 'fr' ? 'Mensuel' : 'Monthly' },
-    { value: 'quarterly', label: language === 'fr' ? 'Trimestriel' : 'Quarterly' },
-    { value: 'yearly', label: language === 'fr' ? 'Annuel' : 'Yearly' },
-  ];
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <RefreshCw className="w-6 h-6 text-violet-600" />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('recurring.title')}</h1>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> {t('recurring.addRecurring')}
-        </button>
-      </div>
+      <PageHeader
+        title={t('recurring.title')}
+        actions={<Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> {t('recurring.addRecurring')}</Button>}
+      />
 
-      {/* Creation form */}
-      {showForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border-2 border-violet-200 dark:border-violet-800 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold dark:text-white">
-              {language === 'fr' ? 'Nouvelle facturation récurrente' : 'New Recurring Billing'}
-            </h2>
-            <button onClick={() => setShowForm(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
-              <X className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {language === 'fr' ? 'Client *' : 'Client *'}
-              </label>
-              <select
-                value={form.clientId}
-                onChange={(e) => setForm({ ...form, clientId: e.target.value })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">{language === 'fr' ? '-- Sélectionner --' : '-- Select --'}</option>
-                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t(editingId ? 'recurring.editRecurring' : 'recurring.addRecurring')}</DialogTitle></DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="rc-client">{t('recurring.client')} *</Label>
+                <NativeSelect id="rc-client" required value={form.clientId} onChange={(e) => setForm({ ...form, clientId: e.target.value })}>
+                  <option value="">{t('common.select')}</option>
+                  {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </NativeSelect>
+              </div>
+              <div>
+                <Label htmlFor="rc-service">{t('recurring.service')}</Label>
+                <NativeSelect id="rc-service" value={form.productId} onChange={(e) => handleServiceSelect(e.target.value)}>
+                  <option value="">{t('recurring.noService')}</option>
+                  {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </NativeSelect>
+              </div>
+              <div>
+                <Label htmlFor="rc-amount">{t('recurring.amountFcfa')} *</Label>
+                <Input id="rc-amount" type="number" min={1} required value={form.amount || ''}
+                  onChange={(e) => setForm({ ...form, amount: Math.max(0, Number(e.target.value)) })} />
+              </div>
+              <div>
+                <Label htmlFor="rc-freq">{t('recurring.frequency')}</Label>
+                <NativeSelect id="rc-freq" value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })}>
+                  {FREQUENCIES.map((f) => <option key={f} value={f}>{t(`recurring.${f}`)}</option>)}
+                </NativeSelect>
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="rc-date">{t('recurring.firstBilling')} *</Label>
+                <Input id="rc-date" type="date" required value={form.nextBillingDate} onChange={(e) => setForm({ ...form, nextBillingDate: e.target.value })} />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {language === 'fr' ? 'Service (optionnel)' : 'Service (optional)'}
-              </label>
-              <select
-                value={form.productId}
-                onChange={(e) => handleServiceSelect(e.target.value)}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="">{language === 'fr' ? '-- Aucun --' : '-- None --'}</option>
-                {services.map((s) => <option key={s.id} value={s.id}>{s.name} ({formatCurrency(s.sellingPrice)})</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {language === 'fr' ? 'Montant (FCFA) *' : 'Amount (FCFA) *'}
-              </label>
-              <input
-                type="number"
-                value={form.amount || ''}
-                onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white"
-                placeholder="75000"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {language === 'fr' ? 'Fréquence' : 'Frequency'}
-              </label>
-              <select
-                value={form.frequency}
-                onChange={(e) => setForm({ ...form, frequency: e.target.value })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white"
-              >
-                {FREQ_OPTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {language === 'fr' ? 'Prochaine facturation *' : 'Next billing date *'}
-              </label>
-              <input
-                type="date"
-                value={form.nextBillingDate}
-                onChange={(e) => setForm({ ...form, nextBillingDate: e.target.value })}
-                className="w-full border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300">
-              {t('common.cancel')}
-            </button>
-            <button
-              onClick={handleCreate}
-              disabled={saving || !form.clientId || !form.amount || !form.nextBillingDate}
-              className="px-6 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors"
-            >
-              {saving ? '...' : (language === 'fr' ? 'Créer' : 'Create')}
-            </button>
-          </div>
-        </div>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>{t('common.cancel')}</Button>
+              <Button type="submit" disabled={saving}>{saving && <Spinner className="mr-2" />}{t('common.save')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">{t('common.loading')}</div>
+        <LoadingState />
       ) : items.length === 0 ? (
-        <div className="text-center py-12">
-          <RefreshCw className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-400">{language === 'fr' ? 'Aucune facturation récurrente' : 'No recurring billing'}</p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="mt-4 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700"
-          >
-            <Plus className="w-4 h-4 inline mr-1" /> {language === 'fr' ? 'Créer la première' : 'Create first one'}
-          </button>
-        </div>
+        <EmptyState icon={RefreshCw} title={t('recurring.empty')} description={t('recurring.emptyDesc')}
+          action={<Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> {t('recurring.addRecurring')}</Button>} />
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs uppercase">
-              <tr>
-                <th className="px-4 py-3 text-left">{t('clients.name')}</th>
-                <th className="px-4 py-3 text-left">{language === 'fr' ? 'Service' : 'Service'}</th>
-                <th className="px-4 py-3 text-right">{t('recurring.amount')}</th>
-                <th className="px-4 py-3 text-center">{t('recurring.frequency')}</th>
-                <th className="px-4 py-3 text-center">{t('recurring.nextBilling')}</th>
-                <th className="px-4 py-3 text-center">{t('common.status')}</th>
-                <th className="px-4 py-3 text-center">{t('common.actions')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {items.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{item.client?.name || '—'}</td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{item.product?.name || '—'}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(item.amount)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className="text-xs bg-violet-50 dark:bg-violet-900/20 text-violet-600 px-2 py-1 rounded-full">
-                      {FREQ_LABELS[language]?.[item.frequency] || item.frequency}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center text-gray-500 dark:text-gray-400">{formatDate(item.nextBillingDate)}</td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => handleToggle(item)}
-                      className={cn(
-                        'text-xs px-2.5 py-1 rounded-full font-medium cursor-pointer',
-                        item.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                      )}
-                    >
-                      {item.isActive ? (language === 'fr' ? 'Actif' : 'Active') : (language === 'fr' ? 'Inactif' : 'Inactive')}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button onClick={() => handleDelete(item.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-3">
+          {items.map((item) => (
+            <Card key={item.id} className={cn(!item.isActive && 'opacity-70')}>
+              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate font-semibold">{item.client?.name || '—'}</p>
+                    <Badge variant={item.isActive ? 'success' : 'secondary'}>{item.isActive ? t('common.active') : t('recurring.paused')}</Badge>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {[item.product?.name, t(`recurring.${item.frequency}`)].filter(Boolean).join(' · ')}
+                  </p>
+                  <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" /> {t('recurring.nextBilling')} : {formatDate(item.nextBillingDate)}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-3 sm:justify-end">
+                  <p className="text-lg font-bold">{formatCurrency(item.amount)}</p>
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="sm" onClick={() => handleToggle(item)}>
+                      {item.isActive ? <><Pause className="mr-1.5 h-3.5 w-3.5" />{t('recurring.pause')}</> : <><Play className="mr-1.5 h-3.5 w-3.5" />{t('recurring.resume')}</>}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEdit(item)} aria-label={t('common.edit')} title={t('common.edit')}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(item.id)} aria-label={t('common.delete')} title={t('common.delete')}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
     </div>

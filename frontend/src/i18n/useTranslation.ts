@@ -7,7 +7,7 @@ export function useTranslation() {
   const language = useAuthStore((s) => s.language);
 
   const t = useCallback(
-    (key: string): string => {
+    (key: string, params?: Record<string, string | number>): string => {
       const keys = key.split('.');
       let result: unknown = translations[language as Language] || translations.fr;
 
@@ -19,7 +19,9 @@ export function useTranslation() {
         }
       }
 
-      return typeof result === 'string' ? result : key;
+      if (typeof result !== 'string') return key;
+      if (!params) return result;
+      return result.replace(/\{(\w+)\}/g, (m, p: string) => (p in params ? String(params[p]) : m));
     },
     [language]
   );

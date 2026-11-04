@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
 export const createOrderSchema = z.object({
+  offlineId: z.string().uuid().optional(),
+  createdAt: z.string().datetime().optional(),
   clientId: z.string().uuid().optional().nullable(),
   items: z.array(z.object({
     productId: z.string().uuid(),

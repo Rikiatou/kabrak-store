@@ -1,9 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { Badge } from '@/components/ui/badge';
+import { NativeSelect } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { EmptyState } from '@/components/ui/empty-state';
+import { LoadingState } from '@/components/ui/spinner';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatDate } from '@/lib/utils';
-import { Truck } from 'lucide-react';
+import { getErrorMessage } from '@/lib/errors';
+import { Truck, MapPin, Calendar } from 'lucide-react';
 import api from '@/lib/api';
 
 interface Delivery {
@@ -17,6 +23,11 @@ const statusColors: Record<string, 'default' | 'warning' | 'success' | 'destruct
   PENDING: 'warning', PICKED_UP: 'default', IN_TRANSIT: 'default', DELIVERED: 'success', FAILED: 'destructive',
 };
 
+const statusKeys: Record<string, string> = {
+  PENDING: 'delivery.pending', PICKED_UP: 'delivery.pickedUp', IN_TRANSIT: 'delivery.inTransit',
+  DELIVERED: 'delivery.delivered', FAILED: 'delivery.failed',
+};
+
 export function DeliveriesPage() {
   const { t } = useTranslation();
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -24,30 +35,53 @@ export function DeliveriesPage() {
 
   const fetchDeliveries = useCallback(async () => {
     try { const { data } = await api.get('/deliveries'); setDeliveries(data.data); }
-    catch (err) { console.error(err); } finally { setLoading(false); }
-  }, []);
+    catch (err) { toast.error(getErrorMessage(err, t('common.loadError'))); }
+    finally { setLoading(false); }
+  }, [t]);
 
   useEffect(() => { fetchDeliveries(); }, [fetchDeliveries]);
 
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      await api.patch(`/deliveries/${id}/status`, { status });
+      setDeliveries((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)));
+      toast.success(t('delivery.statusUpdated'));
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">{t('delivery.title')}</h1>
+      <PageHeader title={t('delivery.title')} />
 
       {loading ? (
-        <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kabrak-500" /></div>
+        <LoadingState />
       ) : deliveries.length === 0 ? (
-        <div className="text-center py-12"><Truck className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">{t('common.noResults')}</p></div>
+        <EmptyState icon={Truck} title={t('delivery.empty')} description={t('delivery.emptyDesc')} />
       ) : (
         <div className="space-y-3">
           {deliveries.map((del) => (
             <Card key={del.id}>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
+              <CardContent className="p-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
                   <p className="font-semibold">{del.order?.reference}</p>
-                  <p className="text-xs text-muted-foreground">{del.client?.name} · {del.address}</p>
-                  {del.deliveryDate && <p className="text-xs text-muted-foreground">{t('delivery.deliveryDate')}: {formatDate(del.deliveryDate)}</p>}
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{[del.client?.name, del.address].filter(Boolean).join(' · ')}</span>
+                  </p>
+                  {del.deliveryDate && (
+                    <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3 shrink-0" /> {t('delivery.deliveryDate')} : {formatDate(del.deliveryDate)}
+                    </p>
+                  )}
                 </div>
-                <Badge variant={statusColors[del.status]}>{del.status.replace('_', ' ')}</Badge>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <Badge variant={statusColors[del.status]}>{statusKeys[del.status] ? t(statusKeys[del.status]) : del.status}</Badge>
+                  <div className="w-36">
+                    <NativeSelect aria-label={t('delivery.status')} className="h-8 text-xs" value={del.status} onChange={(e) => handleStatusChange(del.id, e.target.value)}>
+                      {Object.keys(statusKeys).map((s) => <option key={s} value={s}>{t(statusKeys[s])}</option>)}
+                    </NativeSelect>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}
