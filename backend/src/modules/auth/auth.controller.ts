@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../config/prisma';
 import { config } from '../../config';
-import { RegisterInput, LoginInput } from './auth.schema';
+import { RegisterInput, LoginInput, UpdateTenantInput } from './auth.schema';
 
 function generateSlug(name: string): string {
   return name
@@ -266,12 +266,31 @@ export const me = async (req: Request, res: Response): Promise<void> => {
           currency: user.tenant.currency,
           language: user.tenant.language,
           logo: user.tenant.logo,
+          phone: user.tenant.phone,
+          email: user.tenant.email,
+          address: user.tenant.address,
+          invoiceHeader: user.tenant.invoiceHeader,
+          invoiceColor: user.tenant.invoiceColor,
         },
         subscription: user.tenant.subscription,
       },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch user';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+export const updateTenant = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { email, ...data } = req.body as UpdateTenantInput;
+    const tenant = await prisma.tenant.update({
+      where: { id: req.user!.tenantId },
+      data: { ...data, ...(email !== undefined ? { email: email || null } : {}) },
+    });
+    res.json({ success: true, data: tenant });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update business';
     res.status(500).json({ success: false, message });
   }
 };

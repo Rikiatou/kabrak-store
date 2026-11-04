@@ -44,6 +44,7 @@ const ADAPTIVE_FIELDS: Record<string, string[]> = {
   PERFUMES: ['brand', 'volume'],
   COSMETICS: ['brand', 'type'],
   HIJABS_ABAYAS: ['color', 'sizes'],
+  FABRICS: ['material', 'color', 'length'],
   JEWELRY: ['material', 'type'],
   BAGS: ['brand', 'color', 'material'],
   ELECTRONICS: ['brand', 'model', 'warranty'],

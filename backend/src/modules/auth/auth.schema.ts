@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-const BUSINESS_CATEGORIES = [
+export const BUSINESS_CATEGORIES = [
   // Product mode — Retail
-  'CLOTHING', 'SHOES', 'PERFUMES', 'COSMETICS', 'HIJABS_ABAYAS',
+  'CLOTHING', 'SHOES', 'PERFUMES', 'COSMETICS', 'HIJABS_ABAYAS', 'FABRICS',
   'JEWELRY', 'BAGS', 'ELECTRONICS', 'HOUSE_PRODUCTS', 'KITCHEN_PRODUCTS',
   'DECORATION', 'MINI_MARKET', 'WHOLESALE', 'MIXED_SHOP',
   // Product mode — Order-based
@@ -35,3 +35,15 @@ export const loginSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+
+export const updateTenantSchema = z.object({
+  name: z.string().trim().min(1, 'Nom requis').optional(),
+  phone: z.string().trim().optional().nullable(),
+  email: z.union([z.string().trim().email(), z.literal('')]).optional().nullable(),
+  address: z.string().trim().optional().nullable(),
+  invoiceHeader: z.string().trim().max(300).optional().nullable(),
+  invoiceColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  businessCategories: z.array(z.enum(BUSINESS_CATEGORIES)).min(1, 'Sélectionnez au moins une catégorie').optional(),
+});
+
+export type UpdateTenantInput = z.infer<typeof updateTenantSchema>;

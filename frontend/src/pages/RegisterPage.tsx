@@ -8,23 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { getErrorMessage } from '@/lib/errors';
 import { businessTypeKey } from '@/lib/businessType';
-import { CATEGORY_ICONS } from '@/lib/categoryIcons';
+import { CATEGORY_ICONS, PRODUCT_CATEGORY_GROUPS, SERVICE_CATEGORIES } from '@/lib/categoryIcons';
 import api from '@/lib/api';
 import { AlertCircle, ArrowLeft, Check, Eye, EyeOff, ChevronRight, ChevronLeft, ShoppingBag, Briefcase, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type BusinessMode = 'PRODUCT' | 'SERVICE';
 
-const PRODUCT_CATEGORIES = [
-  'CLOTHING', 'SHOES', 'PERFUMES', 'COSMETICS', 'HIJABS_ABAYAS', 'JEWELRY', 'BAGS', 'ELECTRONICS',
-  'HOUSE_PRODUCTS', 'KITCHEN_PRODUCTS', 'DECORATION', 'MINI_MARKET', 'WHOLESALE', 'MIXED_SHOP', 'CAKES',
-  'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'WHATSAPP_SELLER', 'MADE_TO_ORDER', 'OTHER',
-];
-
-const SERVICE_CATEGORIES = [
-  'DIGITAL_MARKETING', 'FREELANCER', 'AGENCY', 'CONSULTANT', 'DESIGNER', 'DEVELOPER',
-  'SOCIAL_MEDIA', 'PRINTING', 'BUSINESS_SERVICES', 'OTHER',
-];
 
 const PLANS = [
   { value: 'STORE', price: '4 900', features: ['featOrders', 'pClients', 'pInvoicing', 'pWhatsapp'] },
@@ -68,7 +58,7 @@ export function RegisterPage() {
 
   const stepLabels = [t('auth.stepBusiness'), t('auth.stepInfo'), t('auth.stepCategories'), t('auth.stepPlan')];
   const isService = form.businessMode === 'SERVICE';
-  const categories = isService ? SERVICE_CATEGORIES : PRODUCT_CATEGORIES;
+  const categoryGroups = isService ? [{ key: '', cats: SERVICE_CATEGORIES }] : PRODUCT_CATEGORY_GROUPS;
   const plans = isService ? SERVICE_PLANS : PLANS;
   const tooShort = form.password.length > 0 && form.password.length < 6;
 
@@ -242,27 +232,34 @@ export function RegisterPage() {
                 <h2 className="text-base font-semibold">{isService ? t('auth.whatService') : t('auth.whatDoYouSell')}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">{t('auth.selectCategories')}</p>
               </div>
-              <div className="grid max-h-[340px] grid-cols-2 gap-2.5 overflow-y-auto pr-1 min-[400px]:grid-cols-3 sm:grid-cols-4">
-                {categories.map((cat) => {
-                  const isSelected = form.businessCategories.includes(cat);
-                  const Icon = CATEGORY_ICONS[cat] || ClipboardList;
-                  return (
-                    <button
-                      key={cat}
-                      type="button"
-                      aria-pressed={isSelected}
-                      onClick={() => toggleCategory(cat)}
-                      className={cn(
-                        'relative flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                        isSelected ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/40'
-                      )}
-                    >
-                      {isSelected && <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5" />}
-                      <Icon className={cn('h-5 w-5', !isSelected && 'text-muted-foreground')} />
-                      <span className="text-center text-[11px] font-medium leading-tight text-foreground">{t(businessTypeKey(cat))}</span>
-                    </button>
-                  );
-                })}
+              <div className="max-h-[360px] space-y-4 overflow-y-auto pr-1">
+                {categoryGroups.map((group) => (
+                  <div key={group.key || 'all'}>
+                    {group.key && <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t(`categories.${group.key}`)}</p>}
+                    <div className="grid grid-cols-2 gap-2.5 min-[400px]:grid-cols-3 sm:grid-cols-4">
+                      {group.cats.map((cat) => {
+                        const isSelected = form.businessCategories.includes(cat);
+                        const Icon = CATEGORY_ICONS[cat] || ClipboardList;
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            aria-pressed={isSelected}
+                            onClick={() => toggleCategory(cat)}
+                            className={cn(
+                              'relative flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                              isSelected ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/40'
+                            )}
+                          >
+                            {isSelected && <Check className="absolute right-1.5 top-1.5 h-3.5 w-3.5" />}
+                            <Icon className={cn('h-5 w-5', !isSelected && 'text-muted-foreground')} />
+                            <span className="text-center text-[11px] font-medium leading-tight text-foreground">{t(businessTypeKey(cat))}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="flex gap-3 pt-2">
                 <BackButton onClick={() => setStep(2)} label={t('auth.back')} />

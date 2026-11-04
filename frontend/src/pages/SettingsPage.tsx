@@ -10,7 +10,10 @@ import { LoadingState, Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import api from '@/lib/api';
-import { User, Lock, Save, CheckCircle, AlertCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { businessTypeKey } from '@/lib/businessType';
+import { CATEGORY_ICONS, PRODUCT_CATEGORY_GROUPS, SERVICE_CATEGORIES } from '@/lib/categoryIcons';
+import { User, Lock, Save, CheckCircle, AlertCircle, Store, Check, ClipboardList } from 'lucide-react';
 
 type Msg = { type: 'success' | 'error'; text: string } | null;
 
@@ -109,6 +112,8 @@ function SettingsForm() {
     <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader title={t('settings.title')} />
 
+      <ShopSection />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-base">
@@ -180,5 +185,140 @@ function SettingsForm() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function ShopSection() {
+  const tenant = useAuthStore((s) => s.tenant);
+  return tenant ? <ShopSettings key={tenant.id} /> : null;
+}
+
+function ShopSettings() {
+  const { t } = useTranslation();
+  const { tenant, user, fetchMe } = useAuthStore();
+  const isOwner = user?.role === 'OWNER';
+  const [shop, setShop] = useState({
+    name: tenant?.name || '',
+    phone: tenant?.phone || '',
+    email: tenant?.email || '',
+    address: tenant?.address || '',
+    invoiceHeader: tenant?.invoiceHeader || '',
+    invoiceColor: tenant?.invoiceColor || '#2563eb',
+    businessCategories: tenant?.businessCategories || [],
+  });
+  const [msg, setMsg] = useState<Msg>(null);
+  const [loading, setLoading] = useState(false);
+  const groups = tenant?.businessMode === 'SERVICE' ? [{ key: '', cats: SERVICE_CATEGORIES }] : PRODUCT_CATEGORY_GROUPS;
+
+  const toggle = (cat: string) =>
+    setShop((prev) => ({
+      ...prev,
+      businessCategories: prev.businessCategories.includes(cat)
+        ? prev.businessCategories.filter((c) => c !== cat)
+        : [...prev.businessCategories, cat],
+    }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg(null);
+    if (!shop.name.trim() || shop.businessCategories.length === 0) {
+      setMsg({ type: 'error', text: t('settings.shopMissing') });
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.put('/auth/tenant', shop);
+      await fetchMe();
+      setMsg({ type: 'success', text: t('settings.shopUpdated') });
+    } catch (err) {
+      setMsg({ type: 'error', text: getErrorMessage(err, t('settings.updateFailed')) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-3 text-base">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary"><Store className="h-5 w-5" /></span>
+          {t('settings.shop')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <FormMessage msg={msg} />
+        {!isOwner && <p className="mb-4 text-sm text-muted-foreground">{t('settings.ownerOnly')}</p>}
+        <form onSubmit={handleSubmit} noValidate>
+          <fieldset disabled={!isOwner || loading} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label htmlFor="shop-name">{t('settings.shopName')} *</Label>
+                <Input id="shop-name" value={shop.name} onChange={(e) => setShop({ ...shop, name: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="shop-phone">{t('settings.phone')}</Label>
+                <Input id="shop-phone" type="tel" value={shop.phone} onChange={(e) => setShop({ ...shop, phone: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="shop-email">{t('settings.shopEmail')}</Label>
+                <Input id="shop-email" type="email" value={shop.email} onChange={(e) => setShop({ ...shop, email: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="shop-address">{t('settings.address')}</Label>
+                <Input id="shop-address" value={shop.address} onChange={(e) => setShop({ ...shop, address: e.target.value })} />
+              </div>
+              <div className="sm:col-span-2">
+                <Label htmlFor="shop-note">{t('settings.invoiceNote')}</Label>
+                <Textarea id="shop-note" rows={2} maxLength={300} placeholder={t('settings.invoiceNoteHint')} value={shop.invoiceHeader} onChange={(e) => setShop({ ...shop, invoiceHeader: e.target.value })} />
+              </div>
+              <div>
+                <Label htmlFor="shop-color">{t('settings.invoiceColor')}</Label>
+                <Input id="shop-color" type="color" className="h-10 w-20 cursor-pointer p-1" value={shop.invoiceColor} onChange={(e) => setShop({ ...shop, invoiceColor: e.target.value })} />
+              </div>
+            </div>
+
+            <div>
+              <Label>{t('settings.activities')} *</Label>
+              <p className="mb-3 text-xs text-muted-foreground">{t('settings.activitiesHint')}</p>
+              <div className="space-y-3">
+                {groups.map((group) => (
+                  <div key={group.key || 'all'}>
+                    {group.key && <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t(`categories.${group.key}`)}</p>}
+                    <div className="flex flex-wrap gap-2">
+                      {group.cats.map((cat) => {
+                        const selected = shop.businessCategories.includes(cat);
+                        const Icon = CATEGORY_ICONS[cat] || ClipboardList;
+                        return (
+                          <button
+                            key={cat}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() => toggle(cat)}
+                            className={cn(
+                              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed',
+                              selected ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:border-primary/40'
+                            )}
+                          >
+                            {selected ? <Check className="h-3.5 w-3.5" /> : <Icon className="h-3.5 w-3.5" />}
+                            {t(businessTypeKey(cat))}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {isOwner && (
+              <Button type="submit" disabled={loading}>
+                {loading ? <Spinner className="mr-2" /> : <Save className="mr-2 h-4 w-4" />}
+                {t('common.save')}
+              </Button>
+            )}
+          </fieldset>
+        </form>
+      </CardContent>
+    </Card>
   );
 }

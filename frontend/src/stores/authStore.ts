@@ -19,6 +19,11 @@ interface Tenant {
   currency?: string;
   language?: string;
   logo?: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  invoiceHeader?: string | null;
+  invoiceColor?: string | null;
 }
 
 interface Subscription {

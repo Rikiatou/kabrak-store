@@ -65,7 +65,8 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const dateStr = new Date(invoice.createdAt).toLocaleDateString(language === 'en' ? 'en-GB' : 'fr-FR');
   const paymentMethod = invoice.order?.paymentMethod || 'CASH';
   const paymentLabel = t(`payment.${paymentMethod}`);
-  const invoiceColor = '#2563eb';
+  const invoiceColor = tenant?.invoiceColor || '#2563eb';
+  const tenantContact = [tenant?.phone, tenant?.address].filter(Boolean).join(' · ');
 
   const shareAsImage = async () => {
     setSharing(true);
@@ -233,6 +234,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                     {tenant?.name}
                   </div>
+                  {tenantContact && <div style={{ fontSize: '11px' }}>{tenantContact}</div>}
                   <div style={{ margin: '8px 0', borderTop: '1px dashed #000' }} />
                   <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{t('invoiceDoc.cashTicket')}</div>
                   <div style={{ fontSize: '11px' }}>N° {invoice.invoiceNumber}</div>
@@ -294,7 +296,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 )}
 
                 <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '11px', color: '#666' }}>
-                  {t('invoiceDoc.thanksPurchase')}
+                  {tenant?.invoiceHeader || t('invoiceDoc.thanksPurchase')}
                   <br />
                   {tenant?.name}
                 </div>
@@ -313,6 +315,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   }}
                 >
                   <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{tenant?.name}</div>
+                  {tenantContact && <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '2px' }}>{tenantContact}</div>}
                   <div style={{ fontSize: '11px', opacity: 0.9, marginTop: '4px' }}>{t('invoiceDoc.invoice')}</div>
                 </div>
 
@@ -409,7 +412,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
                 {/* Footer */}
                 <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: '#999' }}>
-                  {t('invoiceDoc.thanksTrust')}
+                  {tenant?.invoiceHeader || t('invoiceDoc.thanksTrust')}
                   <br />
                   {tenant?.name} — Powered by KABRAK
                 </div>
