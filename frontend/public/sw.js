@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kabrak-v5';
+const CACHE_NAME = 'kabrak-v6';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
