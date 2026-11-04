@@ -1,13 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
+import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 
-function generateInvoiceNumber(): string {
-  const date = new Date();
-  const y = date.getFullYear().toString().slice(2);
-  const m = (date.getMonth() + 1).toString().padStart(2, '0');
-  const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `FAC-${y}${m}-${rand}`;
-}
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -86,7 +80,7 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
 
     const invoice = await prisma.invoice.create({
       data: {
-        invoiceNumber: generateInvoiceNumber(),
+        invoiceNumber: await generateInvoiceNumber(req.user!.tenantId),
         totalAmount: order.finalAmount,
         amountPaid: 0,
         amountDue: order.finalAmount,
@@ -164,7 +158,7 @@ export const createStandalone = async (req: Request, res: Response): Promise<voi
 
     const invoice = await prisma.invoice.create({
       data: {
-        invoiceNumber: generateInvoiceNumber(),
+        invoiceNumber: await generateInvoiceNumber(req.user!.tenantId),
         totalAmount,
         amountPaid: 0,
         amountDue: totalAmount,

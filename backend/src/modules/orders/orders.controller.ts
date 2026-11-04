@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { randomBytes } from 'crypto';
 import { prisma } from '../../config/prisma';
+import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 import { CreateOrderInput } from './orders.schema';
 
 export function generateReference(): string {
@@ -230,10 +231,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       }
 
       // Always create invoice
-      const invDate = new Date();
-      const invDateStr = invDate.toISOString().slice(2, 10).replace(/-/g, '');
-      const invRand = Math.random().toString(36).substring(2, 6).toUpperCase();
-      const invoiceNumber = `INV-${invDateStr}-${invRand}`;
+      const invoiceNumber = await generateInvoiceNumber(req.user!.tenantId, tx);
 
       const paymentStatus = data.amountPaid >= finalAmount ? 'PAID' : data.amountPaid > 0 ? 'PARTIAL' : 'PENDING';
       const amountDue = Math.max(0, finalAmount - data.amountPaid);

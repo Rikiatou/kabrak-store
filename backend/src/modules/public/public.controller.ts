@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma';
+import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 import { adjustSizes, generatePublicToken, generateReference } from '../orders/orders.controller';
 
 /** Storefront is a BUSINESS feature; every plan gets it during the free trial. */
@@ -184,10 +185,9 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
       });
       await tx.client.update({ where: { id: clientId }, data: { totalOrders: { increment: 1 } } });
 
-      const invDateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
       await tx.invoice.create({
         data: {
-          invoiceNumber: `INV-${invDateStr}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+          invoiceNumber: await generateInvoiceNumber(tenant.id, tx),
           totalAmount: total,
           amountPaid: 0,
           amountDue: total,
