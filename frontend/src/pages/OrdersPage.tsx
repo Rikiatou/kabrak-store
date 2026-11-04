@@ -72,7 +72,7 @@ interface CartItem {
 }
 
 const ORDER_BASED_CATS = new Set([
-  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+  'CAKES', 'FOOD_BUSINESS',
 ]);
 
 export function OrdersPage() {

@@ -105,16 +105,14 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   // Adaptive labels per business category
   const categories = (tenant?.businessCategories || []) as string[];
   const primaryCat = categories[0] || '';
-  const isFood = ['CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING'].includes(primaryCat);
-  const isEvent = ['EVENT_DECORATION', 'CATERING', 'MADE_TO_ORDER'].includes(primaryCat);
+  const isFood = ['CAKES', 'FOOD_BUSINESS'].includes(primaryCat);
+  const isEvent = ['EVENT_DECORATION', 'CATERING'].includes(primaryCat);
   const isMarket = ['MINI_MARKET', 'WHOLESALE'].includes(primaryCat);
   const isService = tenant?.businessMode === 'SERVICE';
-  const isWhatsapp = primaryCat === 'WHATSAPP_SELLER';
 
   const invoiceTypeLabel = isEvent ? (fr ? 'Facture de prestation' : 'Service invoice')
     : isFood ? (fr ? 'Bon de commande' : 'Order receipt')
     : isService ? (fr ? 'Facture de service' : 'Service invoice')
-    : isWhatsapp ? (fr ? 'Bon de commande' : 'Order receipt')
     : (fr ? 'Facture de vente' : 'Sales invoice');
 
   const itemColumnLabel = isEvent || isService ? (fr ? 'Prestation / Service' : 'Service')
@@ -125,7 +123,6 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const footerThanks = isFood ? (fr ? 'Merci pour votre commande 😋' : 'Thank you for your order 😋')
     : isEvent ? (fr ? 'Merci pour votre confiance 🙏' : 'Thank you for your trust 🙏')
     : isService ? (fr ? 'Merci pour votre confiance 🤝' : 'Thank you for your trust 🤝')
-    : isWhatsapp ? (fr ? 'Merci pour votre commande 🙏' : 'Thank you for your order 🙏')
     : (fr ? 'Merci pour votre achat 🛍️' : 'Thank you for your purchase 🛍️');
 
   const whatsappItemsLabel = isEvent || isService ? (fr ? 'Prestations' : 'Services') : isFood ? (fr ? 'Commande' : 'Order') : (fr ? 'Articles' : 'Items');

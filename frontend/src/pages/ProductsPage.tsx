@@ -35,6 +35,7 @@ const ADAPTIVE_FIELDS: Record<string, { label: string; labelEn: string; fields: 
   PERFUMES: { label: 'Parfums', labelEn: 'Perfumes', fields: ['brand', 'volume'] },
   COSMETICS: { label: 'Cosmétiques', labelEn: 'Cosmetics', fields: ['brand', 'type'] },
   HIJABS_ABAYAS: { label: 'Hijabs/Abayas', labelEn: 'Hijabs/Abayas', fields: ['color', 'sizes'] },
+  FABRICS: { label: 'Pagnes / Tissus', labelEn: 'Fabrics / Wax', fields: ['material', 'color', 'length'] },
   JEWELRY: { label: 'Bijoux', labelEn: 'Jewelry', fields: ['material', 'type'] },
   BAGS: { label: 'Sacs', labelEn: 'Bags', fields: ['brand', 'color', 'material'] },
   ELECTRONICS: { label: 'Électronique', labelEn: 'Electronics', fields: ['brand', 'model', 'warranty'] },
@@ -45,17 +46,13 @@ const ADAPTIVE_FIELDS: Record<string, { label: string; labelEn: string; fields: 
   WHOLESALE: { label: 'Grossiste', labelEn: 'Wholesale', fields: ['brand', 'minQuantity'] },
   MIXED_SHOP: { label: 'Boutique Mixte', labelEn: 'Mixed Shop', fields: ['type'] },
   CAKES: { label: 'Gâteaux', labelEn: 'Cakes', fields: ['flavors', 'sizes'] },
-  FOOD_BUSINESS: { label: 'Food Business', labelEn: 'Food Business', fields: ['portions'] },
-  FOOD_DELIVERY: { label: 'Food Delivery', labelEn: 'Food Delivery', fields: ['portions', 'deliveryZone'] },
-  HOME_COOKING: { label: 'Cuisine Maison', labelEn: 'Home Cooking', fields: ['portions'] },
-  WHATSAPP_SELLER: { label: 'Vendeur WhatsApp', labelEn: 'WhatsApp Seller', fields: ['color', 'sizes'] },
-  MADE_TO_ORDER: { label: 'Sur Commande', labelEn: 'Made to Order', fields: ['measurements'] },
+  FOOD_BUSINESS: { label: 'Food Business', labelEn: 'Food Business', fields: ['portions', 'deliveryZone'] },
   OTHER: { label: 'Autre', labelEn: 'Other', fields: [] },
 };
 
 // Business types made on order — no stock to track
 const ORDER_BASED_TYPES = new Set([
-  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER',
+  'CAKES', 'FOOD_BUSINESS',
 ]);
 
 // Translated labels for adaptive fields (FR / EN)
@@ -73,6 +70,7 @@ const FIELD_LABELS: Record<string, { fr: string; en: string; placeholder?: strin
   flavors: { fr: 'Parfums / Saveurs', en: 'Flavors', placeholder: 'Ex: Vanille, Chocolat, Fraise' },
   portions: { fr: 'Portions', en: 'Portions', placeholder: 'Ex: 1 personne, 4 personnes' },
   deliveryZone: { fr: 'Zone de livraison', en: 'Delivery zone', placeholder: 'Ex: Akwa, Bonapriso' },
+  length: { fr: 'Métrage', en: 'Length', placeholder: 'Ex: 6 yards, 3 m' },
   measurements: { fr: 'Mesures', en: 'Measurements', placeholder: 'Ex: tour de taille, longueur' },
 };
 

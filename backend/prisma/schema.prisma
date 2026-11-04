@@ -103,6 +103,7 @@ enum BusinessCategory {
   PERFUMES
   COSMETICS
   HIJABS_ABAYAS
+  FABRICS
   JEWELRY
   BAGS
   ELECTRONICS
@@ -117,6 +118,7 @@ enum BusinessCategory {
   // Product mode — Order-based
   CAKES
   FOOD_BUSINESS
+  // Legacy values, no longer offered (data remapped in 20261104120100)
   FOOD_DELIVERY
   HOME_COOKING
   WHATSAPP_SELLER
