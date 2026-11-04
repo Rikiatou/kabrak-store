@@ -94,7 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const { data } = await api.get('/auth/me');
-      localStorage.setItem('kabrak_me', JSON.stringify(data.data));
+      localStorage.setItem('kabrak_me', JSON.stringify({ ...data.data, token: get().token }));
       set({
         user: data.data.user,
         tenant: data.data.tenant,
@@ -107,7 +107,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!(err as { response?: unknown })?.response) {
         try {
           const cached = JSON.parse(localStorage.getItem('kabrak_me') || 'null');
-          if (cached) {
+          if (cached && cached.token === get().token) {
             set({ user: cached.user, tenant: cached.tenant, subscription: cached.subscription, isLoading: false });
             return;
           }

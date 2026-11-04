@@ -13,7 +13,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, Landmark, X, Package, FileText } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
-import { cacheGet, cacheSet, isNetworkError, queueSale } from '@/lib/offline';
+import { cacheGet, cacheSet, isNetworkError, newOfflineId, queueSale } from '@/lib/offline';
 import { VariantPicker, type ProductVariant } from '@/components/VariantPicker';
 
 interface Product {
@@ -190,7 +190,10 @@ export function POSPage() {
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     setProcessing(true);
+    // Same id online and in the offline queue: if the response is lost after the server saved the sale, the replay is deduplicated.
+    const offlineId = newOfflineId();
     const payload = {
+      offlineId,
       clientId: selectedClient?.id || null,
       paymentMethod,
       amountPaid: Math.min(amountPaid, total),
@@ -204,7 +207,7 @@ export function POSPage() {
       })),
     };
     const saveOffline = () => {
-      queueSale(payload, total);
+      queueSale(payload, total, offlineId);
       deductLocalStock(cart);
       toast.success(t('offline.saleQueued'));
       setLastOrder(null);

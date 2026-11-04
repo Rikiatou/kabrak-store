@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import axios from 'axios';
 import api from '@/lib/api';
+import { useAuthStore } from '@/stores/authStore';
 
 // Offline POS: sales made without a connection are queued in localStorage and
 // replayed to POST /orders when the connection returns. `offlineId` makes the
@@ -12,6 +13,7 @@ const CACHE_PREFIX = 'kabrak_cache_';
 
 export interface OfflineSale {
   offlineId: string;
+  owner: string;
   createdAt: string;
   total: number;
   payload: Record<string, unknown>;
@@ -24,8 +26,19 @@ interface OfflineSnapshot {
   syncing: boolean;
 }
 
-function read(key: string): OfflineSale[] {
+function readAll(key: string): OfflineSale[] {
   try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+}
+
+// Queued sales and caches belong to one account, so switching accounts on a device never mixes them.
+function currentOwner(): string | null {
+  const { user, tenant } = useAuthStore.getState();
+  return user && tenant ? `${tenant.id}:${user.id}` : null;
+}
+
+function read(key: string): OfflineSale[] {
+  const owner = currentOwner();
+  return owner ? readAll(key).filter((s) => s.owner === owner) : [];
 }
 
 const listeners = new Set<() => void>();
@@ -48,6 +61,7 @@ function write(key: string, list: OfflineSale[]) {
 
 window.addEventListener('online', emit);
 window.addEventListener('offline', emit);
+useAuthStore.subscribe(emit);
 
 export function useOfflineStatus(): OfflineSnapshot {
   return useSyncExternalStore(
@@ -69,9 +83,12 @@ export function isNetworkError(err: unknown): boolean {
   return axios.isAxiosError(err) && !err.response;
 }
 
-export function queueSale(payload: Record<string, unknown>, total: number): OfflineSale {
-  const sale: OfflineSale = { offlineId: uuid(), createdAt: new Date().toISOString(), total, payload };
-  write(QUEUE_KEY, [...read(QUEUE_KEY), sale]);
+export const newOfflineId = uuid;
+
+export function queueSale(payload: Record<string, unknown>, total: number, offlineId: string = uuid()): OfflineSale {
+  const owner = currentOwner() ?? 'unknown';
+  const sale: OfflineSale = { offlineId, owner, createdAt: new Date().toISOString(), total, payload };
+  write(QUEUE_KEY, [...readAll(QUEUE_KEY), sale]);
   return sale;
 }
 
@@ -90,9 +107,9 @@ export async function syncOfflineSales(): Promise<{ synced: number; failed: numb
         // Retry later on connection, auth or server errors; only park sales the server rejected as invalid.
         if (!status || status === 401 || status >= 500) break;
         result.failed++;
-        write(FAILED_KEY, [...read(FAILED_KEY), sale]);
+        write(FAILED_KEY, [...readAll(FAILED_KEY), sale]);
       }
-      write(QUEUE_KEY, read(QUEUE_KEY).filter((s) => s.offlineId !== sale.offlineId));
+      write(QUEUE_KEY, readAll(QUEUE_KEY).filter((s) => s.offlineId !== sale.offlineId));
     }
   } finally {
     syncing = false;
@@ -102,16 +119,21 @@ export async function syncOfflineSales(): Promise<{ synced: number; failed: numb
 }
 
 export function discardFailedSales() {
-  write(FAILED_KEY, []);
+  const owner = currentOwner();
+  write(FAILED_KEY, readAll(FAILED_KEY).filter((s) => s.owner !== owner));
+}
+
+function cacheKey(key: string) {
+  return `${CACHE_PREFIX}${useAuthStore.getState().tenant?.id ?? 'none'}_${key}`;
 }
 
 export function cacheSet(key: string, value: unknown) {
-  try { localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(value)); } catch { /* storage full */ }
+  try { localStorage.setItem(cacheKey(key), JSON.stringify(value)); } catch { /* storage full */ }
 }
 
 export function cacheGet<T>(key: string): T | null {
   try {
-    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    const raw = localStorage.getItem(cacheKey(key));
     return raw ? (JSON.parse(raw) as T) : null;
   } catch { return null; }
 }
