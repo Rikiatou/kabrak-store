@@ -316,6 +316,12 @@ export const translations = {
       check: 'Vérification n° {n}',
       paymentError: 'Impossible d\'initier le paiement',
       paymentConfirmed: 'Paiement confirmé — abonnement mis à jour',
+      omStep1: 'Composez {ussd} depuis votre téléphone Orange',
+      omStep2: 'Entrez le montant : {amount}',
+      omStep3: 'Mettez la référence : {reference}',
+      omStep4: 'Entrez votre code secret Orange Money',
+      omStep5: 'Validez et attendez le SMS de confirmation',
+      omStep6: 'Envoyez la capture du SMS sur WhatsApp pour confirmation rapide',
     },
     loyalty: {
       title: 'Programme de fidélité',
@@ -564,6 +570,7 @@ export const translations = {
       share: 'Partager',
       whatsapp: 'Envoyer sur WhatsApp',
       fileName: 'facture',
+      status: 'Statut',
     },
     scanner: {
       title: 'Scanner un code-barres',
@@ -961,6 +968,12 @@ export const translations = {
       check: 'Check #{n}',
       paymentError: 'Could not start the payment',
       paymentConfirmed: 'Payment confirmed — subscription updated',
+      omStep1: 'Dial {ussd} from your Orange phone',
+      omStep2: 'Enter the amount: {amount}',
+      omStep3: 'Enter the reference: {reference}',
+      omStep4: 'Enter your Orange Money PIN',
+      omStep5: 'Confirm and wait for the confirmation SMS',
+      omStep6: 'Send a screenshot of the SMS on WhatsApp for quick confirmation',
     },
     loyalty: {
       title: 'Loyalty Program',
@@ -1209,6 +1222,7 @@ export const translations = {
       share: 'Share',
       whatsapp: 'Send on WhatsApp',
       fileName: 'invoice',
+      status: 'Status',
     },
     scanner: {
       title: 'Scan a barcode',

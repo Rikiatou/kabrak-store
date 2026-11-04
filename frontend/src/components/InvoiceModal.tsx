@@ -244,9 +244,9 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   <div>
                     {t('invoiceDoc.client')} : <strong>{invoice.client?.name || t('invoiceDoc.anonymous')}</strong>
                   </div>
-                  <div>Paiement: {paymentLabel}</div>
+                  <div>{t('invoiceDoc.payment')} : {paymentLabel}</div>
                   <div>
-                    Statut: <strong>{invoice.paymentStatus === 'PAID' ? 'PAYÉ' : 'EN ATTENTE'}</strong>
+                    {t('invoiceDoc.status')} : <strong>{(invoice.paymentStatus === 'PAID' ? t('invoiceDoc.statusPaid') : t('invoiceDoc.statusPending')).toUpperCase()}</strong>
                   </div>
                 </div>
 
@@ -266,7 +266,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                           {item.name} x{item.quantity}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
-                          {formatCurrency(item.totalPrice)} F
+                          {formatCurrency(item.totalPrice)}
                         </td>
                       </tr>
                     ))}
@@ -283,11 +283,11 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
                       <span>{t('invoiceDoc.paid')}</span>
-                      <span>{formatCurrency(paid)} F</span>
+                      <span>{formatCurrency(paid)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', color: '#c00' }}>
                       <span>{t('invoiceDoc.remaining')}</span>
-                      <span>{formatCurrency(due)} F</span>
+                      <span>{formatCurrency(due)}</span>
                     </div>
                   </>
                 )}

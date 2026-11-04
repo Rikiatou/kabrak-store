@@ -291,7 +291,14 @@ export function BillingPage() {
             <CopyRow label={t('billing.ussd')} value={paymentData.instructions.ussd} copied={copied === 'ussd'}
               onCopy={() => copy(paymentData.instructions!.ussd, 'ussd')} copyLabel={t('billing.copy')} copiedLabel={t('billing.copied')} />
             <ol className="space-y-2">
-              {paymentData.instructions.steps.map((s, i) => (
+              {[
+                t('billing.omStep1', { ussd: paymentData.instructions.ussd }),
+                t('billing.omStep2', { amount: formatCurrency(paymentData.amountXAF) }),
+                t('billing.omStep3', { reference: paymentData.instructions.reference }),
+                t('billing.omStep4'),
+                t('billing.omStep5'),
+                t('billing.omStep6'),
+              ].map((s, i) => (
                 <li key={i} className="flex gap-3 text-sm">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">{i + 1}</span>
                   <span>{s}</span>
