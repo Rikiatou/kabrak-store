@@ -87,16 +87,6 @@ const categoryDashboards: Record<string, {
     ],
     primaryAction: { label: { fr: 'Nouvelle vente', en: 'New Sale' }, icon: Plus, href: '/orders', gradient: 'from-blue-500 to-blue-600' },
   },
-  // Vente en Ligne (WhatsApp, etc.)
-  WHATSAPP_SELLER: {
-    statCards: [
-      { key: 'todayOrders', label: { fr: 'Commandes du jour', en: 'Today Orders' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
-      { key: 'upcomingDeliveries', label: { fr: 'Livraisons en attente', en: 'Pending Deliveries' }, icon: Truck, gradient: 'from-orange-500 to-orange-600' },
-      { key: 'todayRevenue', label: { fr: 'Paiements reçus', en: 'Payments Received' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
-      { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
-    ],
-    primaryAction: { label: { fr: 'Nouvelle commande', en: 'New Order' }, icon: Plus, href: '/orders', gradient: 'from-blue-500 to-blue-600' },
-  },
   // Commandes & Livraison (Food, Événementiel)
   CAKES: {
     statCards: [

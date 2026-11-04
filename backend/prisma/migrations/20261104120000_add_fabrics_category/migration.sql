@@ -1,0 +1,1 @@
+ALTER TYPE "BusinessCategory" ADD VALUE IF NOT EXISTS 'FABRICS';
