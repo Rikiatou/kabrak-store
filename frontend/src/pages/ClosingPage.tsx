@@ -12,7 +12,7 @@ import { CashDrawer } from '@/components/CashDrawer';
 
 interface Closing {
   date: string; orders: number; itemsSold: number; sales: number; received: number;
-  byMethod: Record<string, number>; sellers: Array<{ name: string; orders: number; sales: number }>;
+  byMethod: Record<string, number>; sellers: Array<{ name: string; orders: number; sales: number; items?: Array<{ name: string; quantity: number; amount: number }> }>;
   cost: number; grossProfit: number; expenses: number; netProfit: number; lowStock: number;
 }
 
@@ -61,7 +61,7 @@ export function ClosingPage() {
       `${fr ? 'Bénéfice brut' : 'Gross profit'} : ${formatCurrency(data.grossProfit)}`,
       `${fr ? 'Dépenses' : 'Expenses'} : ${formatCurrency(data.expenses)}`,
       `${fr ? 'Bénéfice net' : 'Net profit'} : ${formatCurrency(data.netProfit)}`,
-      ...(data.sellers.length > 1 ? data.sellers.map((s) => `  · ${s.name} : ${s.orders} ${fr ? 'ventes' : 'sales'}, ${formatCurrency(s.sales)}`) : []),
+      ...data.sellers.flatMap((s) => [`  · ${s.name} : ${s.orders} ${fr ? 'ventes' : 'sales'}, ${formatCurrency(s.sales)}`, ...(s.items || []).map((it) => `      ${it.quantity} x ${it.name}`)]),
       ...(data.lowStock > 0 ? [`${fr ? 'Produits en stock faible' : 'Low-stock products'} : ${data.lowStock}`] : []),
     ];
     return lines.join('\n');
@@ -116,7 +116,12 @@ export function ClosingPage() {
               <h3 className="font-semibold">{fr ? 'Par vendeur' : 'By seller'}</h3>
               {data.sellers.length === 0 && <p className="text-sm text-muted-foreground">{fr ? 'Aucune vente' : 'No sales'}</p>}
               {data.sellers.map((s) => (
-                <div key={s.name} className="flex justify-between text-sm"><span>{s.name} · {s.orders}</span><span className="font-medium">{formatCurrency(s.sales)}</span></div>
+                <div key={s.name} className="text-sm border-b last:border-0 pb-2">
+                  <div className="flex justify-between font-medium"><span>{s.name} · {s.orders} {fr ? 'vente(s)' : 'sale(s)'}</span><span>{formatCurrency(s.sales)}</span></div>
+                  {(s.items || []).map((it) => (
+                    <div key={it.name} className="flex justify-between text-xs text-muted-foreground pl-3"><span>{it.quantity} × {it.name}</span><span>{formatCurrency(it.amount)}</span></div>
+                  ))}
+                </div>
               ))}
             </CardContent></Card>
           </div>

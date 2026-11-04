@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown, Globe, Copy, Monitor, PackagePlus, UserPlus, Receipt, HandCoins, ClipboardCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DrawerStatusCard } from '@/components/CashDrawer';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -86,7 +87,7 @@ const categoryDashboards: Record<string, {
       { key: 'totalProducts', label: { fr: 'Produits', en: 'Products' }, icon: Package, gradient: 'from-emerald-500 to-emerald-600' },
       { key: 'totalClients', label: { fr: 'Clientes', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
     ],
-    primaryAction: { label: { fr: 'Nouvelle vente', en: 'New Sale' }, icon: Plus, href: '/orders', gradient: 'from-blue-500 to-blue-600' },
+    primaryAction: { label: { fr: 'Nouvelle vente', en: 'New Sale' }, icon: Plus, href: '/pos', gradient: 'from-blue-500 to-blue-600' },
   },
   // Commandes & Livraison (Food, Événementiel)
   CAKES: {
@@ -145,7 +146,7 @@ const categoryDashboards: Record<string, {
       { key: 'totalProducts', label: { fr: 'Stock global', en: 'Total Stock' }, icon: Package, gradient: 'from-emerald-500 to-emerald-600' },
       { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
     ],
-    primaryAction: { label: { fr: 'Nouvelle vente grossiste', en: 'New Wholesale Sale' }, icon: ShoppingCart, href: '/orders', gradient: 'from-blue-600 to-blue-700' },
+    primaryAction: { label: { fr: 'Nouvelle vente grossiste', en: 'New Wholesale Sale' }, icon: ShoppingCart, href: '/pos', gradient: 'from-blue-600 to-blue-700' },
   },
 };
 
@@ -403,6 +404,8 @@ export function DashboardPage() {
           </div>
         </a>
       )}
+
+      {!isService && <DrawerStatusCard />}
 
       {/* Quick actions */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">

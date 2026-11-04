@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Lock, Unlock, Printer, MessageCircle, X, History } from 'lucide-react';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -11,7 +12,7 @@ import toast from 'react-hot-toast';
 
 interface Summary {
   orders: number; itemsSold: number; sales: number; discounts: number; received: number;
-  byMethod: Record<string, number>; sellers: Array<{ name: string; orders: number; sales: number }>;
+  byMethod: Record<string, number>; sellers: Array<{ name: string; orders: number; sales: number; items?: Array<{ name: string; quantity: number; amount: number }> }>;
   topProducts: Array<{ name: string; quantity: number; amount: number }>;
   cancelled: { count: number; amount: number };
   cost: number; grossProfit: number; expenses: number; cashExpenses: number; netProfit: number;
@@ -73,7 +74,7 @@ function zLines(z: CashSession, shop: string, fr: boolean): Array<[string, strin
     [fr ? '= Attendu' : '= Expected', formatCurrency(z.expectedCash ?? 0)],
     [fr ? 'Compté' : 'Counted', formatCurrency(z.countedCash ?? 0)],
     [diff === 0 ? (fr ? 'Écart' : 'Difference') : diff < 0 ? (fr ? 'MANQUE' : 'SHORT') : (fr ? 'SURPLUS' : 'OVER'), formatCurrency(Math.abs(diff))],
-    ...(s.sellers.length ? ['---', `## ${fr ? 'Par vendeur' : 'By seller'}`, ...s.sellers.map((x) => [`${x.name} (${x.orders})`, formatCurrency(x.sales)] as [string, string])] : []),
+    ...(s.sellers.length ? ['---', `## ${fr ? 'Par vendeur' : 'By seller'}`, ...s.sellers.flatMap((x) => [[`${x.name} (${x.orders})`, formatCurrency(x.sales)] as [string, string], ...(x.items || []).map((it) => [`  ${it.quantity} x ${it.name}`, formatCurrency(it.amount)] as [string, string])])] : []),
     ...(s.topProducts?.length ? ['---', `## ${fr ? 'Articles vendus' : 'Items sold'}`, ...s.topProducts.map((p) => [`${p.quantity} x ${p.name}`, formatCurrency(p.amount)] as [string, string])] : []),
     '---',
     [fr ? 'Bénéfice brut' : 'Gross profit', formatCurrency(s.grossProfit)],
@@ -283,5 +284,41 @@ export function CashDrawer() {
       </Card>
       {viewZ && <ZView z={viewZ} onClose={() => setViewZ(null)} />}
     </>
+  );
+}
+
+export function DrawerStatusCard() {
+  const fr = useAuthStore((s) => s.language) !== 'en';
+  const [state, setState] = useState<{ loaded: boolean; current: Live | null }>({ loaded: false, current: null });
+
+  useEffect(() => {
+    let alive = true;
+    api.get('/cash-sessions/current')
+      .then((r) => { if (alive) setState({ loaded: true, current: r.data.data }); })
+      .catch(() => { if (alive) setState({ loaded: true, current: null }); });
+    return () => { alive = false; };
+  }, []);
+
+  if (!state.loaded) return null;
+  const c = state.current;
+  return (
+    <div className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 sm:p-4 ${c ? 'border-green-300 bg-green-50 dark:bg-green-900/20 dark:border-green-800' : 'border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-800'}`}>
+      <div className="flex items-center gap-3 min-w-0">
+        {c ? <Unlock className="w-5 h-5 text-green-600 shrink-0" /> : <Lock className="w-5 h-5 text-amber-600 shrink-0" />}
+        <div className="min-w-0">
+          <p className="font-semibold text-sm">
+            {c ? `${fr ? 'Caisse ouverte' : 'Drawer open'} · N° ${c.number}` : (fr ? 'Caisse fermée' : 'Drawer closed')}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {c
+              ? `${fr ? 'Par' : 'By'} ${name(c.openedBy)} · ${c.summary.orders} ${fr ? 'ventes' : 'sales'} · ${fr ? 'attendu dans le tiroir' : 'expected in drawer'} ${formatCurrency(c.expectedCash)}`
+              : (fr ? 'Ouvrez la caisse avec votre fond de caisse avant de vendre.' : 'Open the drawer with your float before selling.')}
+          </p>
+        </div>
+      </div>
+      <Link to="/closing" className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold text-white ${c ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}>
+        {c ? (fr ? 'Fermer la caisse (Z)' : 'Close drawer (Z)') : (fr ? 'Ouvrir la caisse' : 'Open drawer')}
+      </Link>
+    </div>
   );
 }

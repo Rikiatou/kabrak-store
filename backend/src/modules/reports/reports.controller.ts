@@ -240,7 +240,7 @@ export interface PeriodSummary {
   discounts: number;
   received: number;
   byMethod: Record<string, number>;
-  sellers: Array<{ name: string; orders: number; sales: number }>;
+  sellers: Array<{ name: string; orders: number; sales: number; items: Array<{ name: string; quantity: number; amount: number }> }>;
   topProducts: Array<{ name: string; quantity: number; amount: number }>;
   cancelled: { count: number; amount: number };
   cost: number;
@@ -292,7 +292,7 @@ export async function computeSummary(
   for (const p of payments) byMethod[p.method] = (byMethod[p.method] || 0) + p.amount;
   const received = payments.reduce((s, p) => s + p.amount, 0);
 
-  const sellers = new Map<string, { name: string; orders: number; sales: number }>();
+  const sellers = new Map<string, { name: string; orders: number; sales: number; items: Map<string, { name: string; quantity: number; amount: number }> }>();
   const products = new Map<string, { name: string; quantity: number; amount: number }>();
   let sales = 0;
   let discounts = 0;
@@ -312,9 +312,16 @@ export async function computeSummary(
       products.set(key, row);
     }
     const who = o.seller ?? o.createdBy;
-    const entry = sellers.get(who.id) ?? { name: `${who.firstName} ${who.lastName}`.trim(), orders: 0, sales: 0 };
+    const entry = sellers.get(who.id) ?? { name: `${who.firstName} ${who.lastName}`.trim(), orders: 0, sales: 0, items: new Map() };
     entry.orders += 1;
     entry.sales += o.finalAmount;
+    for (const it of o.items) {
+      const key = `${it.productId}|${it.variant || ''}`;
+      const row = entry.items.get(key) ?? { name: it.variant ? `${it.product.name} (${it.variant})` : it.product.name, quantity: 0, amount: 0 };
+      row.quantity += it.quantity;
+      row.amount += it.unitPrice * it.quantity;
+      entry.items.set(key, row);
+    }
     sellers.set(who.id, entry);
   }
   const expenseTotal = expenses._sum.amount || 0;
@@ -327,7 +334,9 @@ export async function computeSummary(
     discounts,
     received,
     byMethod,
-    sellers: [...sellers.values()].sort((a, b) => b.sales - a.sales),
+    sellers: [...sellers.values()]
+      .map((x) => ({ ...x, items: [...x.items.values()].sort((a, b) => b.quantity - a.quantity) }))
+      .sort((a, b) => b.sales - a.sales),
     topProducts: [...products.values()].sort((a, b) => b.quantity - a.quantity).slice(0, 10),
     cancelled: { count: cancelledOrders._count, amount: cancelledOrders._sum.finalAmount || 0 },
     cost,

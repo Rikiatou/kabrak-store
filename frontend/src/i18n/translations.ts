@@ -24,6 +24,12 @@ export const translations = {
       of: 'de',
       total: 'Total',
       status: 'Statut',
+      saved: 'Enregistré',
+      deleted: 'Supprimé',
+      error: 'Une erreur est survenue',
+      clear: 'Effacer',
+      from: 'Du',
+      to: 'Au',
     },
     nav: {
       dashboard: 'Tableau de bord',
@@ -164,6 +170,7 @@ export const translations = {
       expired: 'Expiré',
       active: 'Actif',
       trial: 'Essai gratuit',
+      paymentFailed: 'Le paiement n’a pas pu être lancé',
       perMonth: '/mois',
     },
     loyalty: {
@@ -280,6 +287,12 @@ export const translations = {
       of: 'of',
       total: 'Total',
       status: 'Status',
+      saved: 'Saved',
+      deleted: 'Deleted',
+      error: 'Something went wrong',
+      clear: 'Clear',
+      from: 'From',
+      to: 'To',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -420,6 +433,7 @@ export const translations = {
       expired: 'Expired',
       active: 'Active',
       trial: 'Free Trial',
+      paymentFailed: 'Payment could not be started',
       perMonth: '/month',
     },
     loyalty: {

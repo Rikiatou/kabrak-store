@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText, UserCog, Truck,
   BarChart3, Tags, Heart, Store, FolderKanban, RefreshCw, Monitor, TrendingDown,
   Building2, Sparkles, Briefcase, ChevronRight, CheckCircle, BookOpen, X,
-  MessageCircle, Globe,
+  MessageCircle, Globe, ClipboardCheck, HandCoins,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -171,7 +171,65 @@ const ALL_MODULES: GuideModule[] = [
     },
     link: '/pos',
     modes: ['PRODUCT'],
-    plans: ['SHOP', 'BUSINESS'],
+  },
+  {
+    key: 'cash-drawer',
+    icon: ClipboardCheck,
+    color: 'from-emerald-500 to-emerald-600',
+    title: { fr: 'Ouverture / fermeture de caisse (rapport Z)', en: 'Open / close the drawer (Z report)' },
+    description: {
+      fr: 'Contrôlez l’argent du tiroir chaque jour : fond de caisse le matin, comptage le soir, écart et rapport Z imprimé.',
+      en: 'Check the drawer money every day: float in the morning, count at night, difference and printed Z report.',
+    },
+    steps: {
+      fr: [
+        'Le matin, sur le tableau de bord ou dans « Clôture du jour », cliquez « Ouvrir la caisse » et saisissez le fond de caisse (la monnaie dans le tiroir).',
+        'Vendez normalement à la caisse. Les ventes en espèces, Orange Money, MTN et les dettes encaissées sont comptées automatiquement.',
+        'Une dépense payée en espèces (transport, achat…) est retirée de l’argent attendu dans le tiroir.',
+        'Le soir, comptez l’argent du tiroir, saisissez le montant compté puis cliquez « Fermer et éditer le Z ».',
+        'Le rapport Z affiche : ventes, encaissements par moyen, fond + espèces − sorties = attendu, compté, et l’écart (MANQUE ou SURPLUS).',
+        'Il montre aussi ce que chaque employé a vendu (articles et montants) et le bénéfice du jour.',
+        'Imprimez le Z en ticket 58 mm ou 80 mm, ou envoyez-le sur WhatsApp. Un Z fermé ne peut plus être modifié.',
+        'Retrouvez tous les anciens Z dans « Rapports Z » (historique). Si des ventes hors ligne sont en attente, reconnectez-vous avant de fermer.',
+      ],
+      en: [
+        'In the morning, on the dashboard or in “Daily closing”, click “Open drawer” and enter the float (change in the drawer).',
+        'Sell as usual at the POS. Cash, Orange Money, MTN sales and collected debts are counted automatically.',
+        'An expense paid in cash (transport, purchase…) is taken out of the expected drawer cash.',
+        'At night, count the drawer, enter the counted amount and click “Close & print Z”.',
+        'The Z report shows: sales, payments by method, float + cash − cash out = expected, counted, and the difference (SHORT or OVER).',
+        'It also shows what each employee sold (items and amounts) and the day’s profit.',
+        'Print the Z on a 58 mm or 80 mm receipt, or send it on WhatsApp. A closed Z can no longer be changed.',
+        'Find all past Z reports under “Z reports” (history). If offline sales are pending, reconnect before closing.',
+      ],
+    },
+    link: '/closing',
+    modes: ['PRODUCT'],
+  },
+  {
+    key: 'debts',
+    icon: HandCoins,
+    color: 'from-rose-500 to-rose-600',
+    title: { fr: 'Dettes clients', en: 'Client debts' },
+    description: {
+      fr: 'Suivez qui vous doit de l’argent et relancez par WhatsApp.',
+      en: 'Track who owes you money and remind them on WhatsApp.',
+    },
+    steps: {
+      fr: [
+        'À la caisse, choisissez (ou créez) la cliente et saisissez seulement le montant reçu : le reste devient une dette.',
+        'Ouvrez « Dettes clients » : vous voyez chaque cliente, le total dû et depuis combien de jours.',
+        'Cliquez « Rappel » pour envoyer un message WhatsApp prêt avec le montant et la facture.',
+        'Quand elle paie, cliquez « Encaisser », saisissez le montant et le moyen de paiement. La dette baisse ou disparaît.',
+      ],
+      en: [
+        'At the POS, select (or create) the client and enter only the amount received: the rest becomes a debt.',
+        'Open “Client debts”: you see each client, the total due and for how many days.',
+        'Click “Remind” to send a ready WhatsApp message with the amount and invoice.',
+        'When she pays, click “Collect”, enter the amount and payment method. The debt goes down or disappears.',
+      ],
+    },
+    link: '/debts',
   },
   {
     key: 'categories',
