@@ -11,15 +11,15 @@ import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 const PLANS = [
-  { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & stock', 'Commandes', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats', 'Logo & couleur facture'], quote: false },
-  { value: 'SHOP', price: 9900, icon: Zap, features: ['Tout STORE +', 'Caisse POS', 'Catégories & organisation', 'Livraisons & suivi', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés'], quote: false },
-  { value: 'BUSINESS', price: 14900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'Rapports IA', 'Lien WhatsApp commande', 'Support prioritaire'], quote: false },
+  { value: 'STORE', price: 4900, icon: Shield, features: ['Caisse POS (hors ligne)', 'Rapport Z', 'Produits & stock', 'Commandes', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats', 'Logo & couleur facture'], quote: false },
+  { value: 'SHOP', price: 9900, icon: Zap, features: ['Tout STORE +', 'Catégories & organisation', 'Livraisons & suivi', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés'], quote: false },
+  { value: 'BUSINESS', price: 14900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés illimités', 'Boutique en ligne (panier)', 'Rapports IA', 'Lien WhatsApp commande'], quote: false },
 ];
 
 const ORDER_BASED_PLANS = [
   { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & stock', 'Commandes WhatsApp', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats'], quote: false },
   { value: 'SHOP', price: 9900, icon: Zap, features: ['Tout STORE +', 'Livraisons & suivi', 'Catégories & organisation', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés'], quote: false },
-  { value: 'BUSINESS', price: 14900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'Rapports IA', 'Lien WhatsApp commande', 'Support prioritaire'], quote: false },
+  { value: 'BUSINESS', price: 14900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés illimités', 'Boutique en ligne (panier)', 'Rapports IA', 'Lien WhatsApp commande'], quote: false },
 ];
 
 const ORDER_BASED_CATS = new Set([
@@ -32,7 +32,7 @@ const FEATURE_EN: Record<string, string> = {
   'Tout STORE +': 'All of STORE +', 'Caisse POS': 'POS register', 'Catégories & organisation': 'Categories & organisation',
   'Livraisons & suivi': 'Deliveries & tracking', 'Programme fidélité': 'Loyalty programme', 'Employés (3)': 'Employees (3)',
   'Fournisseurs': 'Suppliers', 'Rapports avancés': 'Advanced reports', 'Tout SHOP +': 'All of SHOP +', 'Multi-magasins': 'Multi-store',
-  'Employés (10+)': 'Employees (10+)', 'Vitrine publique': 'Public storefront', 'Rapports IA': 'AI reports',
+  'Employés illimités': 'Unlimited employees', 'Boutique en ligne (panier)': 'Online shop (cart)', 'Caisse POS (hors ligne)': 'POS register (offline)', 'Rapport Z': 'Z report', 'Rapports IA': 'AI reports',
   'Lien WhatsApp commande': 'WhatsApp order link', 'Support prioritaire': 'Priority support', 'Commandes WhatsApp': 'WhatsApp orders',
 };
 const DURATION_EN: Record<number, string> = { 1: '1 month', 3: '3 months', 6: '6 months', 12: '1 year' };
