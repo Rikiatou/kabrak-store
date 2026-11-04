@@ -75,10 +75,16 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       where: { id: { in: topProductIds }, tenantId },
     });
 
+    const topProductItems = await prisma.orderItem.findMany({
+      where: { productId: { in: topProductIds }, order: { tenantId, createdAt: { gte: startDate, lt: endDate } } },
+      select: { productId: true, quantity: true, unitCost: true },
+    });
+
     const topProductsWithDetails = topProducts.map((tp) => {
       const product = topProductDetails.find((p) => p.id === tp.productId);
-      const costPrice = product?.costPrice || 0;
-      const totalCost = costPrice * (tp._sum.quantity || 0);
+      const totalCost = topProductItems
+        .filter((i) => i.productId === tp.productId)
+        .reduce((sum, i) => sum + (i.unitCost ?? product?.costPrice ?? 0) * i.quantity, 0);
       const totalPrice = tp._sum.totalPrice || 0;
       const grossMargin = totalPrice - totalCost;
       return {
@@ -157,7 +163,7 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       salesByPeriod[key].orders += 1;
 
       for (const item of order.items) {
-        salesByPeriod[key].profit += (item.unitPrice - (item.product.costPrice || 0)) * item.quantity;
+        salesByPeriod[key].profit += (item.unitPrice - (item.unitCost ?? item.product.costPrice ?? 0)) * item.quantity;
       }
     }
 
@@ -189,6 +195,112 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch sales report';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+/** Clients who still owe money, with their unpaid invoices. */
+export const getDebts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const invoices = await prisma.invoice.findMany({
+      where: {
+        tenantId: req.user!.tenantId,
+        clientId: { not: null },
+        amountDue: { gt: 0 },
+        paymentStatus: { in: ['PENDING', 'PARTIAL'] },
+        OR: [{ orderId: null }, { order: { status: { not: 'CANCELLED' } } }],
+      },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true, invoiceNumber: true, totalAmount: true, amountPaid: true, amountDue: true, createdAt: true, dueDate: true,
+        client: { select: { id: true, name: true, phone: true } },
+      },
+    });
+    const byClient = new Map<string, { client: { id: string; name: string; phone: string | null }; totalDue: number; oldest: Date; invoices: typeof invoices }>();
+    for (const inv of invoices) {
+      if (!inv.client) continue;
+      const entry = byClient.get(inv.client.id) ?? { client: inv.client, totalDue: 0, oldest: inv.createdAt, invoices: [] };
+      entry.totalDue += inv.amountDue;
+      entry.invoices.push(inv);
+      byClient.set(inv.client.id, entry);
+    }
+    const data = [...byClient.values()].sort((a, b) => b.totalDue - a.totalDue);
+    res.json({ success: true, data, totalDue: data.reduce((s, d) => s + d.totalDue, 0) });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch debts';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+/** Cash closing for one day: sales, money received per method and per seller, expenses, profit. */
+export const getDailyClosing = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const day = req.query.date ? new Date(`${req.query.date as string}T00:00:00`) : new Date(new Date().setHours(0, 0, 0, 0));
+    const next = new Date(day.getTime() + 24 * 3600 * 1000);
+
+    const [orders, payments, expenses, lowStock] = await Promise.all([
+      prisma.order.findMany({
+        where: { tenantId, createdAt: { gte: day, lt: next }, status: { not: 'CANCELLED' } },
+        include: {
+          items: { include: { product: { select: { costPrice: true } } } },
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
+          seller: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+      prisma.payment.findMany({
+        where: { createdAt: { gte: day, lt: next }, invoice: { tenantId, OR: [{ orderId: null }, { order: { status: { not: 'CANCELLED' } } }] } },
+        select: { amount: true, method: true },
+      }),
+      prisma.expense.aggregate({ where: { tenantId, date: { gte: day, lt: next }, category: { not: 'STOCK' } }, _sum: { amount: true } }),
+      prisma.$queryRaw<Array<{ count: bigint }>>`
+        SELECT COUNT(*)::bigint AS count FROM products
+        WHERE "tenantId" = ${tenantId} AND "isActive" = true AND "isService" = false AND "totalStock" <= "lowStockAlert"
+      `,
+    ]);
+
+    const byMethod: Record<string, number> = {};
+    for (const p of payments) byMethod[p.method] = (byMethod[p.method] || 0) + p.amount;
+    const received = payments.reduce((s, p) => s + p.amount, 0);
+
+    const sellers = new Map<string, { name: string; orders: number; sales: number }>();
+    let sales = 0;
+    let cost = 0;
+    let itemsSold = 0;
+    for (const o of orders) {
+      sales += o.finalAmount;
+      for (const it of o.items) {
+        cost += (it.unitCost ?? it.product.costPrice ?? 0) * it.quantity;
+        itemsSold += it.quantity;
+      }
+      const who = o.seller ?? o.createdBy;
+      const entry = sellers.get(who.id) ?? { name: `${who.firstName} ${who.lastName}`.trim(), orders: 0, sales: 0 };
+      entry.orders += 1;
+      entry.sales += o.finalAmount;
+      sellers.set(who.id, entry);
+    }
+    const expenseTotal = expenses._sum.amount || 0;
+    const grossProfit = sales - cost;
+
+    res.json({
+      success: true,
+      data: {
+        date: day.toISOString().slice(0, 10),
+        orders: orders.length,
+        itemsSold,
+        sales,
+        received,
+        byMethod,
+        sellers: [...sellers.values()].sort((a, b) => b.sales - a.sales),
+        cost,
+        grossProfit,
+        expenses: expenseTotal,
+        netProfit: grossProfit - expenseTotal,
+        lowStock: Number(lowStock[0]?.count ?? 0),
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to compute closing';
     res.status(500).json({ success: false, message });
   }
 };

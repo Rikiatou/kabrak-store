@@ -1,6 +1,10 @@
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { CreateProductInput, UpdateProductInput } from './products.schema';
+import { adjustSizes } from '../orders/orders.controller';
+
+const PAYMENT_METHODS = ['CASH', 'MOBILE_MONEY', 'ORANGE_MONEY', 'MTN_MOMO', 'BANK_TRANSFER', 'OTHER'];
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -8,6 +12,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const where: Record<string, unknown> = { tenantId: req.user!.tenantId };
+    if (req.query.includeInactive !== 'true') where.isActive = true;
     if (search) where.name = { contains: search as string, mode: 'insensitive' };
     if (categoryId) where.categoryId = categoryId as string;
     if (businessType) where.businessType = businessType as string;
@@ -117,6 +122,13 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const soldCount = await prisma.orderItem.count({ where: { productId: id } });
+    if (soldCount > 0) {
+      await prisma.product.update({ where: { id }, data: { isActive: false } });
+      res.json({ success: true, archived: true, message: 'Produit archivé (déjà vendu)' });
+      return;
+    }
+
     await prisma.product.delete({ where: { id } });
     res.json({ success: true, message: 'Produit supprimé' });
   } catch (error) {
@@ -155,6 +167,7 @@ export const getLowStock = async (req: Request, res: Response): Promise<void> =>
     >`
       SELECT id FROM products
       WHERE "tenantId" = ${req.user!.tenantId}
+        AND "isActive" = true
         AND "totalStock" <= "lowStockAlert"
       ORDER BY "totalStock" ASC
     `;
@@ -171,6 +184,79 @@ export const getLowStock = async (req: Request, res: Response): Promise<void> =>
     res.json({ success: true, data: fullProducts });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch low stock products';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+export const restock = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const tenantId = req.user!.tenantId;
+    const quantity = Math.floor(Number(req.body.quantity));
+    const unitCost = req.body.unitCost === undefined || req.body.unitCost === '' ? null : Number(req.body.unitCost);
+    const variant = typeof req.body.variant === 'string' && req.body.variant.trim() ? req.body.variant.trim() : null;
+    const supplierId = typeof req.body.supplierId === 'string' && req.body.supplierId ? req.body.supplierId : null;
+    const recordExpense = req.body.recordExpense !== false;
+    const paymentMethod = PAYMENT_METHODS.includes(req.body.paymentMethod) ? req.body.paymentMethod : 'CASH';
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      res.status(400).json({ success: false, code: 'INVALID_QUANTITY', message: 'Quantité invalide' });
+      return;
+    }
+    if (unitCost !== null && (!Number.isFinite(unitCost) || unitCost < 0)) {
+      res.status(400).json({ success: false, code: 'INVALID_COST', message: "Prix d'achat invalide" });
+      return;
+    }
+
+    const product = await prisma.product.findFirst({ where: { id, tenantId } });
+    if (!product) {
+      res.status(404).json({ success: false, message: 'Produit introuvable' });
+      return;
+    }
+    if (supplierId && !(await prisma.supplier.findFirst({ where: { id: supplierId, tenantId } }))) {
+      res.status(404).json({ success: false, message: 'Fournisseur introuvable' });
+      return;
+    }
+
+    let adaptiveFields: Record<string, unknown> | undefined;
+    if (variant) {
+      const adjusted = adjustSizes(product.adaptiveFields, variant, quantity);
+      if (!adjusted) {
+        res.status(400).json({ success: false, code: 'UNKNOWN_VARIANT', message: `Variante inconnue : ${variant}` });
+        return;
+      }
+      adaptiveFields = adjusted.fields;
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const p = await tx.product.update({
+        where: { id },
+        data: {
+          totalStock: { increment: quantity },
+          ...(unitCost !== null ? { costPrice: unitCost } : {}),
+          ...(adaptiveFields ? { adaptiveFields: adaptiveFields as Prisma.InputJsonValue } : {}),
+        },
+      });
+      const cost = unitCost ?? product.costPrice ?? 0;
+      if (recordExpense && cost > 0) {
+        await tx.expense.create({
+          data: {
+            amount: cost * quantity,
+            category: 'STOCK',
+            description: `${product.name}${variant ? ` · ${variant}` : ''} × ${quantity}`,
+            paymentMethod,
+            supplierId,
+            tenantId,
+            createdById: req.user!.id,
+          },
+        });
+      }
+      return p;
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to restock product';
     res.status(500).json({ success: false, message });
   }
 };

@@ -1,581 +1,271 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import {
-  CheckCircle, ArrowRight, X,
-  ChevronDown, ChevronUp, Globe, Star,
-  MessageCircle
+  ArrowRight, Check, ChevronDown, ChevronUp, Globe, MessageCircle, Minus,
+  WifiOff, Ruler, HandCoins, ClipboardCheck, Receipt, TrendingUp, X,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
-// ── FAQ ──
+const WHATSAPP = 'https://wa.me/237653561862';
+
 const faqsFR = [
-  { q: 'C\'est pour quel type de business ?', a: 'Boutiques, vente WhatsApp, gâteaux, food, mini-markets, grossistes, agences marketing, freelancers, consultants — KABRAK s\'adapte automatiquement à votre activité.' },
-  { q: 'Comment ça marche sur téléphone ?', a: 'KABRAK s\'installe sur votre écran d\'accueil comme une vraie application. Pas besoin de Play Store ou App Store. Fonctionne même avec une connexion faible.' },
-  { q: 'Comment je paie ?', a: 'Par Orange Money, c\'est simple. Vous payez, on confirme, votre compte s\'active en quelques minutes.' },
-  { q: 'Combien d\'employés ?', a: 'STORE : 1 personne · SHOP : 3 personnes · BUSINESS : 10 personnes. Chacun a son propre accès.' },
-  { q: 'Et si j\'ai plusieurs boutiques ?', a: 'Le plan BUSINESS gère plusieurs magasins depuis un seul compte.' },
-  { q: 'Mes données sont en sécurité ?', a: 'Oui. Serveurs sécurisés, cryptage SSL, et vous pouvez exporter vos données à tout moment.' },
-  { q: 'Y a-t-il un essai gratuit ?', a: '14 jours gratuits avec accès complet. Aucune carte requise.' },
+  { q: 'Ça marche sans internet ?', a: 'Oui pour la caisse. Si la connexion coupe, vous continuez à vendre : les ventes sont gardées sur le téléphone et envoyées toutes seules quand internet revient, sans doublon. Il faut avoir ouvert l\'app une fois avec internet sur l\'appareil.' },
+  { q: 'C\'est pour quel type de commerce ?', a: 'Boutiques de vêtements, chaussures, sacs, bijoux, hijabs, pagnes, pâtisseries, restauration, mini-marchés, cosmétiques, quincailleries, grossistes, et aussi prestataires de services (agences, freelances, salons). Vous pouvez choisir plusieurs activités.' },
+  { q: 'Je dois installer quelque chose ?', a: 'Non. KABRAK s\'ouvre dans le navigateur et s\'ajoute à l\'écran d\'accueil du téléphone comme une application, sans Play Store.' },
+  { q: 'Comment je paie l\'abonnement ?', a: 'Par Orange Money, depuis la page Abonnement de l\'application.' },
+  { q: 'Combien de personnes peuvent l\'utiliser ?', a: 'STORE : 1 personne. SHOP : 3 personnes. BUSINESS : sans limite, avec plusieurs magasins. Chaque vendeuse a son propre accès.' },
+  { q: 'Si je perds mon téléphone, je perds tout ?', a: 'Non. Vos données sont enregistrées sur nos serveurs, pas seulement sur le téléphone. Vous vous reconnectez sur un autre appareil et vous retrouvez tout. Vous pouvez aussi exporter vos données à tout moment.' },
+  { q: 'Y a-t-il un essai gratuit ?', a: '7 jours gratuits avec toutes les fonctions. Aucune carte bancaire.' },
 ];
 const faqsEN = [
-  { q: 'What type of business is this for?', a: 'Shops, WhatsApp sellers, cakes, food, mini-markets, wholesalers, marketing agencies, freelancers, consultants — KABRAK adapts automatically to your business.' },
-  { q: 'How does it work on phone?', a: 'KABRAK installs on your home screen like a real app. No Play Store or App Store needed. Works even with weak connection.' },
-  { q: 'How do I pay?', a: 'Via Orange Money, it\'s simple. You pay, we confirm, your account activates in minutes.' },
-  { q: 'How many employees?', a: 'STORE: 1 person · SHOP: 3 people · BUSINESS: 10 people. Each has their own access.' },
-  { q: 'What if I have multiple stores?', a: 'The BUSINESS plan manages multiple stores from one account.' },
-  { q: 'Is my data safe?', a: 'Yes. Secure servers, SSL encryption, and you can export your data anytime.' },
-  { q: 'Is there a free trial?', a: '14 days free with full access. No card required.' },
+  { q: 'Does it work without internet?', a: 'Yes for the cash register. If the connection drops you keep selling: sales are kept on the phone and sent automatically when internet is back, without duplicates. The app must have been opened once online on that device.' },
+  { q: 'What kind of business is it for?', a: 'Clothing, shoes, bags, jewelry, hijab and fabric shops, bakeries, food businesses, mini-markets, cosmetics, hardware stores, wholesalers, and service providers (agencies, freelancers, salons). You can pick several activities.' },
+  { q: 'Do I need to install anything?', a: 'No. KABRAK opens in the browser and can be added to your phone home screen like an app, without the Play Store.' },
+  { q: 'How do I pay for the subscription?', a: 'With Orange Money, from the Billing page in the app.' },
+  { q: 'How many people can use it?', a: 'STORE: 1 person. SHOP: 3 people. BUSINESS: unlimited, with several stores. Each seller has their own login.' },
+  { q: 'If I lose my phone, do I lose everything?', a: 'No. Your data is stored on our servers, not only on the phone. Log in on another device and everything is there. You can also export your data at any time.' },
+  { q: 'Is there a free trial?', a: '7 days free with every feature. No bank card.' },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-gray-100 rounded-2xl overflow-hidden">
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 sm:px-6 py-4 text-left hover:bg-gray-50 transition-colors">
-        <span className="font-semibold text-gray-800 text-sm sm:text-base pr-4">{q}</span>
-        {open ? <ChevronUp className="w-4 h-4 text-blue-500 flex-shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />}
+    <div className="border-b border-gray-200">
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between py-4 text-left">
+        <span className="font-semibold text-gray-900 text-sm sm:text-base pr-4">{q}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-gray-500 shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />}
       </button>
-      {open && <div className="px-5 sm:px-6 pb-4 text-sm text-gray-500 leading-relaxed">{a}</div>}
+      {open && <p className="pb-4 text-sm text-gray-600 leading-relaxed">{a}</p>}
     </div>
   );
 }
 
+function Screenshot({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className={className} />;
+}
+
+type Cell = boolean | 'partial';
+
 export function LandingPage() {
   const { language, setLanguage } = useAuthStore();
-  const faqs = language === 'fr' ? faqsFR : faqsEN;
   const fr = language === 'fr';
+  const faqs = fr ? faqsFR : faqsEN;
+
+  const features = [
+    { icon: WifiOff, title: fr ? 'Caisse qui marche sans internet' : 'A register that works offline', text: fr ? 'Coupure de réseau ? Vous vendez quand même. Tout se synchronise au retour de la connexion.' : 'Network down? Keep selling. Everything syncs when the connection is back.' },
+    { icon: Ruler, title: fr ? 'Stock par taille et couleur' : 'Stock by size and colour', text: fr ? 'Robe M : 4, L : 2. La vente d\'une taille baisse son stock, l\'annulation le remet.' : 'Dress M: 4, L: 2. Selling a size lowers its stock, cancelling puts it back.' },
+    { icon: HandCoins, title: fr ? 'Dettes clients et rappel WhatsApp' : 'Client debts and WhatsApp reminders', text: fr ? 'Qui vous doit combien, depuis quand. Un clic pour envoyer un rappel poli sur WhatsApp.' : 'Who owes you what, since when. One tap to send a polite WhatsApp reminder.' },
+    { icon: ClipboardCheck, title: fr ? 'Clôture du jour' : 'Daily closing', text: fr ? 'Ventes, espèces, Orange Money, MTN, dépenses et bénéfice du jour, par vendeuse. À envoyer à la patronne sur WhatsApp.' : 'Sales, cash, Orange Money, MTN, expenses and profit of the day, per seller. Send it to the owner on WhatsApp.' },
+    { icon: Receipt, title: fr ? 'Factures et tickets' : 'Invoices and receipts', text: fr ? 'Facture PDF avec votre logo, reçu WhatsApp, ticket pour imprimante 80 mm.' : 'PDF invoice with your logo, WhatsApp receipt, 80 mm printer ticket.' },
+    { icon: TrendingUp, title: fr ? 'Votre vrai bénéfice' : 'Your real profit', text: fr ? 'Prix d\'achat enregistré à chaque vente, moins le loyer, le transport et les salaires.' : 'Purchase price saved with every sale, minus rent, transport and salaries.' },
+  ];
+
+  const businesses = fr
+    ? ['Vêtements', 'Chaussures & sacs', 'Bijoux', 'Hijabs & abayas', 'Pagnes & tissus', 'Pâtisserie', 'Restauration', 'Mini-marché', 'Cosmétiques', 'Quincaillerie', 'Grossiste', 'Agence & freelance']
+    : ['Clothing', 'Shoes & bags', 'Jewelry', 'Hijabs & abayas', 'Fabrics', 'Bakery', 'Food', 'Mini-market', 'Cosmetics', 'Hardware', 'Wholesale', 'Agency & freelance'];
+
+  const comparison: Array<{ label: string; cahier: Cell; excel: Cell; kabrak: Cell }> = [
+    { label: fr ? 'Le stock se calcule tout seul' : 'Stock updates itself', cahier: false, excel: 'partial', kabrak: true },
+    { label: fr ? 'Marche sans internet' : 'Works without internet', cahier: true, excel: true, kabrak: true },
+    { label: fr ? 'Utilisable sur téléphone' : 'Usable on a phone', cahier: true, excel: 'partial', kabrak: true },
+    { label: fr ? 'Liste des dettes + rappel WhatsApp' : 'Debt list + WhatsApp reminder', cahier: false, excel: false, kabrak: true },
+    { label: fr ? 'Bénéfice réel (achats et dépenses déduits)' : 'Real profit (cost and expenses deducted)', cahier: false, excel: 'partial', kabrak: true },
+    { label: fr ? 'Plusieurs vendeuses, chacune son accès' : 'Several sellers, each with a login', cahier: false, excel: false, kabrak: true },
+    { label: fr ? 'Rien n\'est perdu si le téléphone est perdu' : 'Nothing lost if the phone is lost', cahier: false, excel: 'partial', kabrak: true },
+  ];
+
+  const plans = [
+    {
+      name: 'STORE', price: '4 900', perDay: fr ? 'soit 163 FCFA par jour' : 'about 163 FCFA a day',
+      who: fr ? 'Pour une vendeuse seule' : 'For a single seller', users: fr ? '1 utilisateur' : '1 user',
+      features: fr
+        ? ['Caisse, hors ligne compris', 'Produits, tailles et stock', 'Clients et dettes', 'Factures et reçus WhatsApp', 'Clôture du jour', 'Dépenses et bénéfice net', 'Agenda des commandes']
+        : ['Register, offline included', 'Products, sizes and stock', 'Clients and debts', 'Invoices and WhatsApp receipts', 'Daily closing', 'Expenses and net profit', 'Order agenda'],
+    },
+    {
+      name: 'SHOP', price: '9 900', perDay: fr ? 'soit 330 FCFA par jour' : 'about 330 FCFA a day', popular: true,
+      who: fr ? 'Pour une boutique avec employées' : 'For a shop with staff', users: fr ? '3 utilisateurs' : '3 users',
+      features: fr
+        ? ['Tout STORE', 'Scanner de code-barres', 'Employées et vendeurs', 'Livraisons', 'Fidélité clients', 'Fournisseurs', 'Rapports détaillés']
+        : ['Everything in STORE', 'Barcode scanner', 'Staff and sellers', 'Deliveries', 'Customer loyalty', 'Suppliers', 'Detailed reports'],
+    },
+    {
+      name: 'BUSINESS', price: '14 900', perDay: fr ? 'soit 497 FCFA par jour' : 'about 497 FCFA a day',
+      who: fr ? 'Pour plusieurs magasins' : 'For several stores', users: fr ? 'Utilisateurs illimités' : 'Unlimited users',
+      features: fr
+        ? ['Tout SHOP', 'Plusieurs magasins', 'Vitrine en ligne et commande WhatsApp', 'Rapports IA']
+        : ['Everything in SHOP', 'Several stores', 'Online catalogue and WhatsApp ordering', 'AI reports'],
+    },
+  ];
+
+  const renderCell = (v: Cell) =>
+    v === true ? <Check className="w-5 h-5 text-blue-600 mx-auto" aria-label="oui" />
+      : v === 'partial' ? <Minus className="w-5 h-5 text-gray-400 mx-auto" aria-label="partiel" />
+        : <X className="w-5 h-5 text-gray-300 mx-auto" aria-label="non" />;
 
   return (
-    <div className="min-h-screen bg-white">
-
-      {/* ─── NAVBAR ─── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          <Link to="/" className="flex items-center">
-            <img src="/logo.png" alt="KABRAK Store" className="h-14 sm:h-20 object-contain" />
-          </Link>
+    <div className="min-h-screen bg-white text-gray-900">
+      <nav className="fixed top-0 inset-x-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center"><img src="/logo.png" alt="KABRAK" className="h-12 sm:h-14 object-contain" /></Link>
           <div className="flex items-center gap-2 sm:gap-4">
-            <button onClick={() => setLanguage(language === 'fr' ? 'en' : 'fr')} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-medium transition-all">
+            <button onClick={() => setLanguage(fr ? 'en' : 'fr')} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 text-xs font-medium">
               <Globe className="w-3.5 h-3.5" /> {fr ? 'EN' : 'FR'}
             </button>
-            <Link to="/login" className="hidden sm:inline text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">{fr ? 'Connexion' : 'Login'}</Link>
-            <Link to="/register" className="px-4 sm:px-6 py-2 sm:py-3 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs sm:text-sm font-bold hover:opacity-90 shadow-lg shadow-blue-200 transition-all">
-              {fr ? 'Essai gratuit' : 'Free trial'}
-            </Link>
+            <Link to="/login" className="hidden sm:inline text-sm font-medium text-gray-600 hover:text-gray-900">{fr ? 'Connexion' : 'Login'}</Link>
+            <Link to="/register" className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">{fr ? 'Essai gratuit' : 'Free trial'}</Link>
           </div>
         </div>
       </nav>
 
-      {/* ═══════════════════════════════════════════════
-          SECTION 1 — HERO (5 secondes pour convaincre)
-          ═══════════════════════════════════════════════ */}
-      <section className="pt-28 sm:pt-36 pb-14 sm:pb-20 px-5 bg-gradient-to-b from-blue-50/60 to-white">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-3xl sm:text-5xl lg:text-[3.5rem] font-black text-gray-900 leading-[1.15] mb-5 sm:mb-6">
-            {fr ? (
-              <>Le logiciel qui aide votre business à <span className="bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">mieux vendre, mieux gérer</span> et <span className="bg-gradient-to-r from-amber-500 to-amber-400 bg-clip-text text-transparent">grandir.</span></>
-            ) : (
-              <>The software that helps your business <span className="bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">sell better, manage smarter</span> and <span className="bg-gradient-to-r from-amber-500 to-amber-400 bg-clip-text text-transparent">grow.</span></>
-            )}
-          </h1>
-          <p className="text-base sm:text-lg text-gray-500 mb-8 max-w-xl mx-auto leading-relaxed">
-            {fr
-              ? 'Ventes, stock, clients, acomptes, factures WhatsApp et revenus — depuis votre téléphone ou ordinateur. Disponible au Cameroun, Sénégal, Côte d\'Ivoire et toute l\'Afrique.'
-              : 'Sales, stock, clients, deposits, WhatsApp invoices and revenue — from your phone or computer. Available in Cameroon, Senegal, Ivory Coast and across Africa.'}
-          </p>
-
-          {/* Quick business tags */}
-          <div className="flex flex-wrap justify-center gap-2 mb-8">
-            {(fr
-              ? ['🛍️ Boutique & Commerce', '📦 Vente en Ligne', '🚚 Commandes & Livraison', '🏪 Commerce Général', '💼 Services & Prestations', '📈 Grossistes', '🌍 Cameroun · Sénégal · Côte d\'Ivoire']
-              : ['🛍️ Retail & Commerce', '📦 Online Selling', '🚚 Orders & Delivery', '🏪 General Store', '💼 Services & Clients', '📈 Wholesale', '🌍 Cameroon · Senegal · Ivory Coast']
-            ).map(tag => (
-              <span key={tag} className="px-3 py-1.5 rounded-full bg-white border border-gray-200 text-xs sm:text-sm font-medium text-gray-600 shadow-sm">
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-            <Link to="/register"
-              className="inline-flex items-center justify-center gap-2 px-7 sm:px-10 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-bold text-base hover:opacity-90 shadow-2xl shadow-blue-300 transition-all">
-              {fr ? 'Essayer gratuitement 14 jours' : 'Try free for 14 days'} <ArrowRight className="w-5 h-5" />
-            </Link>
-            <a href="https://wa.me/237653561862?text=Bonjour%2C%20je%20veux%20voir%20une%20d%C3%A9mo%20de%20KABRAK%20Store"
-              target="_blank" rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-7 sm:px-10 py-4 rounded-2xl bg-green-500 text-white font-bold text-base hover:bg-green-600 shadow-lg shadow-green-200 transition-all">
-              <MessageCircle className="w-5 h-5" /> {fr ? 'Voir une démo WhatsApp' : 'See a WhatsApp demo'}
-            </a>
-          </div>
-          <p className="text-[11px] text-gray-400 mt-4">{fr ? 'Aucune carte requise · Paiement Orange Money · Annulez à tout moment' : 'No card required · Orange Money payment · Cancel anytime'}</p>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          SECTION 2 — CONÇU POUR VOTRE TYPE DE BUSINESS
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 px-5 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3">
-              {fr ? 'Conçu pour votre type de business' : 'Built for your type of business'}
-            </h2>
-            <p className="text-sm sm:text-base text-gray-400">{fr ? 'KABRAK s\'adapte automatiquement à votre activité.' : 'KABRAK automatically adapts to your activity.'}</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {(fr ? [
-              { emoji: '🛍️', title: 'Boutique & Commerce', sub: 'Vêtements, chaussures, sacs, parfums, bijoux, cosmétique…', features: ['Stock & ventes rapides', 'Acomptes & paiements', 'Programme fidélité'], plan: 'STORE' },
-              { emoji: '📦', title: 'Vente en Ligne', sub: 'WhatsApp, Facebook, TikTok, Instagram, vendeurs à domicile…', features: ['Commandes & suivi', 'Livraisons', 'Paiements mobile money'], plan: 'STORE' },
-              { emoji: '🚚', title: 'Commandes & Livraison', sub: 'Gâteaux, cuisine maison, traiteur, food business, snacks…', features: ['Commandes avec dates', 'Acomptes', 'Statut préparation'], plan: 'STORE' },
-              { emoji: '🏪', title: 'Commerce Général', sub: 'Mini-market, alimentation, quincaillerie, commerce divers…', features: ['Caisse POS rapide', 'Scanner barcode', 'Stock important'], plan: 'SHOP' },
-              { emoji: '💼', title: 'Services & Prestations', sub: 'Marketing, freelance, consulting, design, agence, imprimerie…', features: ['Projets & clients', 'Factures récurrentes', 'Paiements mensuels'], plan: 'SHOP' },
-              { emoji: '📈', title: 'Grossistes & Distribution', sub: 'Wholesale, distribution, stock important, multi-vendeurs…', features: ['Multi-magasins', 'Employés', 'Rapports avancés'], plan: 'BUSINESS' },
-            ] : [
-              { emoji: '🛍️', title: 'Retail & Commerce', sub: 'Clothing, shoes, bags, perfumes, jewelry, cosmetics…', features: ['Stock & quick sales', 'Deposits & payments', 'Loyalty program'], plan: 'STORE' },
-              { emoji: '📦', title: 'Online Selling', sub: 'WhatsApp, Facebook, TikTok, Instagram, home sellers…', features: ['Orders & tracking', 'Deliveries', 'Mobile money payments'], plan: 'STORE' },
-              { emoji: '🚚', title: 'Orders & Delivery', sub: 'Cakes, home cooking, caterer, food business, snacks…', features: ['Orders with dates', 'Deposits', 'Preparation status'], plan: 'STORE' },
-              { emoji: '🏪', title: 'General Store', sub: 'Mini-market, grocery, hardware, general trade…', features: ['Fast POS register', 'Barcode scanner', 'Large stock'], plan: 'SHOP' },
-              { emoji: '💼', title: 'Services & Clients', sub: 'Marketing, freelance, consulting, design, agency, printing…', features: ['Projects & clients', 'Recurring invoices', 'Monthly payments'], plan: 'SHOP' },
-              { emoji: '📈', title: 'Wholesale & Distribution', sub: 'Wholesale, distribution, large stock, multi-sellers…', features: ['Multi-store', 'Employees', 'Advanced reports'], plan: 'BUSINESS' },
-            ]).map(b => (
-              <div key={b.title} className="p-5 sm:p-6 rounded-2xl bg-gray-50 border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-3xl sm:text-4xl">{b.emoji}</span>
-                  <div>
-                    <p className="font-black text-gray-900 text-sm sm:text-base">{b.title}</p>
-                    <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-600">{b.plan}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 mb-3">{b.sub}</p>
-                <ul className="space-y-1.5">
-                  {b.features.map(f => (
-                    <li key={f} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
-                      <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" /> {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          SECTION 3 — 5 KILLER FEATURES (pas 12)
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 px-5 bg-gradient-to-b from-gray-50 to-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3">
-              {fr ? 'Tout ce qu\'il faut pour votre business' : 'Everything your business needs'}
-            </h2>
-            <p className="text-sm text-gray-400">{fr ? 'Simple. Puissant. Adapté à votre métier.' : 'Simple. Powerful. Adapted to your trade.'}</p>
-          </div>
-
-          <div className="space-y-4 sm:space-y-5">
-            {(fr ? [
-              { emoji: '📦', title: 'Stock intelligent', desc: 'Ajoutez vos produits, le stock se met à jour automatiquement. Alertes quand il est faible. Par taille, couleur, pointure.', tag: 'SHOP+' },
-              { emoji: '🧾', title: 'Factures WhatsApp en 1 clic', desc: 'Générez une facture PDF professionnelle avec votre logo et envoyez-la direct au client par WhatsApp. A4 ou ticket de caisse.', tag: 'Tous' },
-              { emoji: '💰', title: 'Dépenses & Bénéfice net', desc: 'Suivez vos dépenses par catégorie et calculez automatiquement votre bénéfice net. Dashboard avec marge % en temps réel.', tag: 'Tous' },
-              { emoji: '👥', title: 'Clients & fidélité', desc: 'Historique complet de chaque client. Programme fidélité avec points et récompenses automatiques.', tag: 'Tous' },
-              { emoji: '📊', title: 'Dashboard revenus', desc: 'Combien avez-vous gagné aujourd\'hui, ce mois, cette année ? Top produits, meilleurs clients — tout en 1 écran.', tag: 'Tous' },
-              { emoji: '🏪', title: 'Fournisseurs', desc: 'Gérez vos fournisseurs, liez-les à vos dépenses d\'achat. Suivi complet de vos achats.', tag: 'SHOP+' },
-              { emoji: '🌐', title: 'Vitrine publique', desc: 'Créez une page publique pour vos produits. Partagez le lien, vos clients commandent direct.', tag: 'BUSINESS' },
-              { emoji: '✨', title: 'Rapports IA', desc: 'Analyse intelligente de votre business par GPT-4o. Recommandations actionnables pour grandir.', tag: 'BUSINESS' },
-            ] : [
-              { emoji: '📦', title: 'Smart stock', desc: 'Add your products, stock updates automatically. Alerts when low. By size, color, shoe size.', tag: 'SHOP+' },
-              { emoji: '🧾', title: 'WhatsApp invoices in 1 click', desc: 'Generate a professional PDF invoice with your logo and send it directly via WhatsApp. A4 or receipt.', tag: 'All' },
-              { emoji: '💰', title: 'Expenses & Net Profit', desc: 'Track expenses by category and automatically calculate net profit. Dashboard with real-time margin %.', tag: 'All' },
-              { emoji: '👥', title: 'Clients & loyalty', desc: 'Complete history for each client. Loyalty program with automatic points and rewards.', tag: 'All' },
-              { emoji: '📊', title: 'Revenue dashboard', desc: 'How much did you earn today, this month, this year? Top products, best clients — all in 1 screen.', tag: 'All' },
-              { emoji: '🏪', title: 'Suppliers', desc: 'Manage your suppliers, link them to purchase expenses. Complete purchase tracking.', tag: 'SHOP+' },
-              { emoji: '🌐', title: 'Public storefront', desc: 'Create a public page for your products. Share the link, clients order directly.', tag: 'BUSINESS' },
-              { emoji: '✨', title: 'AI Reports', desc: 'Intelligent business analysis by GPT-4o. Actionable recommendations to grow.', tag: 'BUSINESS' },
-            ]).map((f, i) => (
-              <div key={f.title} className={`flex items-start gap-4 sm:gap-6 p-5 sm:p-7 rounded-2xl border-2 transition-all hover:shadow-lg ${i === 0 ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100 hover:border-blue-200'}`}>
-                <span className="text-3xl sm:text-4xl flex-shrink-0">{f.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-black text-gray-900 text-base sm:text-lg">{f.title}</h3>
-                    <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{f.tag}</span>
-                  </div>
-                  <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* More features (collapsed) */}
-          <div className="mt-8 text-center">
-            <p className="text-xs text-gray-400 mb-3">{fr ? 'Et aussi :' : 'And also:'}</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {(fr
-                ? ['Caisse POS', 'Scanner barcode', 'Projets & milestones', 'Facturation récurrente', 'Multi-magasins', 'Employés & permissions', 'Export CSV', 'Livraison', 'Orange Money', 'Bilingue FR/EN', 'Lien WhatsApp commande', 'Logo & couleur facture']
-                : ['POS Register', 'Barcode scanner', 'Projects & milestones', 'Recurring billing', 'Multi-store', 'Employees & roles', 'CSV Export', 'Delivery', 'Orange Money', 'Bilingual FR/EN', 'WhatsApp order link', 'Logo & invoice color']
-              ).map(f => (
-                <span key={f} className="px-2.5 py-1 rounded-lg bg-gray-50 border border-gray-100 text-[10px] sm:text-xs text-gray-500 font-medium">{f}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          SECTION 4 — AVANT / APRÈS (émotionnel)
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 px-5 bg-white">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-center text-2xl sm:text-3xl font-black text-gray-900 mb-10">
-            {fr ? 'Avant KABRAK vs Après' : 'Before KABRAK vs After'}
-          </h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="p-5 sm:p-6 rounded-2xl bg-red-50 border border-red-100">
-              <p className="font-bold text-red-600 mb-4 text-xs uppercase tracking-widest">{fr ? 'Avant' : 'Before'}</p>
-              <ul className="space-y-3">
-                {(fr ? [
-                  'Stock dans la tête, on oublie',
-                  'Factures à la main, perte de temps',
-                  'On ne sait pas combien on a gagné',
-                  '"Il me doit combien déjà ?"',
-                  'Pas de suivi des clients fidèles',
-                ] : [
-                  'Stock in your head, you forget',
-                  'Handwritten invoices, wasted time',
-                  'No idea how much you earned',
-                  '"How much does he owe me again?"',
-                  'No tracking of loyal customers',
-                ]).map(t => (
-                  <li key={t} className="flex items-start gap-2 text-sm text-red-600">
-                    <X className="w-4 h-4 flex-shrink-0 mt-0.5" /> {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="p-5 sm:p-6 rounded-2xl bg-green-50 border border-green-100">
-              <p className="font-bold text-green-600 mb-4 text-xs uppercase tracking-widest">{fr ? 'Après' : 'After'}</p>
-              <ul className="space-y-3">
-                {(fr ? [
-                  'Stock à jour en temps réel',
-                  'Facture PDF par WhatsApp en 1 clic',
-                  'Dashboard avec revenus du jour',
-                  'Acomptes suivis automatiquement',
-                  'Programme fidélité qui fait revenir',
-                ] : [
-                  'Stock updated in real-time',
-                  'PDF invoice via WhatsApp in 1 click',
-                  'Dashboard with today\'s revenue',
-                  'Deposits tracked automatically',
-                  'Loyalty program that brings them back',
-                ]).map(t => (
-                  <li key={t} className="flex items-start gap-2 text-sm text-green-700">
-                    <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          SECTION 5 — DISPONIBLE SUR TÉLÉPHONE (pas technique)
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-16 px-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="text-5xl sm:text-6xl mb-4">📱 💻</div>
-          <h2 className="text-2xl sm:text-3xl font-black mb-3">
-            {fr ? 'Disponible sur téléphone & ordinateur' : 'Available on phone & computer'}
-          </h2>
-          <p className="text-blue-200 text-sm sm:text-base max-w-lg mx-auto mb-6">
-            {fr
-              ? 'Installez KABRAK comme une vraie application sur votre téléphone. Ouvrez-le en 1 clic, même sans internet.'
-              : 'Install KABRAK like a real app on your phone. Open it in 1 click, even without internet.'}
-          </p>
-          <div className="flex flex-wrap justify-center gap-4 text-xs sm:text-sm font-medium">
-            <span className="px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm">Android</span>
-            <span className="px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm">iPhone</span>
-            <span className="px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm">{fr ? 'Ordinateur' : 'Computer'}</span>
-            <span className="px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm">{fr ? 'Tablette' : 'Tablet'}</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          SECTION 5B — KABRAK VS CONCURRENCE (convaincant)
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 px-5 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-bold uppercase tracking-widest mb-4">
-              {fr ? 'Pourquoi choisir KABRAK ?' : 'Why choose KABRAK?'}
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-3">
-              {fr ? 'Gagnez du temps, vendez plus, perdez moins.' : 'Save time, sell more, lose less.'}
-            </h2>
-            <p className="text-sm text-gray-400 max-w-xl mx-auto">
-              {fr ? 'KABRAK centralise vos ventes, clients, stock et dépenses en un seul endroit. WhatsApp, factures PDF, caisse POS, livraisons — tout inclus, pas de frais cachés.' : 'KABRAK centralizes your sales, clients, stock and expenses in one place. WhatsApp, PDF invoices, POS register, deliveries — all included, no hidden fees.'}
+      <section className="pt-28 sm:pt-32 pb-16 px-5">
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+              {fr ? 'Vendez, suivez votre stock et vos dettes, même sans internet.' : 'Sell, track your stock and your debts, even without internet.'}
+            </h1>
+            <p className="mt-5 text-base sm:text-lg text-gray-600 max-w-xl">
+              {fr
+                ? 'La caisse et la gestion pour les boutiques, pâtisseries, mini-marchés et prestataires. Sur votre téléphone ou votre ordinateur, en français ou en anglais.'
+                : 'The register and back office for shops, bakeries, mini-markets and service providers. On your phone or computer, in French or English.'}
             </p>
-          </div>
-
-          {/* Features list */}
-          <div className="overflow-hidden rounded-2xl border-2 border-blue-100 shadow-xl shadow-blue-50 mb-10">
-            <div className="grid grid-cols-2 bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
-              <div className="p-4">{fr ? 'Fonctionnalité' : 'Feature'}</div>
-              <div className="p-4 text-center bg-blue-600 text-white rounded-t-none">KABRAK</div>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
+              <Link to="/register" className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
+                {fr ? 'Essayer gratuitement 7 jours' : 'Try free for 7 days'} <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a href={`${WHATSAPP}?text=${encodeURIComponent(fr ? 'Bonjour, je veux une démo de KABRAK' : 'Hello, I would like a KABRAK demo')}`} target="_blank" rel="noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg border border-gray-300 font-semibold text-gray-800 hover:bg-gray-50">
+                <MessageCircle className="w-4 h-4" /> {fr ? 'Démo sur WhatsApp' : 'WhatsApp demo'}
+              </a>
             </div>
-            {(fr ? [
-              ['Paiement mensuel (sans engagement)', true],
-              ['WhatsApp inclus dans le prix', true],
-              ['Caisse POS incluse', true],
-              ['Programme fidélité intégré', true],
-              ['Livraisons & suivi inclus', true],
-              ['Rapports IA (GPT-4o)', true],
-              ['Paiement Orange Money', true],
-              ['14 jours gratuits sans appel', true],
-            ] : [
-              ['Monthly billing (no commitment)', true],
-              ['WhatsApp included in price', true],
-              ['POS register included', true],
-              ['Built-in loyalty program', true],
-              ['Delivery tracking included', true],
-              ['AI Reports (GPT-4o)', true],
-              ['Orange Money payment', true],
-              ['14-day free trial, no call needed', true],
-            ]).map(([label, kabrak], i) => (
-              <div key={i} className={`grid grid-cols-2 border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                <div className="p-3.5 sm:p-4 text-xs sm:text-sm text-gray-700 font-medium flex items-center">{label as string}</div>
-                <div className="p-3.5 sm:p-4 flex items-center justify-center bg-blue-50/40">
-                  {kabrak ? <span className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center"><CheckCircle className="w-3.5 h-3.5 text-white" /></span> : <span className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center"><X className="w-3 h-3 text-red-400" /></span>}
-                </div>
-              </div>
-            ))}
+            <p className="mt-4 text-sm text-gray-500">{fr ? 'Sans carte bancaire. Paiement par Orange Money. À partir de 4 900 FCFA par mois.' : 'No bank card. Pay with Orange Money. From 4,900 FCFA a month.'}</p>
           </div>
+          <div className="relative">
+            <Screenshot src="/screens/dashboard.png" alt={fr ? 'Tableau de bord KABRAK' : 'KABRAK dashboard'} className="w-full rounded-xl border border-gray-200 shadow-xl" />
+            <Screenshot src="/screens/pos-mobile.png" alt={fr ? 'Caisse KABRAK sur téléphone' : 'KABRAK register on a phone'} className="hidden sm:block absolute -bottom-8 -left-6 w-40 rounded-2xl border-4 border-gray-900 shadow-2xl" />
+          </div>
+        </div>
+      </section>
 
-          {/* Key stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {(fr ? [
-              { value: '163', unit: 'FCFA/jour', label: 'Plan STORE · moins qu\'un café' },
-              { value: '14j', unit: fr ? 'gratuits' : 'free', label: fr ? 'Sans carte · Sans appel' : 'No card · No call' },
-              { value: '0', unit: fr ? 'frais cachés' : 'hidden fees', label: fr ? 'WhatsApp, PDF, POS inclus' : 'WhatsApp, PDF, POS included' },
-              { value: '1', unit: fr ? 'compte' : 'account', label: fr ? 'Pour toutes vos boutiques' : 'For all your stores' },
-            ] : [
-              { value: '163', unit: 'FCFA/day', label: 'STORE plan · less than a coffee' },
-              { value: '14d', unit: 'free', label: 'No card · No call' },
-              { value: '0', unit: 'hidden fees', label: 'WhatsApp, PDF, POS included' },
-              { value: '1', unit: 'account', label: 'For all your stores' },
-            ]).map((s, i) => (
-              <div key={i} className="text-center p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-blue-50 to-white border border-blue-100">
-                <p className="text-2xl sm:text-3xl font-black text-blue-600">{s.value}</p>
-                <p className="text-xs font-bold text-blue-500 mb-1">{s.unit}</p>
-                <p className="text-[10px] sm:text-xs text-gray-400 leading-tight">{s.label}</p>
+      <section className="py-16 px-5 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold">{fr ? 'Ce que vous faites chaque jour, en plus simple' : 'What you do every day, made simpler'}</h2>
+          <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map(({ icon: Icon, title, text }) => (
+              <div key={title} className="bg-white rounded-xl border border-gray-200 p-6">
+                <Icon className="w-6 h-6 text-blue-600" />
+                <h3 className="mt-4 font-semibold">{title}</h3>
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed">{text}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          SECTION 6 — PRICING (mensuel + annuel, WhatsApp inclus)
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 px-5 bg-gray-50">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl sm:text-4xl font-black text-gray-900 mb-2">{fr ? 'Tarifs simples, tout inclus' : 'Simple pricing, everything included'}</h2>
-            <p className="text-sm text-gray-400 mb-4">{fr ? '14 jours gratuits · Aucune carte requise · Orange Money' : '14 days free · No card required · Orange Money'}</p>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 border border-green-200">
-              <span className="text-green-600 text-xs sm:text-sm font-bold">{fr ? '💬 WhatsApp · 📊 Rapports · 📱 App mobile · 🧾 Factures PDF — TOUT INCLUS, 0 frais cachés' : '💬 WhatsApp · 📊 Reports · 📱 Mobile app · 🧾 PDF invoices — ALL INCLUDED, 0 hidden fees'}</span>
-            </div>
+      <section className="py-16 px-5">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold">{fr ? 'Fait pour votre activité' : 'Built for your trade'}</h2>
+          <p className="mt-2 text-gray-600">{fr ? 'À l\'inscription, cochez une ou plusieurs activités : les fiches produits s\'adaptent (tailles, couleurs, parfums, métrage…).' : 'At sign-up, tick one or more activities: product forms adapt (sizes, colours, flavours, length…).'}</p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            {businesses.map((b) => <span key={b} className="px-3 py-1.5 rounded-full border border-gray-200 text-sm text-gray-700">{b}</span>)}
           </div>
-          <div className="grid sm:grid-cols-3 gap-5 sm:gap-6">
-            {(fr ? [
-              { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Boutique · Vente en ligne · Commandes', users: '1 utilisateur', features: ['Produits & gestion stock', 'Ventes & commandes', 'Clients & historique', 'Acomptes & paiements', 'Factures WhatsApp incluses', 'Dashboard & stats', '💰 Dépenses & Bénéfice net', '🎨 Logo & couleur facture'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '9 900', tag: 'Commerce général · Services · Boutique+', users: '3 utilisateurs', features: ['Tout STORE +', '🖥️ Caisse POS', 'Catégories & organisation', 'Livraisons & suivi', 'Programme fidélité', 'Employés & permissions', 'Rapports avancés', '🏪 Fournisseurs'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '14 900', tag: 'Grossistes · Multi-magasins · Équipe', users: '10+ utilisateurs', features: ['Tout SHOP +', 'Multi-magasins', 'Permissions avancées', 'Rapports détaillés', 'Backup auto', 'Support prioritaire dédié', '🌐 Vitrine publique', '✨ Rapports IA (GPT-4o)', '💬 Lien WhatsApp commande'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
-            ] : [
-              { name: 'KABRAK STORE', priceMonth: '4 900', tag: 'Retail · Online selling · Orders', users: '1 user', features: ['Products & stock management', 'Sales & orders', 'Clients & history', 'Deposits & payments', 'WhatsApp invoices included', 'Dashboard & stats', '💰 Expenses & Net Profit', '🎨 Logo & invoice color'], color: 'border-gray-200', btn: 'border-2 border-blue-200 text-blue-600 hover:bg-blue-50' },
-              { name: 'KABRAK SHOP', priceMonth: '9 900', tag: 'General store · Services · Growing biz', users: '3 users', features: ['Everything in STORE +', '🖥️ POS Cash Register', 'Categories & organization', 'Deliveries & tracking', 'Loyalty program', 'Employees & roles', 'Advanced reports', '🏪 Suppliers'], popular: true, color: 'border-blue-400 ring-2 ring-blue-200', btn: 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:opacity-90 shadow-lg shadow-blue-200' },
-              { name: 'KABRAK BUSINESS', priceMonth: '14 900', tag: 'Wholesale · Multi-store · Team', users: '10+ users', features: ['Everything in SHOP +', 'Multi-store', 'Advanced permissions', 'Detailed reports', 'Auto backup', 'Dedicated priority support', '🌐 Public storefront', '✨ AI Reports (GPT-4o)', '💬 WhatsApp order link'], color: 'border-amber-400 ring-2 ring-amber-200', btn: 'bg-gradient-to-r from-amber-500 to-amber-600 text-white hover:opacity-90 shadow-lg shadow-amber-200' },
-            ]).map(plan => (
-              <div key={plan.name} className={`bg-white rounded-2xl border-2 p-5 sm:p-6 relative flex flex-col ${plan.color}`}>
-                {plan.popular && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white text-[10px] sm:text-xs font-bold shadow-lg whitespace-nowrap">
-                    <Star className="w-3 h-3 inline -mt-0.5 mr-1" />{fr ? 'Le plus choisi' : 'Most popular'}
-                  </div>
-                )}
-                <span className="font-black text-gray-900 text-base sm:text-lg">{plan.name}</span>
-                <p className="text-[10px] sm:text-xs text-gray-400 mb-3">{plan.tag}</p>
-                <div className="mb-4">
-                  <span className="text-2xl sm:text-3xl font-black text-gray-900">{plan.priceMonth}</span>
-                  <span className="text-gray-400 text-xs sm:text-sm"> FCFA/{fr ? 'mois' : 'month'}</span>
+        </div>
+      </section>
+
+      <section className="py-16 px-5 bg-gray-50">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold">{fr ? 'Cahier, Excel ou KABRAK ?' : 'Notebook, Excel or KABRAK?'}</h2>
+          <div className="mt-8 overflow-x-auto rounded-xl border border-gray-200 bg-white">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 text-gray-600">
+                  <th className="text-left font-medium p-4" />
+                  <th className="font-medium p-4 w-24">{fr ? 'Cahier' : 'Notebook'}</th>
+                  <th className="font-medium p-4 w-24">Excel</th>
+                  <th className="font-semibold p-4 w-24 text-blue-700">KABRAK</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparison.map((row) => (
+                  <tr key={row.label} className="border-b border-gray-100 last:border-0">
+                    <td className="p-4 text-gray-800">{row.label}</td>
+                    <td className="p-4">{renderCell(row.cahier)}</td>
+                    <td className="p-4">{renderCell(row.excel)}</td>
+                    <td className="p-4 bg-blue-50/50">{renderCell(row.kabrak)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="pricing" className="py-16 px-5">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold">{fr ? 'Tarifs' : 'Pricing'}</h2>
+          <p className="mt-2 text-gray-600">{fr ? '7 jours gratuits sur toutes les offres. Factures WhatsApp et mode hors ligne inclus partout.' : '7 days free on every plan. WhatsApp invoices and offline mode included everywhere.'}</p>
+          <div className="mt-10 grid md:grid-cols-3 gap-6">
+            {plans.map((plan) => (
+              <div key={plan.name} className={`rounded-xl border p-6 flex flex-col ${plan.popular ? 'border-blue-600 ring-1 ring-blue-600' : 'border-gray-200'}`}>
+                <div className="flex items-center justify-between">
+                  <span className="font-bold">KABRAK {plan.name}</span>
+                  {plan.popular && <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-1 rounded">{fr ? 'Le plus choisi' : 'Most popular'}</span>}
                 </div>
-                <p className="text-xs font-semibold text-blue-600 mb-4">{plan.users}</p>
-                <ul className="space-y-2 mb-6 flex-1">
-                  {plan.features.map(f => (
-                    <li key={f} className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
-                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> {f}
-                    </li>
+                <p className="mt-1 text-sm text-gray-500">{plan.who}</p>
+                <p className="mt-5"><span className="text-3xl font-extrabold">{plan.price}</span><span className="text-gray-500 text-sm"> FCFA / {fr ? 'mois' : 'month'}</span></p>
+                <p className="text-xs text-gray-500">{plan.perDay}</p>
+                <p className="mt-4 text-sm font-medium">{plan.users}</p>
+                <ul className="mt-4 space-y-2 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-gray-700"><Check className="w-4 h-4 mt-0.5 text-blue-600 shrink-0" /> {f}</li>
                   ))}
                 </ul>
-                <Link to="/register" className={`block text-center py-3 rounded-xl text-xs sm:text-sm font-bold transition-all ${plan.btn}`}>
-                  {fr ? 'Essai gratuit 14 jours' : '14-day free trial'}
+                <Link to="/register" className={`mt-6 block text-center py-3 rounded-lg text-sm font-semibold ${plan.popular ? 'bg-blue-600 text-white hover:bg-blue-700' : 'border border-gray-300 hover:bg-gray-50'}`}>
+                  {fr ? 'Commencer l\'essai gratuit' : 'Start free trial'}
                 </Link>
               </div>
             ))}
           </div>
-          <p className="text-center text-xs text-gray-400 mt-6">{fr ? 'Pas de frais cachés. Pas de supplément WhatsApp. Pas de supplément pour les rapports. Tout est inclus.' : 'No hidden fees. No WhatsApp add-on. No reports add-on. Everything is included.'}</p>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════
-          SECTION 7 — POURQUOI KABRAK ? (confiance)
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 px-5 bg-white">
+      <section className="py-16 px-5 bg-gray-50">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-center text-2xl sm:text-3xl font-black text-gray-900 mb-10">
-            {fr ? 'Pourquoi choisir KABRAK ?' : 'Why choose KABRAK?'}
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
-            {(fr ? [
-              { emoji: '💬', title: 'Accompagnement WhatsApp', desc: 'On vous aide à démarrer' },
-              { emoji: '⚡', title: 'Installation facile', desc: 'Prêt en 2 minutes' },
-              { emoji: '🟠', title: 'Paiement Orange Money', desc: 'Pas de carte bancaire' },
-              { emoji: '🌍', title: 'Support local & international', desc: 'Cameroun et diaspora' },
-              { emoji: '🇫🇷', title: 'Français & anglais', desc: 'Changez en 1 clic' },
-              { emoji: '🔒', title: 'Données sécurisées', desc: 'Serveurs cryptés SSL' },
-            ] : [
-              { emoji: '💬', title: 'WhatsApp support', desc: 'We help you get started' },
-              { emoji: '⚡', title: 'Easy setup', desc: 'Ready in 2 minutes' },
-              { emoji: '🟠', title: 'Orange Money payment', desc: 'No credit card needed' },
-              { emoji: '🌍', title: 'Local & international', desc: 'Cameroon and diaspora' },
-              { emoji: '🇫🇷', title: 'French & English', desc: 'Switch in 1 click' },
-              { emoji: '🔒', title: 'Secure data', desc: 'SSL encrypted servers' },
-            ]).map(t => (
-              <div key={t.title} className="text-center p-4 sm:p-5 rounded-2xl bg-gray-50 hover:bg-blue-50 transition-all">
-                <span className="text-2xl sm:text-3xl block mb-2">{t.emoji}</span>
-                <p className="font-bold text-gray-900 text-xs sm:text-sm">{t.title}</p>
-                <p className="text-[10px] sm:text-xs text-gray-400 mt-0.5">{t.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          SECTION 8 — TÉMOIGNAGES
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-16 px-5 bg-gray-50">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-center text-2xl sm:text-3xl font-black text-gray-900 mb-8 sm:mb-10">
-            {fr ? 'Ils gèrent mieux avec KABRAK' : 'They manage better with KABRAK'}
-          </h2>
-          <div className="grid sm:grid-cols-3 gap-4 sm:gap-5">
-            {(fr ? [
-              { name: 'Fatima A.', biz: 'Boutique Mode, Douala', text: 'Mes clientes reçoivent leurs factures par WhatsApp maintenant. Plus de papier, plus d\'oublis.', avatar: '👩🏽' },
-              { name: 'Kevin M.', biz: 'Agence Marketing, Yaoundé', text: 'La facturation récurrente me fait gagner des heures chaque mois. Exactement ce qu\'il me fallait.', avatar: '👨🏾' },
-              { name: 'Paul N.', biz: 'Mini-Market, Bafoussam', text: 'Les alertes stock faible ont tout changé. Je ne suis plus jamais en rupture.', avatar: '👨🏿' },
-            ] : [
-              { name: 'Fatima A.', biz: 'Fashion Store, Douala', text: 'My clients receive their invoices via WhatsApp now. No more paper, no more forgetting.', avatar: '👩🏽' },
-              { name: 'Kevin M.', biz: 'Marketing Agency, Yaoundé', text: 'Recurring billing saves me hours every month. Exactly what I needed.', avatar: '👨🏾' },
-              { name: 'Paul N.', biz: 'Mini-Market, Bafoussam', text: 'Low stock alerts changed everything. I\'m never out of stock anymore.', avatar: '👨🏿' },
-            ]).map(t => (
-              <div key={t.name} className="p-5 sm:p-6 rounded-2xl bg-white border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="text-3xl">{t.avatar}</span>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{t.name}</p>
-                    <p className="text-[10px] sm:text-xs text-blue-600">{t.biz}</p>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-500 leading-relaxed italic">"{t.text}"</p>
-                <div className="flex gap-0.5 mt-3">
-                  {[1, 2, 3, 4, 5].map(i => <Star key={i} className="w-3 h-3 text-amber-400 fill-amber-400" />)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          SECTION 9 — FAQ
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 px-5 bg-white">
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-center text-2xl sm:text-3xl font-black text-gray-900 mb-8">{fr ? 'Questions fréquentes' : 'Frequently asked questions'}</h2>
-          <div className="space-y-3">
-            {faqs.map(f => <FaqItem key={f.q} q={f.q} a={f.a} />)}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════
-          SECTION 10 — FINAL CTA
-          ═══════════════════════════════════════════════ */}
-      <section className="py-14 sm:py-20 px-5 bg-gradient-to-br from-blue-600 to-blue-800 text-center">
-        <div className="max-w-xl mx-auto">
-          <h2 className="text-2xl sm:text-4xl font-black text-white mb-4">
-            {fr ? 'Votre business mérite mieux qu\'un cahier.' : 'Your business deserves better than a notebook.'}
-          </h2>
-          <p className="text-blue-200 text-sm sm:text-base mb-8">
-            {fr ? 'Rejoignez les entrepreneurs qui gèrent mieux avec KABRAK.' : 'Join the entrepreneurs who manage better with KABRAK.'}
+          <h2 className="text-2xl sm:text-3xl font-bold">{fr ? 'Questions fréquentes' : 'Frequently asked questions'}</h2>
+          <div className="mt-6">{faqs.map((f) => <FaqItem key={f.q} {...f} />)}</div>
+          <p className="mt-8 text-sm text-gray-600">
+            {fr ? 'Une autre question ? ' : 'Another question? '}
+            <a href={WHATSAPP} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 hover:underline">{fr ? 'Écrivez-nous sur WhatsApp' : 'Message us on WhatsApp'}</a>
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-            <Link to="/register"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-white text-blue-700 font-bold text-base hover:bg-blue-50 shadow-2xl transition-all">
-              {fr ? 'Commencer gratuitement' : 'Start for free'} <ArrowRight className="w-5 h-5" />
-            </Link>
-            <a href="https://wa.me/237653561862?text=Bonjour%2C%20je%20veux%20voir%20une%20d%C3%A9mo%20de%20KABRAK%20Store"
-              target="_blank" rel="noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl border-2 border-white/30 text-white font-bold text-base hover:bg-white/10 transition-all">
-              <MessageCircle className="w-5 h-5" /> WhatsApp
-            </a>
-          </div>
         </div>
       </section>
 
-      {/* ─── FOOTER ─── */}
-      <footer className="py-10 px-5 bg-gray-900 text-white">
-        <div className="max-w-5xl mx-auto grid sm:grid-cols-3 gap-8">
-          <div>
-            <div className="mb-3">
-              <img src="/logo.png" alt="KABRAK Store" className="h-12 object-contain" />
-            </div>
-            <p className="text-gray-400 text-xs leading-relaxed">{fr ? 'Le logiciel de gestion qui s\'adapte à votre business.' : 'The management software that adapts to your business.'}</p>
-            <p className="text-gray-500 text-[10px] mt-2 font-medium">KABRAK ENG</p>
-          </div>
-          <div>
-            <p className="font-bold text-sm mb-3 text-gray-200">{fr ? 'Liens' : 'Links'}</p>
-            <ul className="space-y-2 text-xs text-gray-400">
-              <li><Link to="/register" className="hover:text-white transition-colors">{fr ? 'Essai gratuit' : 'Free trial'}</Link></li>
-              <li><Link to="/login" className="hover:text-white transition-colors">{fr ? 'Connexion' : 'Login'}</Link></li>
-              <li><a href="https://wa.me/237653561862" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">{fr ? 'Démo WhatsApp' : 'WhatsApp demo'}</a></li>
-            </ul>
-          </div>
-          <div>
-            <p className="font-bold text-sm mb-3 text-gray-200">Contact</p>
-            <ul className="space-y-2 text-xs text-gray-400">
-              <li>{fr ? 'Cameroun' : 'Cameroon'}</li>
-              <li>+237 653 561 862</li>
-              <li>kabrak-store.kabrakeng.com</li>
-            </ul>
-          </div>
+      <section className="py-16 px-5">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold">{fr ? 'Fermez le cahier ce soir.' : 'Close the notebook tonight.'}</h2>
+          <p className="mt-3 text-gray-600">{fr ? 'Créez votre compte en 2 minutes et faites votre première vente.' : 'Create your account in 2 minutes and make your first sale.'}</p>
+          <Link to="/register" className="mt-6 inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
+            {fr ? 'Essayer gratuitement 7 jours' : 'Try free for 7 days'} <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-        <div className="max-w-5xl mx-auto mt-8 pt-6 border-t border-gray-800 text-center text-xs text-gray-500">
-          &copy; 2026 KABRAK ENG &middot; {fr ? 'Tous droits réservés' : 'All rights reserved'}
+      </section>
+
+      <footer className="border-t border-gray-200 py-8 px-5">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+          <span>© {new Date().getFullYear()} KABRAK</span>
+          <div className="flex gap-5">
+            <Link to="/register" className="hover:text-gray-900">{fr ? 'Essai gratuit' : 'Free trial'}</Link>
+            <Link to="/login" className="hover:text-gray-900">{fr ? 'Connexion' : 'Login'}</Link>
+            <a href={WHATSAPP} target="_blank" rel="noreferrer" className="hover:text-gray-900">WhatsApp</a>
+          </div>
         </div>
       </footer>
 
-      {/* ─── WHATSAPP FLOATING ─── */}
-      <a href="https://wa.me/237653561862?text=Bonjour%2C%20je%20veux%20en%20savoir%20plus%20sur%20KABRAK%20Store"
-        target="_blank" rel="noreferrer"
-        className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full bg-green-500 text-white flex items-center justify-center shadow-2xl shadow-green-300 hover:scale-110 transition-transform">
-        <svg viewBox="0 0 24 24" className="w-7 h-7 fill-current">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-          <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18c-1.657 0-3.216-.5-4.512-1.357l-.324-.193-2.868.852.852-2.868-.193-.324A7.963 7.963 0 014 12c0-4.411 3.589-8 8-8s8 3.589 8 8-3.589 8-8 8z" />
-        </svg>
+      <a href={`${WHATSAPP}?text=${encodeURIComponent(fr ? 'Bonjour, je veux en savoir plus sur KABRAK' : 'Hello, I want to know more about KABRAK')}`} target="_blank" rel="noreferrer"
+        aria-label="WhatsApp" className="fixed bottom-5 right-5 z-50 w-12 h-12 rounded-full bg-green-600 text-white flex items-center justify-center shadow-lg hover:bg-green-700">
+        <MessageCircle className="w-6 h-6" />
       </a>
     </div>
   );

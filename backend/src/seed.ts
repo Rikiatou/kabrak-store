@@ -9,7 +9,7 @@ async function main() {
   const hashedPassword = await bcrypt.hash('kabrak123', 12);
 
   const trialEnd = new Date();
-  trialEnd.setDate(trialEnd.getDate() + 14);
+  trialEnd.setDate(trialEnd.getDate() + 7);
 
   // Create demo tenant
   const tenant = await prisma.tenant.create({

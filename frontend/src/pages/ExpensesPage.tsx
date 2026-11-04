@@ -194,7 +194,7 @@ export function ExpensesPage() {
           <button key={key} onClick={() => setCatFilter(key)}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${catFilter === key ? 'bg-foreground text-background' : 'bg-card border border-border text-muted-foreground hover:bg-accent'}`}
             style={catFilter === key ? {} : { borderColor: (CATEGORY_COLORS[key] || CATEGORY_COLORS.OTHER) + '40' }}>
-            {labels[language]}
+            {labels[language as 'fr' | 'en']}
           </button>
         ))}
       </div>
@@ -239,7 +239,7 @@ export function ExpensesPage() {
           <h3 className="text-sm font-semibold text-foreground mb-3">{language === 'fr' ? 'Par catégorie' : 'By category'}</h3>
           <div className="space-y-2">
             {summary.byCategory.sort((a, b) => (b._sum.amount || 0) - (a._sum.amount || 0)).map((cat) => {
-              const catLabel = (CATEGORY_LABELS[cat.category] || CATEGORY_LABELS.OTHER)[language];
+              const catLabel = (CATEGORY_LABELS[cat.category] || CATEGORY_LABELS.OTHER)[language as 'fr' | 'en'];
               const catColor = CATEGORY_COLORS[cat.category] || CATEGORY_COLORS.OTHER;
               const catIcon = CATEGORY_ICONS[cat.category] || CATEGORY_ICONS.OTHER;
               const Icon = catIcon;
@@ -275,7 +275,7 @@ export function ExpensesPage() {
             {paginatedExpenses.map((exp) => {
               const expCfg = CATEGORY_ICONS[exp.category] || CATEGORY_ICONS.OTHER;
               const expColor = CATEGORY_COLORS[exp.category] || CATEGORY_COLORS.OTHER;
-              const expLabel = (CATEGORY_LABELS[exp.category] || CATEGORY_LABELS.OTHER)[language];
+              const expLabel = (CATEGORY_LABELS[exp.category] || CATEGORY_LABELS.OTHER)[language as 'fr' | 'en'];
               const Icon = expCfg;
               return (
                 <div key={exp.id} className="flex items-center gap-3 px-4 py-3">
@@ -288,7 +288,7 @@ export function ExpensesPage() {
                       {exp.supplier && <span className="text-xs text-muted-foreground ml-1">· {exp.supplier.name}</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(exp.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')} · {(PAYMENT_LABELS[exp.paymentMethod] || PAYMENT_LABELS.OTHER)[language]}
+                      {new Date(exp.date).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US')} · {(PAYMENT_LABELS[exp.paymentMethod] || PAYMENT_LABELS.OTHER)[language as 'fr' | 'en']}
                     </p>
                   </div>
                   <p className="font-bold text-red-500 text-sm">-{formatCurrency(exp.amount)}</p>
@@ -350,7 +350,7 @@ export function ExpensesPage() {
                       <button type="button" key={key} onClick={() => setForm({ ...form, category: key })}
                         className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all text-xs ${form.category === key ? 'border-red-400 bg-red-50 dark:bg-red-900/20' : 'border-border hover:border-gray-300'}`}>
                         <Icon className="w-4 h-4" style={{ color }} />
-                        <span className="truncate w-full text-center" style={{ fontSize: '9px' }}>{labels[language]}</span>
+                        <span className="truncate w-full text-center" style={{ fontSize: '9px' }}>{labels[language as 'fr' | 'en']}</span>
                       </button>
                     );
                   })}

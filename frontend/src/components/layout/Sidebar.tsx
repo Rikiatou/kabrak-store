@@ -2,8 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   UserCog, Truck, BarChart3, CreditCard, Tags, X,
-  Heart, Store, FolderKanban, RefreshCw, Monitor, Settings, TrendingDown, Building2, Sparkles, Briefcase, BookOpen,
-} from 'lucide-react';
+  Heart, Store, FolderKanban, RefreshCw, Monitor, Settings, TrendingDown, Building2, Sparkles, Briefcase, BookOpen, ClipboardCheck, CalendarDays, HandCoins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
@@ -30,7 +29,9 @@ const navItems: NavItem[] = [
   // Product mode
   { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'] },
   { key: 'orders', icon: ShoppingCart, path: '/orders', modes: ['PRODUCT'] },
-  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'], hideWhenOrderBased: true },
+  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], hideWhenOrderBased: true },
+  { key: 'closing', icon: ClipboardCheck, path: '/closing', modes: ['PRODUCT'] },
+  { key: 'agenda', icon: CalendarDays, path: '/agenda', modes: ['PRODUCT'] },
   // SHOP+ features — Deliveries also surfaced for order-based businesses
   { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
   { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'], showWhenOrderBased: true },
@@ -42,6 +43,7 @@ const navItems: NavItem[] = [
   // All plans
   { key: 'clients', icon: Users, path: '/clients' },
   { key: 'invoices', icon: FileText, path: '/invoices' },
+  { key: 'debts', icon: HandCoins, path: '/debts' },
   { key: 'expenses', icon: TrendingDown, path: '/expenses' },
   { key: 'suppliers', icon: Building2, path: '/suppliers', plans: ['SHOP', 'BUSINESS'] },
   { key: 'employees', icon: UserCog, path: '/employees', plans: ['SHOP', 'BUSINESS'] },

@@ -82,7 +82,9 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const fr = language === 'fr';
   const printRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
-  const [printFormat, setPrintFormat] = useState<'standard' | 'thermal'>('standard');
+  const [printFormat, setPrintFormat] = useState<'standard' | 'thermal' | 'thermal58'>('standard');
+  const isThermal = printFormat !== 'standard';
+  const paperWidth = printFormat === 'thermal58' ? '58mm' : '80mm';
 
   const orderItems = invoice.order?.items || [];
   const lineItems = invoice.lineItems || [];
@@ -97,7 +99,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const fullPhone = phone ? (phone.startsWith('237') ? phone : `237${phone}`) : null;
   const dateStr = new Date(invoice.createdAt).toLocaleDateString(fr ? 'fr-FR' : 'en-US');
   const paymentMethod = invoice.order?.paymentMethod || 'CASH';
-  const paymentLabel = (paymentLabels[paymentMethod] || paymentLabels.OTHER)[language];
+  const paymentLabel = (paymentLabels[paymentMethod] || paymentLabels.OTHER)[language as 'fr' | 'en'];
   const invoiceColor = tenant?.invoiceColor || '#2563eb';
 
   // Adaptive labels per business category
@@ -238,15 +240,15 @@ export function InvoiceModal({ invoice, onClose }: Props) {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
-            width: ${printFormat === 'thermal' ? '80mm' : '100%'} !important;
-            padding: ${printFormat === 'thermal' ? '0 !important' : '15px !important'};
+            width: ${isThermal ? paperWidth : '100%'} !important;
+            padding: ${isThermal ? '0 !important' : '15px !important'};
             margin: 0 !important;
             background: #fff !important;
             box-shadow: none !important;
           }
           @page {
-            size: ${printFormat === 'thermal' ? '80mm auto' : 'auto'};
-            margin: ${printFormat === 'thermal' ? '0mm' : '10mm'};
+            size: ${isThermal ? `${paperWidth} auto` : 'auto'};
+            margin: ${isThermal ? '0mm' : '10mm'};
           }
         }
       `}</style>
@@ -266,7 +268,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
         </div>
 
         {/* Format Tabs */}
-        <div className="grid grid-cols-2 gap-1 p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+        <div className="grid grid-cols-3 gap-1 p-2 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
           <button
             onClick={() => setPrintFormat('standard')}
             className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
@@ -275,18 +277,21 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
             }`}
           >
-            📋 {fr ? 'Standard' : 'Standard'}
+            Standard
           </button>
-          <button
-            onClick={() => setPrintFormat('thermal')}
-            className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
-              printFormat === 'thermal'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
-            }`}
-          >
-            🎫 {fr ? 'Ticket 80mm' : 'Receipt 80mm'}
-          </button>
+          {(['thermal', 'thermal58'] as const).map((fmt) => (
+            <button
+              key={fmt}
+              onClick={() => setPrintFormat(fmt)}
+              className={`py-1.5 text-xs font-bold rounded-lg transition-all ${
+                printFormat === fmt
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              {fr ? 'Ticket' : 'Receipt'} {fmt === 'thermal58' ? '58mm' : '80mm'}
+            </button>
+          ))}
         </div>
 
         {/* Invoice Content */}
@@ -294,10 +299,10 @@ export function InvoiceModal({ invoice, onClose }: Props) {
           <div
             ref={printRef}
             style={
-              printFormat === 'thermal'
+              isThermal
                 ? {
                     fontFamily: "'Courier New', Courier, monospace",
-                    fontSize: '12px',
+                    fontSize: printFormat === 'thermal58' ? '10px' : '12px',
                     lineHeight: '1.4',
                     color: '#000',
                     backgroundColor: '#fff',
@@ -316,7 +321,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   }
             }
           >
-            {printFormat === 'thermal' ? (
+            {isThermal ? (
               /* ===== THERMAL RECEIPT ===== */
               <div>
                 <div style={{ textAlign: 'center', marginBottom: '14px' }}>

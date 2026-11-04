@@ -166,6 +166,7 @@ export function ClientsPage() {
       ) : clients.length === 0 ? (
         <div className="text-center py-12"><Users className="w-16 h-16 mx-auto text-muted-foreground/50 mb-4" /><p className="text-muted-foreground">{t('common.noResults')}</p></div>
       ) : (
+        <>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {paginatedClients.map((client) => (
             <Card key={client.id} className="hover:shadow-md transition-shadow">
@@ -213,6 +214,7 @@ export function ClientsPage() {
           onNext={clientsNextPage}
           onGoToPage={clientsGoToPage}
         />
+        </>
       )}
       {/* Client order history modal */}
       {historyClient && (

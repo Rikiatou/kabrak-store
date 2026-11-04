@@ -96,7 +96,7 @@ export function LoginPage() {
           <p className="text-center text-sm text-gray-400 mt-6">
             {t('auth.noAccount')}{' '}
             <Link to="/register" className="text-blue-600 font-medium hover:underline">
-              {language === 'fr' ? 'Essai gratuit 14 jours' : '14-day free trial'}
+              {language === 'fr' ? 'Essai gratuit 7 jours' : '7-day free trial'}
             </Link>
           </p>
         </div>

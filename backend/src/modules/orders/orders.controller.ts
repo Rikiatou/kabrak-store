@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { randomBytes } from 'crypto';
 import { prisma } from '../../config/prisma';
@@ -102,16 +103,61 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+
+class StockError extends Error {}
+
+const parseSizes = (sizes: unknown): Array<[string, number]> =>
+  typeof sizes === 'string'
+    ? sizes.split(',').map((part) => part.split(':').map((x) => x.trim())).filter((kv) => kv.length === 2 && kv[0]).map(([k, v]) => [k, parseInt(v) || 0])
+    : [];
+
+/** Applies `delta` to the "S:5, M:10" size stock string; returns null when the size is unknown. */
+export const adjustSizes = (fields: unknown, variant: string, delta: number): { fields: Record<string, unknown>; remaining: number } | null => {
+  const obj = (fields && typeof fields === 'object' ? fields : {}) as Record<string, unknown>;
+  const entries = parseSizes(obj.sizes);
+  const idx = entries.findIndex(([k]) => k.toLowerCase() === variant.trim().toLowerCase());
+  if (idx < 0) return null;
+  entries[idx] = [entries[idx][0], entries[idx][1] + delta];
+  return { fields: { ...obj, sizes: entries.map(([k, v]) => `${k}:${v}`).join(', ') }, remaining: entries[idx][1] };
+};
+
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const data = req.body as CreateOrderInput;
 
+    // Offline sales are replayed with a client-generated id; a replay returns the order already saved.
+    if (data.offlineId) {
+      const replayed = await prisma.order.findFirst({
+        where: { offlineId: data.offlineId, tenantId: req.user!.tenantId },
+        include: { client: true, items: { include: { product: true } }, invoice: { include: { lineItems: true, payments: true } } },
+      });
+      if (replayed) {
+        res.status(200).json({ success: true, data: replayed });
+        return;
+      }
+    }
+    const isReplay = Boolean(data.offlineId && data.createdAt);
+    const createdAt = data.createdAt && new Date(data.createdAt) <= new Date() ? new Date(data.createdAt) : undefined;
+
     const totalAmount = data.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    const finalAmount = Math.max(0, totalAmount - data.discount);
+    if (data.discount > totalAmount) {
+      res.status(400).json({ success: false, code: 'DISCOUNT_TOO_HIGH', message: 'La remise dépasse le total' });
+      return;
+    }
+    const finalAmount = totalAmount - data.discount;
 
     const order = await prisma.$transaction(async (tx) => {
+      const catalog = await tx.product.findMany({
+        where: { id: { in: data.items.map((i) => i.productId) }, tenantId: req.user!.tenantId },
+        select: { id: true, costPrice: true },
+      });
+      const costById = new Map(catalog.map((p) => [p.id, p.costPrice]));
+
       const newOrder = await tx.order.create({
         data: {
+          offlineId: data.offlineId,
+          dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+          ...(createdAt ? { createdAt } : {}),
           reference: generateReference(),
           publicToken: generatePublicToken(),
           totalAmount,
@@ -128,6 +174,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               totalPrice: item.unitPrice * item.quantity,
+              unitCost: costById.get(item.productId) ?? null,
               variant: item.variant,
             })),
           },
@@ -143,23 +190,32 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       for (const item of data.items) {
         const product = await tx.product.findFirst({
           where: { id: item.productId, tenantId: req.user!.tenantId },
-          select: { id: true, totalStock: true, name: true, isService: true },
+          select: { id: true, totalStock: true, name: true, isService: true, adaptiveFields: true },
         });
 
         if (!product) {
-          throw new Error(`Product ${item.productId} not found in your catalog`);
+          throw new StockError(`Product ${item.productId} not found in your catalog`);
         }
 
         // Skip stock decrement for services or made-to-order products
         if (product.isService) continue;
 
-        if (product.totalStock < item.quantity) {
-          throw new Error(`Stock insuffisant pour "${product.name}". Disponible: ${product.totalStock}, Demandé: ${item.quantity}`);
+        // Offline replays record sales that already happened, so they are never blocked on stock.
+        if (!isReplay && product.totalStock < item.quantity) {
+          throw new StockError(`Stock insuffisant pour "${product.name}". Disponible: ${product.totalStock}, Demandé: ${item.quantity}`);
+        }
+
+        const sized = item.variant ? adjustSizes(product.adaptiveFields, item.variant, -item.quantity) : null;
+        if (sized && !isReplay && sized.remaining < 0) {
+          throw new StockError(`Stock insuffisant pour "${product.name} · ${item.variant}"`);
         }
 
         await tx.product.update({
           where: { id: item.productId },
-          data: { totalStock: { decrement: item.quantity } },
+          data: {
+            totalStock: { decrement: item.quantity },
+            ...(sized ? { adaptiveFields: sized.fields as Prisma.InputJsonValue } : {}),
+          },
         });
       }
 
@@ -242,6 +298,22 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 
     res.status(201).json({ success: true, data: orderWithInvoice });
   } catch (error) {
+    if (error instanceof StockError) {
+      res.status(400).json({ success: false, code: 'INSUFFICIENT_STOCK', message: error.message });
+      return;
+    }
+    // Two replays of the same offline sale raced: return the order the first one saved.
+    const offlineId = (req.body as CreateOrderInput).offlineId;
+    if (offlineId && error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const existing = await prisma.order.findFirst({
+        where: { offlineId, tenantId: req.user!.tenantId },
+        include: { client: true, items: { include: { product: true } }, invoice: { include: { lineItems: true, payments: true } } },
+      });
+      if (existing) {
+        res.status(200).json({ success: true, data: existing });
+        return;
+      }
+    }
     const message = error instanceof Error ? error.message : 'Failed to create order';
     res.status(500).json({ success: false, message });
   }
@@ -254,7 +326,7 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
 
     const existing = await prisma.order.findFirst({
       where: { id, tenantId: req.user!.tenantId },
-      include: { items: { include: { product: { select: { id: true, isService: true } } } } },
+      include: { items: { include: { product: { select: { id: true, isService: true, adaptiveFields: true } } } } },
     });
 
     if (!existing) {
@@ -278,20 +350,32 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
     }
 
     const order = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.order.updateMany({
+        where: { id, tenantId: req.user!.tenantId, status: existing.status },
+        data: { status },
+      });
+      if (claimed.count === 0) throw new Error('STATUS_CONFLICT');
+
       // Restore stock when cancelling (only for non-service items)
       if (status === 'CANCELLED') {
         for (const item of existing.items) {
           if (item.product?.isService) continue;
+          const current = item.variant
+            ? await tx.product.findUnique({ where: { id: item.productId }, select: { adaptiveFields: true } })
+            : null;
+          const sized = item.variant && current ? adjustSizes(current.adaptiveFields, item.variant, item.quantity) : null;
           await tx.product.update({
             where: { id: item.productId },
-            data: { totalStock: { increment: item.quantity } },
+            data: {
+              totalStock: { increment: item.quantity },
+              ...(sized ? { adaptiveFields: sized.fields as Prisma.InputJsonValue } : {}),
+            },
           });
         }
       }
 
-      return tx.order.update({
+      return tx.order.findUniqueOrThrow({
         where: { id },
-        data: { status },
         include: {
           client: true,
           items: { include: { product: true } },
@@ -301,7 +385,32 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
 
     res.json({ success: true, data: order });
   } catch (error) {
+    if (error instanceof Error && error.message === 'STATUS_CONFLICT') {
+      res.status(409).json({ success: false, code: 'STATUS_CONFLICT', message: 'La commande a déjà été modifiée' });
+      return;
+    }
     const message = error instanceof Error ? error.message : 'Failed to update order';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+/** Upcoming orders with a pickup/delivery date (cakes, made-to-order). */
+export const getAgenda = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const from = req.query.from ? new Date(req.query.from as string) : new Date(new Date().setHours(0, 0, 0, 0));
+    const to = req.query.to ? new Date(req.query.to as string) : new Date(from.getTime() + 31 * 24 * 3600 * 1000);
+    const orders = await prisma.order.findMany({
+      where: { tenantId: req.user!.tenantId, dueDate: { gte: from, lt: to }, status: { not: 'CANCELLED' } },
+      orderBy: { dueDate: 'asc' },
+      include: {
+        client: { select: { id: true, name: true, phone: true } },
+        items: { include: { product: { select: { id: true, name: true } } } },
+        invoice: { select: { id: true, amountPaid: true, amountDue: true, paymentStatus: true } },
+      },
+    });
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch agenda';
     res.status(500).json({ success: false, message });
   }
 };
