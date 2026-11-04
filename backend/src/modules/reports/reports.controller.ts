@@ -233,72 +233,128 @@ export const getDebts = async (req: Request, res: Response): Promise<void> => {
 };
 
 /** Cash closing for one day: sales, money received per method and per seller, expenses, profit. */
+export interface PeriodSummary {
+  orders: number;
+  itemsSold: number;
+  sales: number;
+  discounts: number;
+  received: number;
+  byMethod: Record<string, number>;
+  sellers: Array<{ name: string; orders: number; sales: number; items: Array<{ name: string; quantity: number; amount: number }> }>;
+  topProducts: Array<{ name: string; quantity: number; amount: number }>;
+  cancelled: { count: number; amount: number };
+  cost: number;
+  grossProfit: number;
+  expenses: number;
+  cashExpenses: number;
+  netProfit: number;
+  lowStock: number;
+}
+
+/**
+ * Sales / payments / expenses between `from` and `to`.
+ * `expensesBy`: 'date' for the business day (expense date), 'createdAt' for a cash drawer session.
+ */
+export async function computeSummary(
+  tenantId: string,
+  from: Date,
+  to: Date,
+  expensesBy: 'date' | 'createdAt' = 'date',
+): Promise<PeriodSummary> {
+  const expenseRange = { [expensesBy]: { gte: from, lt: to } };
+  const [orders, cancelledOrders, payments, expenses, cashExpenses, lowStock] = await Promise.all([
+    prisma.order.findMany({
+      where: { tenantId, createdAt: { gte: from, lt: to }, status: { not: 'CANCELLED' } },
+      include: {
+        items: { include: { product: { select: { name: true, costPrice: true } } } },
+        createdBy: { select: { id: true, firstName: true, lastName: true } },
+        seller: { select: { id: true, firstName: true, lastName: true } },
+      },
+    }),
+    prisma.order.aggregate({
+      where: { tenantId, createdAt: { gte: from, lt: to }, status: 'CANCELLED' },
+      _count: true,
+      _sum: { finalAmount: true },
+    }),
+    prisma.payment.findMany({
+      where: { createdAt: { gte: from, lt: to }, invoice: { tenantId, OR: [{ orderId: null }, { order: { status: { not: 'CANCELLED' } } }] } },
+      select: { amount: true, method: true },
+    }),
+    prisma.expense.aggregate({ where: { tenantId, ...expenseRange, category: { not: 'STOCK' } }, _sum: { amount: true } }),
+    prisma.expense.aggregate({ where: { tenantId, ...expenseRange, paymentMethod: 'CASH' }, _sum: { amount: true } }),
+    prisma.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*)::bigint AS count FROM products
+      WHERE "tenantId" = ${tenantId} AND "isActive" = true AND "isService" = false AND "totalStock" <= "lowStockAlert"
+    `,
+  ]);
+
+  const byMethod: Record<string, number> = {};
+  for (const p of payments) byMethod[p.method] = (byMethod[p.method] || 0) + p.amount;
+  const received = payments.reduce((s, p) => s + p.amount, 0);
+
+  const sellers = new Map<string, { name: string; orders: number; sales: number; items: Map<string, { name: string; quantity: number; amount: number }> }>();
+  const products = new Map<string, { name: string; quantity: number; amount: number }>();
+  let sales = 0;
+  let discounts = 0;
+  let cost = 0;
+  let itemsSold = 0;
+  for (const o of orders) {
+    sales += o.finalAmount;
+    discounts += o.discount || 0;
+    for (const it of o.items) {
+      cost += (it.unitCost ?? it.product.costPrice ?? 0) * it.quantity;
+      itemsSold += it.quantity;
+      const key = `${it.productId}|${it.variant || ''}`;
+      const name = it.variant ? `${it.product.name} (${it.variant})` : it.product.name;
+      const row = products.get(key) ?? { name, quantity: 0, amount: 0 };
+      row.quantity += it.quantity;
+      row.amount += it.unitPrice * it.quantity;
+      products.set(key, row);
+    }
+    const who = o.seller ?? o.createdBy;
+    const entry = sellers.get(who.id) ?? { name: `${who.firstName} ${who.lastName}`.trim(), orders: 0, sales: 0, items: new Map() };
+    entry.orders += 1;
+    entry.sales += o.finalAmount;
+    for (const it of o.items) {
+      const key = `${it.productId}|${it.variant || ''}`;
+      const row = entry.items.get(key) ?? { name: it.variant ? `${it.product.name} (${it.variant})` : it.product.name, quantity: 0, amount: 0 };
+      row.quantity += it.quantity;
+      row.amount += it.unitPrice * it.quantity;
+      entry.items.set(key, row);
+    }
+    sellers.set(who.id, entry);
+  }
+  const expenseTotal = expenses._sum.amount || 0;
+  const grossProfit = sales - cost;
+
+  return {
+    orders: orders.length,
+    itemsSold,
+    sales,
+    discounts,
+    received,
+    byMethod,
+    sellers: [...sellers.values()]
+      .map((x) => ({ ...x, items: [...x.items.values()].sort((a, b) => b.quantity - a.quantity) }))
+      .sort((a, b) => b.sales - a.sales),
+    topProducts: [...products.values()].sort((a, b) => b.quantity - a.quantity).slice(0, 10),
+    cancelled: { count: cancelledOrders._count, amount: cancelledOrders._sum.finalAmount || 0 },
+    cost,
+    grossProfit,
+    expenses: expenseTotal,
+    cashExpenses: cashExpenses._sum.amount || 0,
+    netProfit: grossProfit - expenseTotal,
+    lowStock: Number(lowStock[0]?.count ?? 0),
+  };
+}
+
 export const getDailyClosing = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.user!.tenantId;
     const day = req.query.date ? new Date(`${req.query.date as string}T00:00:00`) : new Date(new Date().setHours(0, 0, 0, 0));
     const next = new Date(day.getTime() + 24 * 3600 * 1000);
-
-    const [orders, payments, expenses, lowStock] = await Promise.all([
-      prisma.order.findMany({
-        where: { tenantId, createdAt: { gte: day, lt: next }, status: { not: 'CANCELLED' } },
-        include: {
-          items: { include: { product: { select: { costPrice: true } } } },
-          createdBy: { select: { id: true, firstName: true, lastName: true } },
-          seller: { select: { id: true, firstName: true, lastName: true } },
-        },
-      }),
-      prisma.payment.findMany({
-        where: { createdAt: { gte: day, lt: next }, invoice: { tenantId, OR: [{ orderId: null }, { order: { status: { not: 'CANCELLED' } } }] } },
-        select: { amount: true, method: true },
-      }),
-      prisma.expense.aggregate({ where: { tenantId, date: { gte: day, lt: next }, category: { not: 'STOCK' } }, _sum: { amount: true } }),
-      prisma.$queryRaw<Array<{ count: bigint }>>`
-        SELECT COUNT(*)::bigint AS count FROM products
-        WHERE "tenantId" = ${tenantId} AND "isActive" = true AND "isService" = false AND "totalStock" <= "lowStockAlert"
-      `,
-    ]);
-
-    const byMethod: Record<string, number> = {};
-    for (const p of payments) byMethod[p.method] = (byMethod[p.method] || 0) + p.amount;
-    const received = payments.reduce((s, p) => s + p.amount, 0);
-
-    const sellers = new Map<string, { name: string; orders: number; sales: number }>();
-    let sales = 0;
-    let cost = 0;
-    let itemsSold = 0;
-    for (const o of orders) {
-      sales += o.finalAmount;
-      for (const it of o.items) {
-        cost += (it.unitCost ?? it.product.costPrice ?? 0) * it.quantity;
-        itemsSold += it.quantity;
-      }
-      const who = o.seller ?? o.createdBy;
-      const entry = sellers.get(who.id) ?? { name: `${who.firstName} ${who.lastName}`.trim(), orders: 0, sales: 0 };
-      entry.orders += 1;
-      entry.sales += o.finalAmount;
-      sellers.set(who.id, entry);
-    }
-    const expenseTotal = expenses._sum.amount || 0;
-    const grossProfit = sales - cost;
-
-    res.json({
-      success: true,
-      data: {
-        date: day.toISOString().slice(0, 10),
-        orders: orders.length,
-        itemsSold,
-        sales,
-        received,
-        byMethod,
-        sellers: [...sellers.values()].sort((a, b) => b.sales - a.sales),
-        cost,
-        grossProfit,
-        expenses: expenseTotal,
-        netProfit: grossProfit - expenseTotal,
-        lowStock: Number(lowStock[0]?.count ?? 0),
-      },
-    });
+    const summary = await computeSummary(tenantId, day, next);
+    res.json({ success: true, data: { date: day.toISOString().slice(0, 10), ...summary } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to compute closing';
     res.status(500).json({ success: false, message });

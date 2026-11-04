@@ -64,7 +64,7 @@ function ModeGuard({ mode, children }: { mode: 'PRODUCT' | 'SERVICE'; children: 
 }
 
 const ORDER_BASED_CATS = new Set([
-  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+  'CAKES', 'FOOD_BUSINESS',
 ]);
 
 function DeliveriesGuard({ children }: { children: React.ReactNode }) {
@@ -193,7 +193,7 @@ function App() {
           <Route path="/invoices" element={<InvoicesPage />} />
           <Route path="/employees" element={<PlanGuard plans={['SHOP','BUSINESS']}><EmployeesPage /></PlanGuard>} />
           <Route path="/reports" element={<PlanGuard plans={['SHOP','BUSINESS']}><ReportsPage /></PlanGuard>} />
-          <Route path="/ai-reports" element={<PlanGuard plans={['SHOP','BUSINESS']}><AIReportsPage /></PlanGuard>} />
+          <Route path="/ai-reports" element={<PlanGuard plans={['BUSINESS']}><AIReportsPage /></PlanGuard>} />
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/stores" element={<StoresPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />

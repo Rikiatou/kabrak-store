@@ -11,7 +11,7 @@ type BusinessMode = 'PRODUCT' | 'SERVICE';
 
 // Businesses that take orders in advance — no walk-in counter sales
 const ORDER_BASED_CATEGORIES = new Set([
-  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+  'CAKES', 'FOOD_BUSINESS',
 ]);
 
 interface NavItem {
@@ -49,7 +49,7 @@ const navItems: NavItem[] = [
   { key: 'employees', icon: UserCog, path: '/employees', plans: ['SHOP', 'BUSINESS'] },
   { key: 'stores', icon: Store, path: '/stores', plans: ['BUSINESS'] },
   { key: 'reports', icon: BarChart3, path: '/reports', plans: ['SHOP', 'BUSINESS'] },
-  { key: 'ai-reports', icon: Sparkles, path: '/ai-reports', plans: ['SHOP', 'BUSINESS'] },
+  { key: 'ai-reports', icon: Sparkles, path: '/ai-reports', plans: ['BUSINESS'] },
   { key: 'billing', icon: CreditCard, path: '/billing' },
   { key: 'settings', icon: Settings, path: '/settings' },
   { key: 'guide', icon: BookOpen, path: '/guide' },

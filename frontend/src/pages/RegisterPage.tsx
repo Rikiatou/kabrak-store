@@ -14,6 +14,7 @@ const PRODUCT_CATEGORIES = [
   { value: 'PERFUMES', icon: '🧴' },
   { value: 'COSMETICS', icon: '💄' },
   { value: 'HIJABS_ABAYAS', icon: '🧕' },
+  { value: 'FABRICS', icon: '🧵' },
   { value: 'JEWELRY', icon: '💍' },
   { value: 'BAGS', icon: '👜' },
   { value: 'ELECTRONICS', icon: '📱' },
@@ -27,10 +28,6 @@ const PRODUCT_CATEGORIES = [
   { value: 'MIXED_SHOP', icon: '🛒' },
   { value: 'CAKES', icon: '🎂' },
   { value: 'FOOD_BUSINESS', icon: '🍽️' },
-  { value: 'FOOD_DELIVERY', icon: '🛵' },
-  { value: 'HOME_COOKING', icon: '🥘' },
-  { value: 'WHATSAPP_SELLER', icon: '💬' },
-  { value: 'MADE_TO_ORDER', icon: '✂️' },
   { value: 'OTHER', icon: '📋' },
 ];
 
@@ -66,18 +63,17 @@ const SERVICE_PLANS = [
 ];
 
 const ORDER_BASED_CATS = new Set([
-  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+  'CAKES', 'FOOD_BUSINESS',
 ]);
 
 const categoryKeyMap: Record<string, string> = {
   CLOTHING: 'clothing', SHOES: 'shoes', PERFUMES: 'perfumes', COSMETICS: 'cosmetics',
-  HIJABS_ABAYAS: 'hijabsAbayas', JEWELRY: 'jewelry', BAGS: 'bags',
+  HIJABS_ABAYAS: 'hijabsAbayas', FABRICS: 'fabrics', JEWELRY: 'jewelry', BAGS: 'bags',
   ELECTRONICS: 'electronics', HOUSE_PRODUCTS: 'houseProducts',
   KITCHEN_PRODUCTS: 'kitchenProducts', DECORATION: 'decoration',
   EVENT_DECORATION: 'eventDecoration', CATERING: 'catering',
   MINI_MARKET: 'miniMarket', WHOLESALE: 'wholesale', MIXED_SHOP: 'mixedShop',
-  CAKES: 'cakes', FOOD_BUSINESS: 'foodBusiness', FOOD_DELIVERY: 'foodDelivery',
-  HOME_COOKING: 'homeCooking', WHATSAPP_SELLER: 'whatsappSeller', MADE_TO_ORDER: 'madeToOrder',
+  CAKES: 'cakes', FOOD_BUSINESS: 'foodBusiness',
   DIGITAL_MARKETING: 'digitalMarketing', FREELANCER: 'freelancer', AGENCY: 'agency',
   CONSULTANT: 'consultant', DESIGNER: 'designer', DEVELOPER: 'developer',
   SOCIAL_MEDIA: 'socialMedia', PRINTING: 'printing', BUSINESS_SERVICES: 'businessServices',

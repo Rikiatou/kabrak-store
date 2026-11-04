@@ -13,18 +13,29 @@ import toast from 'react-hot-toast';
 const PLANS = [
   { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & stock', 'Commandes', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats', 'Logo & couleur facture'], quote: false },
   { value: 'SHOP', price: 9900, icon: Zap, features: ['Tout STORE +', 'Caisse POS', 'Catégories & organisation', 'Livraisons & suivi', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés'], quote: false },
-  { value: 'BUSINESS', price: 14900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: false },
+  { value: 'BUSINESS', price: 14900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'Rapports IA', 'Lien WhatsApp commande', 'Support prioritaire'], quote: false },
 ];
 
 const ORDER_BASED_PLANS = [
   { value: 'STORE', price: 4900, icon: Shield, features: ['Produits & stock', 'Commandes WhatsApp', 'Clients', 'Factures WhatsApp', 'Dépenses & Bénéfice net', 'Dashboard & stats'], quote: false },
   { value: 'SHOP', price: 9900, icon: Zap, features: ['Tout STORE +', 'Livraisons & suivi', 'Catégories & organisation', 'Programme fidélité', 'Employés (3)', 'Fournisseurs', 'Rapports avancés'], quote: false },
-  { value: 'BUSINESS', price: 14900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'AI Reports (GPT-4o)', 'Lien WhatsApp commande', 'Support prioritaire'], quote: false },
+  { value: 'BUSINESS', price: 14900, icon: Star, features: ['Tout SHOP +', 'Multi-magasins', 'Employés (10+)', 'Vitrine publique', 'Rapports IA', 'Lien WhatsApp commande', 'Support prioritaire'], quote: false },
 ];
 
 const ORDER_BASED_CATS = new Set([
-  'CAKES', 'FOOD_BUSINESS', 'FOOD_DELIVERY', 'HOME_COOKING', 'MADE_TO_ORDER', 'WHATSAPP_SELLER',
+  'CAKES', 'FOOD_BUSINESS',
 ]);
+
+const FEATURE_EN: Record<string, string> = {
+  'Produits & stock': 'Products & stock', 'Commandes': 'Orders', 'Clients': 'Clients', 'Factures WhatsApp': 'WhatsApp invoices',
+  'Dépenses & Bénéfice net': 'Expenses & net profit', 'Dashboard & stats': 'Dashboard & stats', 'Logo & couleur facture': 'Invoice logo & colour',
+  'Tout STORE +': 'All of STORE +', 'Caisse POS': 'POS register', 'Catégories & organisation': 'Categories & organisation',
+  'Livraisons & suivi': 'Deliveries & tracking', 'Programme fidélité': 'Loyalty programme', 'Employés (3)': 'Employees (3)',
+  'Fournisseurs': 'Suppliers', 'Rapports avancés': 'Advanced reports', 'Tout SHOP +': 'All of SHOP +', 'Multi-magasins': 'Multi-store',
+  'Employés (10+)': 'Employees (10+)', 'Vitrine publique': 'Public storefront', 'Rapports IA': 'AI reports',
+  'Lien WhatsApp commande': 'WhatsApp order link', 'Support prioritaire': 'Priority support', 'Commandes WhatsApp': 'WhatsApp orders',
+};
+const DURATION_EN: Record<number, string> = { 1: '1 month', 3: '3 months', 6: '6 months', 12: '1 year' };
 
 const DURATIONS = [
   { months: 1, label: '1 mois' },
@@ -58,7 +69,7 @@ interface PaymentData {
 }
 
 export function BillingPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
   const businessCategories = tenant?.businessCategories || [];
   const isOrderBased = !!(businessCategories.length &&
@@ -212,7 +223,7 @@ export function BillingPage() {
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                     )}
                   >
-                    {d.label}
+                    {language === 'en' ? DURATION_EN[d.months] : d.label}
                   </button>
                 ))}
               </div>
@@ -251,7 +262,7 @@ export function BillingPage() {
                       <ul className="space-y-2 mb-6">
                         {plan.features.map((f) => (
                           <li key={f} className="flex items-center gap-2 text-sm">
-                            <Check className="w-4 h-4 text-amber-500" /> {f}
+                            <Check className="w-4 h-4 text-amber-500" /> {language === 'en' ? FEATURE_EN[f] || f : f}
                           </li>
                         ))}
                       </ul>

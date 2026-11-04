@@ -112,7 +112,12 @@ export const requirePlan = (...plans: ('STORE' | 'SHOP' | 'BUSINESS')[]) => {
     }
 
     if (!plans.includes(tenant.plan as 'STORE' | 'SHOP' | 'BUSINESS')) {
-      res.status(403).json({ success: false, message: 'This feature requires a higher subscription plan' });
+      res.status(403).json({
+        success: false,
+        message: 'Cette fonction nécessite une offre supérieure.',
+        code: 'PLAN_REQUIRED',
+        requiredPlans: plans,
+      });
       return;
     }
 

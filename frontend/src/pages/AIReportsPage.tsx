@@ -3,7 +3,6 @@ import { Sparkles, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Refresh
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency } from '@/lib/utils';
 import api, { getApiErrorMessage } from '@/lib/api';
-import { useAuthStore } from '@/stores/authStore';
 import toast from 'react-hot-toast';
 
 interface ReportData {
@@ -82,8 +81,6 @@ function ParsedReport({ text }: { text: string }) {
 export function AIReportsPage() {
   const { language } = useTranslation();
   const fr = language === 'fr';
-  const plan = useAuthStore((s) => s.tenant?.plan || 'STORE');
-  const isShop = plan === 'SHOP';
   const [period, setPeriod] = useState<'week' | 'month'>('month');
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<ReportData | null>(null);
@@ -123,11 +120,6 @@ export function AIReportsPage() {
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
               {fr ? 'Rapport IA' : 'AI Report'}
-              {isShop && (
-                <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/30 text-amber-100 border border-amber-300/30">
-                  {fr ? '3/mois · SHOP' : '3/mo · SHOP'}
-                </span>
-              )}
             </h1>
             <p className="text-purple-200 text-xs mt-1">
               {fr ? 'Analyse intelligente de votre business avec recommandations actionnables' : 'Intelligent business analysis with actionable recommendations'}

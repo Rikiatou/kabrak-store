@@ -6,6 +6,7 @@
  */
 import axios from 'axios';
 import crypto from 'crypto';
+import { PLAN_PRICES } from '../config/pricing';
 
 const OM_BASE = 'https://api.orange.com/orange-money-webpay/cm/v1';
 
@@ -15,9 +16,9 @@ interface PlanConfig {
 }
 
 const PLANS: Record<string, PlanConfig> = {
-  STORE: { name: 'KABRAK STORE', priceXAF: 4900 },
-  SHOP: { name: 'KABRAK SHOP', priceXAF: 7900 },
-  BUSINESS: { name: 'KABRAK BUSINESS', priceXAF: 12900 },
+  STORE: { name: 'KABRAK STORE', priceXAF: PLAN_PRICES.STORE },
+  SHOP: { name: 'KABRAK SHOP', priceXAF: PLAN_PRICES.SHOP },
+  BUSINESS: { name: 'KABRAK BUSINESS', priceXAF: PLAN_PRICES.BUSINESS },
 };
 
 interface TotalResult {

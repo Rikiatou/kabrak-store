@@ -1,35 +1,10 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 
-const SHOP_AI_LIMIT = 3;
-
 export const generateReport = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.user!.tenantId;
     const { period = 'month' } = req.body;
-
-    // Fetch tenant plan for SHOP limit check
-    const tenantInfo = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { plan: true } });
-    const userPlan = tenantInfo?.plan || 'STORE';
-
-    // Check monthly limit for SHOP plan using DB (persists across restarts)
-    if (userPlan === 'SHOP') {
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-
-      const usageCount = await (prisma as any).aIReport.count({
-        where: { tenantId, createdAt: { gte: monthStart } },
-      });
-
-      if (usageCount >= SHOP_AI_LIMIT) {
-        res.status(429).json({
-          success: false,
-          message: 'Limite mensuelle atteinte. Le plan SHOP inclut 3 rapports IA par mois. Passez au plan BUSINESS pour des rapports illimités.',
-        });
-        return;
-      }
-    }
 
     // Fetch data
     const dateFilter: Record<string, unknown> = {};
@@ -135,7 +110,7 @@ ${clients.slice(0, 5).map(c => `- ${c.name}: ${c.totalSpent.toLocaleString()} XA
     // Call Groq (free, fast Llama 3)
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      res.status(500).json({ success: false, message: 'Groq API key not configured' });
+      res.status(500).json({ success: false, message: 'AI service not configured', code: 'AI_UNAVAILABLE' });
       return;
     }
 
@@ -159,7 +134,7 @@ ${clients.slice(0, 5).map(c => `- ${c.name}: ${c.totalSpent.toLocaleString()} XA
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Groq API error:', errorText);
-      res.status(500).json({ success: false, message: 'Groq API error', details: errorText });
+      res.status(500).json({ success: false, message: 'AI service error', code: 'AI_UNAVAILABLE' });
       return;
     }
 
@@ -182,6 +157,6 @@ ${clients.slice(0, 5).map(c => `- ${c.name}: ${c.totalSpent.toLocaleString()} XA
 
     res.json({ success: true, data: { report, period, metrics: { totalRevenue, totalExpenses, profit, margin } } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error', code: 'AI_UNAVAILABLE' });
   }
 };

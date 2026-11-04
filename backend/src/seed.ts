@@ -41,7 +41,7 @@ async function main() {
     data: {
       plan: 'SHOP',
       status: 'TRIAL',
-      priceMonthly: 7900,
+      priceMonthly: 9900,
       startDate: new Date(),
       endDate: trialEnd,
       trialEndsAt: trialEnd,
