@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { cn, formatCurrency } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
-import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, Landmark, X, Package } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, Landmark, X, Package, FileText } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
 
@@ -46,6 +47,8 @@ export function POSPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [lastOrder, setLastOrder] = useState<{ id: string; reference: string } | null>(null);
+  const navigate = useNavigate();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientSearch, setClientSearch] = useState('');
   const [showClientPicker, setShowClientPicker] = useState(false);
@@ -133,7 +136,7 @@ export function POSPage() {
     if (cart.length === 0) return;
     setProcessing(true);
     try {
-      await api.post('/orders', {
+      const { data } = await api.post('/orders', {
         clientId: selectedClient?.id || null,
         paymentMethod,
         amountPaid: Math.min(amountPaid, total),
@@ -147,6 +150,7 @@ export function POSPage() {
         })),
       });
       toast.success(t('pos.saleRecorded'));
+      setLastOrder({ id: data.data.id, reference: data.data.reference });
       setCart([]);
       setSelectedClient(null);
       setAmountPaid(0);
@@ -157,6 +161,15 @@ export function POSPage() {
       toast.error(getErrorMessage(err, t('pos.saleError')));
     }
     setProcessing(false);
+  };
+
+  const createInvoiceForLastOrder = async () => {
+    if (!lastOrder) return;
+    try {
+      await api.post('/invoices', { orderId: lastOrder.id });
+      toast.success(t('orders.invoiceCreated'));
+      navigate('/invoices');
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
   };
 
   const paymentOptions: { key: PaymentMethod; icon: typeof Banknote; label: string }[] = [
@@ -231,6 +244,14 @@ export function POSPage() {
 
       {/* Cart */}
       <div className="flex min-h-0 w-full flex-col rounded-xl border bg-card shadow-sm lg:w-80 xl:w-96">
+        {lastOrder && cart.length === 0 && (
+          <div className="flex items-center justify-between gap-2 border-b bg-success/10 px-4 py-2.5 text-sm">
+            <span className="truncate">{t('pos.lastSale', { ref: lastOrder.reference })}</span>
+            <Button size="sm" variant="outline" className="h-8 shrink-0" onClick={createInvoiceForLastOrder}>
+              <FileText className="mr-1.5 h-3.5 w-3.5" /> {t('orders.createInvoice')}
+            </Button>
+          </div>
+        )}
         <div className="border-b p-4">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 font-semibold">

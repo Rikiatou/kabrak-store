@@ -316,6 +316,7 @@ model OrderItem {
   quantity    Int     @default(1)
   unitPrice   Float
   totalPrice  Float
+  unitCost    Float?
   variant     String?
   orderId     String
   productId   String

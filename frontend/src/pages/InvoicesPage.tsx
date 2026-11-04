@@ -264,7 +264,7 @@ export function InvoicesPage() {
         <EmptyState
           icon={FileText}
           title={t('invoices.empty')}
-          description={isService ? t('invoices.emptyServiceDesc') : t('invoices.emptyDesc')}
+          description={isService ? t('invoices.emptyServiceDesc') : t('invoices.emptyProductDesc')}
           action={isService && (
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" /> {t('invoices.createFirst')}

@@ -19,6 +19,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Plus, Search, Package, Pencil, Trash2, ScanLine, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
+import { NativeSelect } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface Product {
@@ -81,6 +82,12 @@ export function ProductsPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const newForm = () => ({ ...defaultForm, businessType: (tenant?.businessCategories || ['OTHER'])[0] || 'OTHER' });
+
+  useEffect(() => {
+    api.get('/categories').then(({ data }) => setCategories(data.data || [])).catch(() => {});
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -173,7 +180,7 @@ export function ProductsPage() {
               <ScanLine className="w-4 h-4 mr-1.5" /> {t('common.scanner')}
             </Button>
           )}
-          <Button size="sm" onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}>
+          <Button size="sm" onClick={() => { setForm(newForm()); setEditingId(null); setShowForm(true); }}>
             <Plus className="w-4 h-4 mr-1.5" /> {t('products.addProduct')}
           </Button>
       </>} />
@@ -214,6 +221,16 @@ export function ProductsPage() {
                     ))}
                   </div>
                 </div>
+
+                {categories.length > 0 && (
+                  <div>
+                    <Label htmlFor="p-category">{t('products.categoryLabel')}</Label>
+                    <NativeSelect id="p-category" value={form.categoryId || ''} onChange={(e) => setForm({ ...form, categoryId: e.target.value || null })}>
+                      <option value="">{t('products.noCategory')}</option>
+                      {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </NativeSelect>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -271,7 +288,7 @@ export function ProductsPage() {
       ) : products.length === 0 ? (
         search ? <EmptyState icon={Search} title={t('common.noResults')} /> : (
           <EmptyState icon={Package} title={t('products.empty')} description={t('products.emptyDesc')}
-            action={<Button onClick={() => { setForm(defaultForm); setEditingId(null); setShowForm(true); }}><Plus className="w-4 h-4 mr-2" /> {t('products.addProduct')}</Button>} />
+            action={<Button onClick={() => { setForm(newForm()); setEditingId(null); setShowForm(true); }}><Plus className="w-4 h-4 mr-2" /> {t('products.addProduct')}</Button>} />
         )
       ) : (
         <>

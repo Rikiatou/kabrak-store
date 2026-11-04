@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { CreateOrderInput } from './orders.schema';
+import { calculateTier, POINTS_PER_FCFA } from '../loyalty/loyalty.controller';
 
 function generateReference(): string {
   const date = new Date();
@@ -93,6 +94,12 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     const paymentStatus = data.amountPaid >= finalAmount ? 'PAID' : data.amountPaid > 0 ? 'PARTIAL' : 'PENDING';
 
     const order = await prisma.$transaction(async (tx) => {
+      const products = await tx.product.findMany({
+        where: { id: { in: data.items.map((i) => i.productId) }, tenantId: req.user!.tenantId },
+        select: { id: true, costPrice: true },
+      });
+      const costById = new Map(products.map((p) => [p.id, p.costPrice]));
+
       const newOrder = await tx.order.create({
         data: {
           reference: generateReference(),
@@ -114,6 +121,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               totalPrice: item.unitPrice * item.quantity,
+              unitCost: costById.get(item.productId) ?? null,
               variant: item.variant,
             })),
           },
@@ -135,13 +143,19 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 
       // Update client stats
       if (data.clientId) {
-        await tx.client.update({
+        const client = await tx.client.update({
           where: { id: data.clientId },
           data: {
             totalSpent: { increment: data.amountPaid },
             totalOrders: { increment: 1 },
+            loyaltyPoints: { increment: Math.floor(data.amountPaid / POINTS_PER_FCFA) },
+            lastVisit: new Date(),
           },
         });
+        const tier = calculateTier(client.loyaltyPoints);
+        if (tier !== client.loyaltyTier) {
+          await tx.client.update({ where: { id: client.id }, data: { loyaltyTier: tier } });
+        }
       }
 
       return newOrder;
@@ -161,6 +175,7 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
 
     const existing = await prisma.order.findFirst({
       where: { id, tenantId: req.user!.tenantId },
+      include: { items: true },
     });
 
     if (!existing) {
@@ -168,13 +183,27 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const order = await prisma.order.update({
-      where: { id },
-      data: { status },
-      include: {
-        client: true,
-        items: { include: { product: true } },
-      },
+    // Cancelling returns items to stock; reopening a cancelled order takes them out again.
+    const wasCancelled = existing.status === 'CANCELLED';
+    const isCancelled = status === 'CANCELLED';
+
+    const order = await prisma.$transaction(async (tx) => {
+      if (wasCancelled !== isCancelled) {
+        for (const item of existing.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { totalStock: isCancelled ? { increment: item.quantity } : { decrement: item.quantity } },
+          });
+        }
+      }
+      return tx.order.update({
+        where: { id },
+        data: { status },
+        include: {
+          client: true,
+          items: { include: { product: true } },
+        },
+      });
     });
 
     res.json({ success: true, data: order });

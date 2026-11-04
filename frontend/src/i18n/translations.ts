@@ -199,6 +199,8 @@ export const translations = {
       priceError: 'Le prix de vente doit être supérieur à 0',
       sizesHint: 'Ex : S:5, M:10, L:7',
       inStock: 'en stock',
+      categoryLabel: 'Catégorie',
+      noCategory: 'Sans catégorie',
     },
     orders: {
       title: 'Commandes',
@@ -221,6 +223,8 @@ export const translations = {
       paymentRecorded: 'Paiement enregistré',
       invalidAmount: 'Entrez un montant entre 1 et le reste à payer',
       createDelivery: 'Livraison',
+      createInvoice: 'Facture',
+      invoiceCreated: 'Facture créée',
     },
     clients: {
       title: 'Clients',
@@ -262,6 +266,7 @@ export const translations = {
       emptyServiceDesc: 'Créez votre première facture pour un client.',
       createFirst: 'Créer votre première facture',
       share: 'Partager sur WhatsApp',
+      emptyProductDesc: 'Créez une facture depuis une commande (Commandes → Facture) ou juste après une vente en caisse.',
     },
     employees: {
       title: 'Employés',
@@ -548,6 +553,7 @@ export const translations = {
       remove: 'Retirer',
       clearConfirm: 'Vider le panier ?',
       paymentMethod: 'Mode de paiement',
+      lastSale: 'Vente enregistrée : {ref}',
     },
     invoiceDoc: {
       hello: 'Bonjour {name},',
@@ -861,6 +867,8 @@ export const translations = {
       priceError: 'Selling price must be greater than 0',
       sizesHint: 'e.g. S:5, M:10, L:7',
       inStock: 'in stock',
+      categoryLabel: 'Category',
+      noCategory: 'No category',
     },
     orders: {
       title: 'Orders',
@@ -883,6 +891,8 @@ export const translations = {
       paymentRecorded: 'Payment recorded',
       invalidAmount: 'Enter an amount between 1 and the remaining balance',
       createDelivery: 'Delivery',
+      createInvoice: 'Invoice',
+      invoiceCreated: 'Invoice created',
     },
     clients: {
       title: 'Clients',
@@ -924,6 +934,7 @@ export const translations = {
       emptyServiceDesc: 'Create your first invoice for a client.',
       createFirst: 'Create your first invoice',
       share: 'Share on WhatsApp',
+      emptyProductDesc: 'Create an invoice from an order (Orders → Invoice) or right after a POS sale.',
     },
     employees: {
       title: 'Employees',
@@ -1210,6 +1221,7 @@ export const translations = {
       remove: 'Remove',
       clearConfirm: 'Clear the cart?',
       paymentMethod: 'Payment method',
+      lastSale: 'Sale recorded: {ref}',
     },
     invoiceDoc: {
       hello: 'Hello {name},',

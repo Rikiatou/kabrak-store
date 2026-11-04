@@ -13,7 +13,8 @@ import { getErrorMessage } from '@/lib/errors';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { Plus, ShoppingCart, X, MessageCircle, Truck, Wallet } from 'lucide-react';
+import { Plus, ShoppingCart, X, MessageCircle, Truck, Wallet, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Textarea } from '@/components/ui/textarea';
 import api from '@/lib/api';
 
@@ -88,6 +89,7 @@ export function OrdersPage() {
   const [discount, setDiscount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [opening, setOpening] = useState(false);
+  const navigate = useNavigate();
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethodExtra, setPaymentMethodExtra] = useState('CASH');
@@ -161,6 +163,14 @@ export function OrdersPage() {
       await api.patch(`/orders/${order.id}/status`, { status });
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status } : o)));
       toast.success(t('orders.statusUpdated'));
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+  };
+
+  const handleCreateInvoice = async (order: Order) => {
+    try {
+      await api.post('/invoices', { orderId: order.id });
+      toast.success(t('orders.invoiceCreated'));
+      navigate('/invoices');
     } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
   };
 
@@ -411,6 +421,9 @@ export function OrdersPage() {
                       <Wallet className="mr-1.5 h-3.5 w-3.5" /> {t('orders.recordPayment')}
                     </Button>
                   )}
+                  <Button variant="outline" size="sm" className="h-8" onClick={() => handleCreateInvoice(order)}>
+                    <FileText className="mr-1.5 h-3.5 w-3.5" /> {t('orders.createInvoice')}
+                  </Button>
                   <Button variant="outline" size="sm" className="h-8" onClick={() => openDelivery(order)}>
                     <Truck className="mr-1.5 h-3.5 w-3.5" /> {t('orders.createDelivery')}
                   </Button>
