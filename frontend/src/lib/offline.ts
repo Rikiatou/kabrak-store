@@ -104,8 +104,9 @@ export async function syncOfflineSales(): Promise<{ synced: number; failed: numb
         result.synced++;
       } catch (err) {
         const status = axios.isAxiosError(err) ? err.response?.status : undefined;
-        // Retry later on connection, auth or server errors; only park sales the server rejected as invalid.
-        if (!status || status === 401 || status >= 500) break;
+        const code = axios.isAxiosError(err) ? (err.response?.data as { code?: string } | undefined)?.code : undefined;
+        // Retry later on connection, auth, expired-subscription or server errors; only park sales the server rejected as invalid.
+        if (!status || status === 401 || status >= 500 || (status === 403 && code && /SUBSCRIPTION|TRIAL/.test(code))) break;
         result.failed++;
         write(FAILED_KEY, [...readAll(FAILED_KEY), sale]);
       }

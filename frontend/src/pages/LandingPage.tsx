@@ -128,8 +128,8 @@ export function LandingPage() {
             </h1>
             <p className="mt-5 text-base sm:text-lg text-gray-600 max-w-xl">
               {fr
-                ? 'La caisse et la gestion pour les boutiques, pâtisseries, mini-marchés et prestataires. Sur votre téléphone ou votre ordinateur, en français ou en anglais.'
-                : 'The register and back office for shops, bakeries, mini-markets and service providers. On your phone or computer, in French or English.'}
+                ? 'Fini le cahier. Encaissez en espèces, Orange Money ou MTN, suivez chaque taille en stock, relancez les clientes qui vous doivent et voyez votre vrai bénéfice chaque soir, depuis votre téléphone.'
+                : 'No more notebook. Take cash, Orange Money or MTN, track every size in stock, remind customers who owe you and see your real profit every evening, from your phone.'}
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link to="/register" className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
@@ -254,7 +254,7 @@ export function LandingPage() {
 
       <footer className="border-t border-gray-200 py-8 px-5">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-          <span>© {new Date().getFullYear()} KABRAK</span>
+          <span>© 2025 KABRAK Store</span>
           <div className="flex gap-5">
             <Link to="/register" className="hover:text-gray-900">{fr ? 'Essai gratuit' : 'Free trial'}</Link>
             <Link to="/login" className="hover:text-gray-900">{fr ? 'Connexion' : 'Login'}</Link>

@@ -180,14 +180,14 @@ export function BillingPage() {
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {formatCurrency(sub.priceMonthly)} FCFA{t('billing.perMonth')} · {sub.daysRemaining}{' '}
+                      {formatCurrency(sub.priceMonthly)}{t('billing.perMonth')} · {sub.daysRemaining}{' '}
                       {t('billing.daysRemaining')}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">Expire le {formatDate(sub.endDate)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-3xl font-bold text-blue-600">{formatCurrency(sub.priceMonthly)}</p>
-                    <p className="text-sm text-muted-foreground">FCFA/mois</p>
+                    <p className="text-sm text-muted-foreground">{t('billing.perMonth')}</p>
                   </div>
                 </div>
               </CardContent>
@@ -280,7 +280,7 @@ export function BillingPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center mb-4">
-                <p className="text-3xl font-bold text-blue-600">{formatCurrency(totalAmount)} FCFA</p>
+                <p className="text-3xl font-bold text-blue-600">{formatCurrency(totalAmount)}</p>
                 <p className="text-sm text-muted-foreground">
                   KABRAK {selectedPlan} × {selectedMonths} mois
                 </p>
@@ -327,7 +327,7 @@ export function BillingPage() {
           <CardContent className="space-y-4">
             <div className="text-center mb-4">
               <p className="text-3xl font-bold text-blue-600">
-                {formatCurrency(paymentData.amountXAF)} FCFA
+                {formatCurrency(paymentData.amountXAF)}
               </p>
             </div>
 
