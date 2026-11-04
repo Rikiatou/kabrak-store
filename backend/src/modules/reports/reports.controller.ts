@@ -252,7 +252,7 @@ export const getDailyClosing = async (req: Request, res: Response): Promise<void
         where: { createdAt: { gte: day, lt: next }, invoice: { tenantId, OR: [{ orderId: null }, { order: { status: { not: 'CANCELLED' } } }] } },
         select: { amount: true, method: true },
       }),
-      prisma.expense.aggregate({ where: { tenantId, date: { gte: day, lt: next } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { tenantId, date: { gte: day, lt: next }, category: { not: 'STOCK' } }, _sum: { amount: true } }),
       prisma.$queryRaw<Array<{ count: bigint }>>`
         SELECT COUNT(*)::bigint AS count FROM products
         WHERE "tenantId" = ${tenantId} AND "isActive" = true AND "isService" = false AND "totalStock" <= "lowStockAlert"

@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
-import { Plus, Search, Package, Pencil, Trash2, X, ScanLine, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Package, Pencil, Trash2, X, ScanLine, Download, ChevronLeft, ChevronRight, PackagePlus } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { ImageUpload } from '@/components/ImageUpload';
 import api, { getApiErrorMessage } from '@/lib/api';
@@ -177,6 +177,40 @@ export function ProductsPage() {
     setShowForm(true);
   };
 
+  const [restockTarget, setRestockTarget] = useState<Product | null>(null);
+  const [restockForm, setRestockForm] = useState({ quantity: '', unitCost: '', variant: '', supplierId: '', recordExpense: true });
+  const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+  const restockVariants = restockTarget && typeof restockTarget.adaptiveFields?.sizes === 'string'
+    ? (restockTarget.adaptiveFields.sizes as string).split(',').map((p) => p.split(':')[0]?.trim()).filter(Boolean)
+    : [];
+  const openRestock = (product: Product) => {
+    setRestockTarget(product);
+    setRestockForm({ quantity: '', unitCost: String(product.costPrice || ''), variant: '', supplierId: '', recordExpense: true });
+    api.get('/suppliers', { params: { limit: 100 } }).then((r) => setSuppliers(r.data.data || [])).catch(() => setSuppliers([]));
+  };
+  const submitRestock = async () => {
+    if (!restockTarget) return;
+    const quantity = parseInt(restockForm.quantity);
+    if (!quantity || quantity <= 0) { toast.error(language === 'fr' ? 'Indiquez une quantité' : 'Enter a quantity'); return; }
+    if (restockVariants.length > 0 && !restockForm.variant) { toast.error(language === 'fr' ? 'Choisissez la taille / variante' : 'Choose the size / variant'); return; }
+    setSubmitting(true);
+    try {
+      await api.post(`/products/${restockTarget.id}/restock`, {
+        quantity,
+        unitCost: restockForm.unitCost === '' ? undefined : Number(restockForm.unitCost),
+        variant: restockForm.variant || undefined,
+        supplierId: restockForm.supplierId || undefined,
+        recordExpense: restockForm.recordExpense,
+      });
+      toast.success(language === 'fr' ? 'Stock mis à jour' : 'Stock updated');
+      setRestockTarget(null);
+      fetchProducts();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur de réapprovisionnement' : 'Restock failed'));
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const handleDelete = (id: string) => setDeleteTarget(id);
   const confirmDelete = async () => {
@@ -407,6 +441,9 @@ export function ProductsPage() {
                     <Button variant="outline" size="sm" className="flex-1 h-8 text-xs" onClick={() => handleEdit(product)}>
                       <Pencil className="w-3 h-3 mr-1" /> {t('common.edit')}
                     </Button>
+                    <Button variant="outline" size="sm" className="h-8" title={language === 'fr' ? 'Réapprovisionner' : 'Restock'} onClick={() => openRestock(product)}>
+                      <PackagePlus className="w-3 h-3" />
+                    </Button>
                     <Button variant="outline" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(product.id)}>
                       <Trash2 className="w-3 h-3" />
                     </Button>
@@ -449,6 +486,38 @@ export function ProductsPage() {
           onScan={handleBarcodeScan}
           onClose={() => setShowScanner(false)}
         />
+      )}
+      {restockTarget && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setRestockTarget(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm p-5 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900 dark:text-white">{language === 'fr' ? 'Réapprovisionner' : 'Restock'} · {restockTarget.name}</h3>
+              <Button variant="ghost" size="icon" onClick={() => setRestockTarget(null)}><X className="w-4 h-4" /></Button>
+            </div>
+            {restockVariants.length > 0 && (
+              <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={restockForm.variant} onChange={(e) => setRestockForm({ ...restockForm, variant: e.target.value })}>
+                <option value="">{language === 'fr' ? 'Taille / variante' : 'Size / variant'}</option>
+                {restockVariants.map((v) => <option key={v} value={v}>{v}</option>)}
+              </select>
+            )}
+            <Input type="number" min={1} placeholder={language === 'fr' ? 'Quantité reçue' : 'Quantity received'} value={restockForm.quantity} onChange={(e) => setRestockForm({ ...restockForm, quantity: e.target.value })} />
+            <Input type="number" min={0} placeholder={language === 'fr' ? "Prix d'achat unitaire" : 'Unit purchase price'} value={restockForm.unitCost} onChange={(e) => setRestockForm({ ...restockForm, unitCost: e.target.value })} />
+            {suppliers.length > 0 && (
+              <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={restockForm.supplierId} onChange={(e) => setRestockForm({ ...restockForm, supplierId: e.target.value })}>
+                <option value="">{language === 'fr' ? 'Fournisseur (optionnel)' : 'Supplier (optional)'}</option>
+                {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            )}
+            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+              <input type="checkbox" checked={restockForm.recordExpense} onChange={(e) => setRestockForm({ ...restockForm, recordExpense: e.target.checked })} />
+              {language === 'fr' ? 'Enregistrer l\'achat dans les dépenses' : 'Record the purchase in expenses'}
+            </label>
+            {restockForm.quantity && restockForm.unitCost && (
+              <p className="text-sm text-gray-500">{language === 'fr' ? 'Total achat' : 'Purchase total'} : {formatCurrency(Number(restockForm.quantity) * Number(restockForm.unitCost))}</p>
+            )}
+            <Button className="w-full" disabled={submitting} onClick={submitRestock}>{language === 'fr' ? 'Ajouter au stock' : 'Add to stock'}</Button>
+          </div>
+        </div>
       )}
       <ConfirmDialog
         open={!!deleteTarget}

@@ -112,7 +112,7 @@ const parseSizes = (sizes: unknown): Array<[string, number]> =>
     : [];
 
 /** Applies `delta` to the "S:5, M:10" size stock string; returns null when the size is unknown. */
-const adjustSizes = (fields: unknown, variant: string, delta: number): { fields: Record<string, unknown>; remaining: number } | null => {
+export const adjustSizes = (fields: unknown, variant: string, delta: number): { fields: Record<string, unknown>; remaining: number } | null => {
   const obj = (fields && typeof fields === 'object' ? fields : {}) as Record<string, unknown>;
   const entries = parseSizes(obj.sizes);
   const idx = entries.findIndex(([k]) => k.toLowerCase() === variant.trim().toLowerCase());
