@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { NotificationsDropdown } from '@/components/NotificationsDropdown';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 import toast from 'react-hot-toast';
 import { useTranslation } from '@/i18n/useTranslation';
 import { downloadFile } from '@/lib/download';
@@ -68,6 +69,8 @@ export function Header({ onMenuClick }: HeaderProps) {
         <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9" onClick={handleBackup} title={t('common.backup')} aria-label={t('common.backup')}>
           <Download className="w-4 h-4" />
         </Button>
+
+        <OfflineIndicator />
 
         <NotificationsDropdown />
 

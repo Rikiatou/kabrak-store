@@ -55,11 +55,7 @@ const ADAPTIVE_FIELDS: Record<string, string[]> = {
   WHOLESALE: ['brand', 'minQuantity'],
   MIXED_SHOP: ['type'],
   CAKES: ['flavors', 'sizes', 'deliveryDate'],
-  FOOD_BUSINESS: ['menuItems', 'portions'],
-  FOOD_DELIVERY: ['menuItems', 'deliveryZone'],
-  HOME_COOKING: ['menuItems', 'portions'],
-  WHATSAPP_SELLER: ['color', 'sizes'],
-  MADE_TO_ORDER: ['measurements', 'deliveryDate', 'deposit'],
+  FOOD_BUSINESS: ['menuItems', 'portions', 'deliveryZone'],
   OTHER: [],
 };
 

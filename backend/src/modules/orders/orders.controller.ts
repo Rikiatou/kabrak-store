@@ -100,6 +100,18 @@ export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const data = req.body as CreateOrderInput;
 
+    // Offline sales are replayed with a client-generated id; a replay returns the order already saved.
+    if (data.offlineId) {
+      const existing = await prisma.order.findFirst({
+        where: { offlineId: data.offlineId, tenantId: req.user!.tenantId },
+        include: { client: true, items: { include: { product: true } } },
+      });
+      if (existing) {
+        res.status(200).json({ success: true, data: existing });
+        return;
+      }
+    }
+
     const totalAmount = data.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     const finalAmount = totalAmount - data.discount;
     const amountRemaining = finalAmount - data.amountPaid;
@@ -122,6 +134,8 @@ export const create = async (req: Request, res: Response): Promise<void> => {
           amountRemaining: amountRemaining < 0 ? 0 : amountRemaining,
           paymentMethod: data.paymentMethod,
           paymentStatus,
+          offlineId: data.offlineId,
+          ...(data.createdAt && new Date(data.createdAt) <= new Date() ? { createdAt: new Date(data.createdAt) } : {}),
           notes: data.notes,
           tenantId: req.user!.tenantId,
           clientId: data.clientId ?? undefined,

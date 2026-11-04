@@ -13,6 +13,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, Landmark, X, Package, FileText } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
+import { cacheGet, cacheSet, isNetworkError, queueSale } from '@/lib/offline';
 import { VariantPicker, type ProductVariant } from '@/components/VariantPicker';
 
 interface Product {
@@ -68,7 +69,17 @@ export function POSPage() {
     try {
       const { data } = await api.get('/products', { params: { search, limit: 50, isService: false } });
       setProducts(data.data || []);
-    } catch (err) { toast.error(getErrorMessage(err, t('common.loadError'))); }
+      if (!search) cacheSet('pos_products', data.data || []);
+    } catch (err) {
+      const cached = isNetworkError(err) ? cacheGet<Product[]>('pos_products') : null;
+      if (cached) {
+        const q = search.toLowerCase();
+        setProducts(q ? cached.filter((p) => p.name.toLowerCase().includes(q)) : cached);
+        if (!search) toast(t('offline.cachedData'), { id: 'pos-offline' });
+      } else {
+        toast.error(getErrorMessage(err, t('common.loadError')));
+      }
+    }
     finally { setLoadingProducts(false); }
   }, [search, t]);
 
@@ -76,7 +87,16 @@ export function POSPage() {
     try {
       const { data } = await api.get('/clients', { params: { search: clientSearch, limit: 20 } });
       setClients(data.data || []);
-    } catch (err) { toast.error(getErrorMessage(err, t('common.loadError'))); }
+      if (!clientSearch) cacheSet('pos_clients', data.data || []);
+    } catch (err) {
+      const cached = isNetworkError(err) ? cacheGet<Client[]>('pos_clients') : null;
+      if (cached) {
+        const q = clientSearch.toLowerCase();
+        setClients(q ? cached.filter((c) => c.name.toLowerCase().includes(q) || c.phone?.includes(q)) : cached);
+      } else {
+        toast.error(getErrorMessage(err, t('common.loadError')));
+      }
+    }
   }, [clientSearch, t]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
@@ -139,33 +159,70 @@ export function POSPage() {
     }
   };
 
+  const resetSale = () => {
+    setCart([]);
+    setSelectedClient(null);
+    setAmountPaid(0);
+    setDiscount(0);
+    setNotes('');
+  };
+
+  // Mirror the server's stock deduction locally so the offline catalogue stays accurate.
+  const deductLocalStock = (sold: CartItem[]) => {
+    const apply = (list: Product[]) => list.map((p) => {
+      const lines = sold.filter((i) => i.product.id === p.id);
+      if (!lines.length) return p;
+      const qty = lines.reduce((sum, i) => sum + i.quantity, 0);
+      return {
+        ...p,
+        totalStock: Math.max(0, p.totalStock - qty),
+        variants: p.variants?.map((v) => {
+          const vq = lines.filter((i) => i.variant === v.name).reduce((sum, i) => sum + i.quantity, 0);
+          return vq ? { ...v, stock: Math.max(0, v.stock - vq) } : v;
+        }) ?? p.variants,
+      };
+    });
+    setProducts((prev) => apply(prev));
+    const cached = cacheGet<Product[]>('pos_products');
+    if (cached) cacheSet('pos_products', apply(cached));
+  };
+
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     setProcessing(true);
+    const payload = {
+      clientId: selectedClient?.id || null,
+      paymentMethod,
+      amountPaid: Math.min(amountPaid, total),
+      discount,
+      notes: notes || undefined,
+      items: cart.map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        unitPrice: item.product.sellingPrice,
+        variant: item.variant || undefined,
+      })),
+    };
+    const saveOffline = () => {
+      queueSale(payload, total);
+      deductLocalStock(cart);
+      toast.success(t('offline.saleQueued'));
+      setLastOrder(null);
+      resetSale();
+    };
     try {
-      const { data } = await api.post('/orders', {
-        clientId: selectedClient?.id || null,
-        paymentMethod,
-        amountPaid: Math.min(amountPaid, total),
-        discount,
-        notes: notes || undefined,
-        items: cart.map(item => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          unitPrice: item.product.sellingPrice,
-          variant: item.variant || undefined,
-        })),
-      });
-      toast.success(t('pos.saleRecorded'));
-      setLastOrder({ id: data.data.id, reference: data.data.reference });
-      setCart([]);
-      setSelectedClient(null);
-      setAmountPaid(0);
-      setDiscount(0);
-      setNotes('');
-      fetchProducts();
+      if (!navigator.onLine) {
+        saveOffline();
+      } else {
+        const { data } = await api.post('/orders', payload);
+        toast.success(t('pos.saleRecorded'));
+        setLastOrder({ id: data.data.id, reference: data.data.reference });
+        resetSale();
+        fetchProducts();
+      }
     } catch (err) {
-      toast.error(getErrorMessage(err, t('pos.saleError')));
+      if (isNetworkError(err)) saveOffline();
+      else toast.error(getErrorMessage(err, t('pos.saleError')));
     }
     setProcessing(false);
   };

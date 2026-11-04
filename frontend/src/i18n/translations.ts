@@ -696,6 +696,18 @@ export const translations = {
       emptyDesc: 'Créez vos offres de services pour les facturer rapidement.',
       deleteTitle: 'Supprimer ce service ?',
     },
+    offline: {
+      offline: 'Hors ligne',
+      pending: '{count} vente(s) en attente',
+      syncing: 'Synchronisation…',
+      syncNow: 'Synchroniser maintenant',
+      saleQueued: 'Pas de connexion : vente enregistrée sur l\'appareil, elle sera envoyée automatiquement.',
+      synced: '{count} vente(s) hors ligne synchronisée(s)',
+      failed: '{count} non synchronisée(s)',
+      failedTitle: 'Ventes non synchronisées',
+      failedDesc: '{count} vente(s) hors ligne ont été refusées par le serveur (produit supprimé ou données invalides). Les retirer de cet appareil ?',
+      cachedData: 'Hors ligne : produits enregistrés sur l\'appareil',
+    },
   },
   en: {
     common: {
@@ -1393,6 +1405,18 @@ export const translations = {
       empty: 'No services yet',
       emptyDesc: 'Create your service packages to invoice them quickly.',
       deleteTitle: 'Delete this service?',
+    },
+    offline: {
+      offline: 'Offline',
+      pending: '{count} sale(s) pending',
+      syncing: 'Syncing…',
+      syncNow: 'Sync now',
+      saleQueued: 'No connection: sale saved on this device, it will sync automatically.',
+      synced: '{count} offline sale(s) synced',
+      failed: '{count} not synced',
+      failedTitle: 'Sales not synced',
+      failedDesc: '{count} offline sale(s) were rejected by the server (deleted product or invalid data). Remove them from this device?',
+      cachedData: 'Offline: showing products saved on this device',
     },
   },
 } as const;

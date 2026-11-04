@@ -83,6 +83,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     localStorage.removeItem('kabrak_token');
+    localStorage.removeItem('kabrak_me');
     set({ user: null, tenant: null, subscription: null, token: null });
   },
 
@@ -93,6 +94,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const { data } = await api.get('/auth/me');
+      localStorage.setItem('kabrak_me', JSON.stringify(data.data));
       set({
         user: data.data.user,
         tenant: data.data.tenant,
@@ -100,8 +102,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         language: localStorage.getItem('kabrak_lang') || data.data.tenant.language || get().language,
         isLoading: false,
       });
-    } catch {
+    } catch (err) {
+      // Offline: keep the session and use the last profile saved on this device.
+      if (!(err as { response?: unknown })?.response) {
+        try {
+          const cached = JSON.parse(localStorage.getItem('kabrak_me') || 'null');
+          if (cached) {
+            set({ user: cached.user, tenant: cached.tenant, subscription: cached.subscription, isLoading: false });
+            return;
+          }
+        } catch { /* ignore corrupt cache */ }
+        set({ isLoading: false });
+        return;
+      }
       localStorage.removeItem('kabrak_token');
+      localStorage.removeItem('kabrak_me');
       set({ user: null, tenant: null, token: null, isLoading: false });
     }
   },
