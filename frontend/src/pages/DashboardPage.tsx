@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown, Globe, Copy } from 'lucide-react';
+import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown, Globe, Copy, Monitor, PackagePlus, UserPlus, Receipt, HandCoins, ClipboardCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -402,6 +403,32 @@ export function DashboardPage() {
           </div>
         </a>
       )}
+
+      {/* Quick actions */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {(isService
+          ? [
+              { to: '/projects', icon: FolderKanban, fr: 'Projet', en: 'Project' },
+              { to: '/invoices', icon: FileText, fr: 'Facture', en: 'Invoice' },
+              { to: '/clients?new=1', icon: UserPlus, fr: 'Client', en: 'Client' },
+              { to: '/expenses?new=1', icon: Receipt, fr: 'Dépense', en: 'Expense' },
+              { to: '/debts', icon: HandCoins, fr: 'Dettes', en: 'Debts' },
+            ]
+          : [
+              { to: '/pos', icon: Monitor, fr: 'Vendre', en: 'Sell' },
+              { to: '/products?new=1', icon: PackagePlus, fr: 'Produit', en: 'Product' },
+              { to: '/clients?new=1', icon: UserPlus, fr: 'Cliente', en: 'Client' },
+              { to: '/expenses?new=1', icon: Receipt, fr: 'Dépense', en: 'Expense' },
+              { to: '/debts', icon: HandCoins, fr: 'Dettes', en: 'Debts' },
+              { to: '/closing', icon: ClipboardCheck, fr: 'Caisse / Z', en: 'Drawer / Z' },
+            ]
+        ).map((a) => (
+          <Link key={a.to} to={a.to} className="flex flex-col items-center justify-center gap-1 rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 text-xs font-medium text-gray-700 dark:text-gray-200 hover:border-blue-300 hover:text-blue-600 transition-colors">
+            <a.icon className="w-5 h-5" />
+            {language === 'fr' ? a.fr : a.en}
+          </Link>
+        ))}
+      </div>
 
       {/* Content area */}
       {isService ? (

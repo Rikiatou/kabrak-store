@@ -27,6 +27,7 @@ import expenseRoutes from './modules/expenses/expenses.routes';
 import supplierRoutes from './modules/suppliers/suppliers.routes';
 import publicRoutes from './modules/public/public.routes';
 import aiRoutes from './modules/ai/ai.routes';
+import cashRoutes from './modules/cash/cash.routes';
 import { startRecurringBillingCron } from './cron/recurringBilling';
 
 process.on('uncaughtException', (err) => {
@@ -108,6 +109,7 @@ app.use('/api/employees', authenticate, requireActiveSubscription, employeeRoute
 app.use('/api/deliveries', authenticate, requireActiveSubscription, deliveryRoutes);
 app.use('/api/categories', authenticate, requireActiveSubscription, categoryRoutes);
 app.use('/api/reports', authenticate, requireActiveSubscription, reportRoutes);
+app.use('/api/cash-sessions', authenticate, requireActiveSubscription, cashRoutes);
 app.use('/api/loyalty', authenticate, requireActiveSubscription, loyaltyRoutes);
 app.use('/api/stores', authenticate, requireActiveSubscription, storeRoutes);
 app.use('/api/notifications', authenticate, requireActiveSubscription, notificationRoutes);

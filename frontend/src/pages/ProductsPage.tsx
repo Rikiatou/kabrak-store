@@ -92,6 +92,10 @@ export function ProductsPage() {
   const [total, setTotal] = useState(0);
   const PAGE_SIZE = 20;
   const [showForm, setShowForm] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') setShowForm(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showScanner, setShowScanner] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);

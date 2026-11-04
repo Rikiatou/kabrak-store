@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import toast from 'react-hot-toast';
+import { CashDrawer } from '@/components/CashDrawer';
 
 interface Closing {
   date: string; orders: number; itemsSold: number; sales: number; received: number;
@@ -80,7 +81,7 @@ export function ClosingPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">{fr ? 'Clôture de caisse' : 'Cash closing'}</h1>
-          <p className="text-sm text-muted-foreground">{fr ? 'Le résumé de la journée, à envoyer sur WhatsApp' : 'The day summary, ready for WhatsApp'}</p>
+          <p className="text-sm text-muted-foreground">{fr ? 'Ouvrez la caisse le matin, fermez-la le soir et imprimez le rapport Z' : 'Open the drawer in the morning, close it at night and print the Z report'}</p>
         </div>
         <div className="flex items-center gap-2 print:hidden">
           <Input type="date" value={date} max={localDate()} onChange={(e) => setDate(e.target.value)} className="w-auto" />
@@ -89,6 +90,9 @@ export function ClosingPage() {
         </div>
       </div>
 
+      <div className="print:hidden"><CashDrawer /></div>
+
+      <h2 className="text-base font-semibold pt-2">{fr ? 'Résumé de la journée' : 'Day summary'}</h2>
       {loading || !data ? (
         <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-kabrak-500" /></div>
       ) : (

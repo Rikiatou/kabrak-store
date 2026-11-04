@@ -176,6 +176,7 @@ model Tenant {
   expenses           Expense[]
   suppliers          Supplier[]
   aiReports          AIReport[]
+  cashSessions       CashSession[]
 
   @@map("tenants")
 }
@@ -205,6 +206,8 @@ model User {
   salesRecords  Order[]   @relation("orderSeller")
   projects      Project[] @relation("projectAssignee")
   expenses      Expense[]
+  cashSessionsOpened CashSession[] @relation("cashOpenedBy")
+  cashSessionsClosed CashSession[] @relation("cashClosedBy")
 
   @@index([tenantId])
   @@map("users")
@@ -739,4 +742,37 @@ model AIReport {
 
   @@index([tenantId, createdAt])
   @@map("ai_reports")
+}
+
+// ─── CASH SESSION (ouverture / fermeture de caisse, rapport Z) ───
+
+enum CashSessionStatus {
+  OPEN
+  CLOSED
+}
+
+model CashSession {
+  id            String            @id @default(uuid())
+  number        Int
+  status        CashSessionStatus @default(OPEN)
+  openingFloat  Float             @default(0)
+  countedCash   Float?
+  expectedCash  Float?
+  difference    Float?
+  openingNote   String?
+  closingNote   String?
+  summary       Json?
+  openedAt      DateTime          @default(now())
+  closedAt      DateTime?
+  tenantId      String
+  openedById    String
+  closedById    String?
+
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  openedBy      User              @relation("cashOpenedBy", fields: [openedById], references: [id])
+  closedBy      User?             @relation("cashClosedBy", fields: [closedById], references: [id])
+
+  @@unique([tenantId, number])
+  @@index([tenantId, status])
+  @@map("cash_sessions")
 }

@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/', getAll);
 router.get('/:id', getOne);
-router.post('/', authorize('OWNER', 'MANAGER'), create);
+router.post('/', create);
 router.put('/:id', authorize('OWNER', 'MANAGER'), update);
 router.delete('/:id', authorize('OWNER', 'MANAGER'), remove);
 

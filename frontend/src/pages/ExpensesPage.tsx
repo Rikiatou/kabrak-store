@@ -68,6 +68,10 @@ export function ExpensesPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [showForm, setShowForm] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('new') === '1') setShowForm(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);

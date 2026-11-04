@@ -5,7 +5,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
-import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, X } from 'lucide-react';
+import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, X, Lock, UserPlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { InvoiceModal } from '@/components/InvoiceModal';
 import api, { getApiErrorMessage } from '@/lib/api';
@@ -65,6 +66,9 @@ export function POSPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientSearch, setClientSearch] = useState('');
   const [showClientPicker, setShowClientPicker] = useState(false);
+  const [newClient, setNewClient] = useState<{ name: string; phone: string } | null>(null);
+  const [savingClient, setSavingClient] = useState(false);
+  const [drawerClosed, setDrawerClosed] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'ORANGE_MONEY' | 'MTN_MOMO' | 'BANK_TRANSFER'>('CASH');
   const [amountPaid, setAmountPaid] = useState<number | ''>('');
@@ -76,6 +80,29 @@ export function POSPage() {
   const [showInvoice, setShowInvoice] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<unknown>(null);
   const [variantPicker, setVariantPicker] = useState<{ product: Product; sizes: string[] } | null>(null);
+
+  useEffect(() => {
+    api.get('/cash-sessions/current').then((r) => setDrawerClosed(!r.data.data)).catch(() => {});
+  }, []);
+
+  const createClient = async () => {
+    if (!newClient || !newClient.name.trim()) return;
+    setSavingClient(true);
+    try {
+      const { data } = await api.post('/clients', { name: newClient.name.trim(), phone: newClient.phone.trim() || undefined });
+      setSelectedClient(data.data);
+      setClients((prev) => [data.data, ...prev]);
+      setNewClient(null);
+      setShowClientPicker(false);
+      toast.success(language === 'fr' ? 'Client créé' : 'Client created');
+    } catch (err) {
+      toast.error(isNetworkError(err)
+        ? (language === 'fr' ? 'Pas de connexion : impossible de créer un client hors ligne.' : 'No connection: clients cannot be created offline.')
+        : getApiErrorMessage(err));
+    } finally {
+      setSavingClient(false);
+    }
+  };
 
   const canScan = tenant?.plan === 'SHOP' || tenant?.plan === 'BUSINESS';
 
@@ -253,8 +280,21 @@ export function POSPage() {
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-bold">{language === 'fr' ? 'Choisir un client' : 'Select client'}</h3>
-              <button onClick={() => setShowClientPicker(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5" /></button>
+              <button onClick={() => { setShowClientPicker(false); setNewClient(null); }} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5" /></button>
             </div>
+            {newClient ? (
+              <div className="space-y-2">
+                <Input autoFocus placeholder={language === 'fr' ? 'Nom du client *' : 'Client name *'} value={newClient.name} onChange={(e) => setNewClient({ ...newClient, name: e.target.value })} />
+                <Input type="tel" placeholder={language === 'fr' ? 'Téléphone (WhatsApp)' : 'Phone (WhatsApp)'} value={newClient.phone} onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })} />
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setNewClient(null)}>{language === 'fr' ? 'Retour' : 'Back'}</Button>
+                  <Button className="flex-1" onClick={createClient} disabled={savingClient || !newClient.name.trim()}>{savingClient ? '...' : (language === 'fr' ? 'Créer et choisir' : 'Create & select')}</Button>
+                </div>
+              </div>
+            ) : (<>
+            <Button variant="outline" className="w-full" onClick={() => setNewClient({ name: clientSearch, phone: '' })}>
+              <UserPlus className="w-4 h-4 mr-1" />{language === 'fr' ? 'Nouveau client' : 'New client'}
+            </Button>
             <Input
               placeholder={language === 'fr' ? 'Chercher...' : 'Search...'}
               value={clientSearch}
@@ -275,6 +315,7 @@ export function POSPage() {
                 <p className="text-sm text-gray-400 text-center py-4">{t('common.noResults')}</p>
               ) : null}
             </div>
+            </>)}
           </CardContent>
         </Card>
       </div>
@@ -285,6 +326,13 @@ export function POSPage() {
     <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:h-[calc(100vh-4rem)] lg:overflow-hidden">
       {/* Left: Products */}
       <div className="lg:flex-1 flex flex-col min-w-0 min-h-0">
+        {drawerClosed && (
+          <Link to="/closing" className="mb-3 flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 px-3 py-2 text-sm">
+            <Lock className="w-4 h-4 shrink-0" />
+            <span className="flex-1">{language === 'fr' ? 'La caisse n\'est pas ouverte. Ouvrez-la pour avoir le rapport Z ce soir.' : 'The drawer is not open. Open it to get tonight\'s Z report.'}</span>
+            <span className="font-semibold underline">{language === 'fr' ? 'Ouvrir' : 'Open'}</span>
+          </Link>
+        )}
         <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
