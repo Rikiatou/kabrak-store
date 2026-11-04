@@ -8,6 +8,7 @@ import html2canvas from 'html2canvas';
 
 interface InvoiceItem {
   product: { name: string };
+  variant?: string | null;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -55,7 +56,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const isStandalone = orderItems.length === 0 && lineItems.length > 0;
   const displayItems = isStandalone
     ? lineItems.map((li) => ({ name: li.description, quantity: li.quantity, unitPrice: li.unitPrice, totalPrice: li.totalPrice }))
-    : orderItems.map((oi) => ({ name: oi.product.name, quantity: oi.quantity, unitPrice: oi.unitPrice, totalPrice: oi.totalPrice }));
+    : orderItems.map((oi) => ({ name: oi.variant ? `${oi.product.name} · ${oi.variant}` : oi.product.name, quantity: oi.quantity, unitPrice: oi.unitPrice, totalPrice: oi.totalPrice }));
   const total = invoice.totalAmount;
   const paid = invoice.amountPaid;
   const due = invoice.amountDue;

@@ -176,7 +176,7 @@ export function POSPage() {
       await api.post('/invoices', { orderId: lastOrder.id });
       toast.success(t('orders.invoiceCreated'));
       navigate('/invoices');
-    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+    } catch (err) { toast.error((err as { response?: { status?: number } })?.response?.status === 400 ? t('invoices.alreadyCreated') : getErrorMessage(err, t('common.error'))); }
   };
 
   const paymentOptions: { key: PaymentMethod; icon: typeof Banknote; label: string }[] = [

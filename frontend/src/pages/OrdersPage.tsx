@@ -175,7 +175,7 @@ export function OrdersPage() {
       await api.post('/invoices', { orderId: order.id });
       toast.success(t('orders.invoiceCreated'));
       navigate('/invoices');
-    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+    } catch (err) { toast.error((err as { response?: { status?: number } })?.response?.status === 400 ? t('invoices.alreadyCreated') : getErrorMessage(err, t('common.error'))); }
   };
 
   const openPayment = (order: Order) => {
@@ -220,14 +220,14 @@ export function OrdersPage() {
       });
       toast.success(t('delivery.created'));
       setDeliveryOrder(null);
-    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+    } catch (err) { toast.error((err as { response?: { status?: number } })?.response?.status === 400 ? t('delivery.alreadyCreated') : getErrorMessage(err, t('common.error'))); }
     finally { setSaving(false); }
   };
 
   const handleWhatsApp = (order: Order) => {
     const phone = order.client?.phone?.replace(/\s+/g, '').replace('+', '');
     if (!phone) return;
-    const items = order.items.map((i) => `${i.product.name} x${i.quantity} = ${formatCurrency(i.totalPrice)}`).join('\n');
+    const items = order.items.map((i) => `${i.product.name}${i.variant ? ` (${i.variant})` : ''} x${i.quantity} = ${formatCurrency(i.totalPrice)}`).join('\n');
     const message = encodeURIComponent(
       `*KABRAK - Facture*\n\nRef: ${order.reference}\n\n${items}\n\n` +
       `Total: ${formatCurrency(order.finalAmount)}\nPayé: ${formatCurrency(order.amountPaid)}\n` +
@@ -417,7 +417,7 @@ export function OrdersPage() {
                 <div className="mt-2 flex flex-wrap gap-1">
                   {order.items.map((item) => (
                     <span key={item.id} className="text-[10px] sm:text-xs bg-muted px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
-                      {item.product.name} x{item.quantity}
+                      {item.product.name}{item.variant && ` · ${item.variant}`} x{item.quantity}
                     </span>
                   ))}
                 </div>

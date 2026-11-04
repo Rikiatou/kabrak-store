@@ -83,41 +83,6 @@ export const createFromOrder = async (req: Request, res: Response): Promise<void
       },
     });
 
-    // Update loyalty points (from Beauty Spa Pro pattern)
-    if (order.clientId && order.paymentStatus === 'PAID') {
-      try {
-        const pointsPerXFCFA = parseInt(process.env.LOYALTY_POINTS_PER_FCFA || '1000');
-        const pointsEarned = Math.floor(order.finalAmount / pointsPerXFCFA);
-        if (pointsEarned > 0) {
-          const client = await prisma.client.update({
-            where: { id: order.clientId },
-            data: {
-              loyaltyPoints: { increment: pointsEarned },
-              totalSpent: { increment: order.finalAmount },
-              totalOrders: { increment: 1 },
-              lastVisit: new Date(),
-            },
-          });
-          // Auto-upgrade loyalty tier
-          const TIERS = [
-            { name: 'PLATINUM', min: 1000 },
-            { name: 'GOLD', min: 500 },
-            { name: 'SILVER', min: 100 },
-            { name: 'BRONZE', min: 0 },
-          ];
-          const newTier = TIERS.find((t) => client.loyaltyPoints >= t.min)?.name || 'BRONZE';
-          if (newTier !== client.loyaltyTier) {
-            await prisma.client.update({
-              where: { id: order.clientId },
-              data: { loyaltyTier: newTier },
-            });
-          }
-        }
-      } catch (loyaltyErr) {
-        console.warn('Loyalty update skipped:', (loyaltyErr as Error).message);
-      }
-    }
-
     // Create stock alert notifications for low stock
     try {
       const orderWithItems = await prisma.order.findUnique({

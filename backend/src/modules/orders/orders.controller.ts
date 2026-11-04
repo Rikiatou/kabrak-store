@@ -256,10 +256,17 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
       });
 
       if (order.clientId) {
-        await tx.client.update({
+        const pointsEarned =
+          Math.floor(Math.min(newPaid, order.finalAmount) / POINTS_PER_FCFA) -
+          Math.floor(order.amountPaid / POINTS_PER_FCFA);
+        const client = await tx.client.update({
           where: { id: order.clientId },
-          data: { totalSpent: { increment: amount } },
+          data: { totalSpent: { increment: amount }, loyaltyPoints: { increment: Math.max(0, pointsEarned) } },
         });
+        const tier = calculateTier(client.loyaltyPoints);
+        if (tier !== client.loyaltyTier) {
+          await tx.client.update({ where: { id: client.id }, data: { loyaltyTier: tier } });
+        }
       }
 
       // Create invoice payment if invoice exists

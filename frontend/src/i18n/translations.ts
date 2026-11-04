@@ -272,6 +272,7 @@ export const translations = {
       createFirst: 'Créer votre première facture',
       share: 'Partager sur WhatsApp',
       emptyProductDesc: 'Créez une facture depuis une commande (Commandes → Facture) ou juste après une vente en caisse.',
+      alreadyCreated: 'Une facture existe déjà pour cette commande',
     },
     employees: {
       title: 'Employés',
@@ -305,6 +306,7 @@ export const translations = {
       notes: 'Notes',
       created: 'Livraison créée',
       statusUpdated: 'Statut de livraison mis à jour',
+      alreadyCreated: 'Une livraison existe déjà pour cette commande',
     },
     billing: {
       title: 'Abonnement',
@@ -470,6 +472,8 @@ export const translations = {
       paused: 'En pause',
       created: 'Facturation récurrente créée',
       missing: 'Choisissez un client, un montant et une date',
+      editRecurring: 'Modifier la facturation récurrente',
+      updated: 'Facturation récurrente mise à jour',
     },
     status: {
       pending: 'En attente',
@@ -946,6 +950,7 @@ export const translations = {
       createFirst: 'Create your first invoice',
       share: 'Share on WhatsApp',
       emptyProductDesc: 'Create an invoice from an order (Orders → Invoice) or right after a POS sale.',
+      alreadyCreated: 'An invoice already exists for this order',
     },
     employees: {
       title: 'Employees',
@@ -979,6 +984,7 @@ export const translations = {
       notes: 'Notes',
       created: 'Delivery created',
       statusUpdated: 'Delivery status updated',
+      alreadyCreated: 'A delivery already exists for this order',
     },
     billing: {
       title: 'Subscription',
@@ -1144,6 +1150,8 @@ export const translations = {
       paused: 'Paused',
       created: 'Recurring billing created',
       missing: 'Choose a client, an amount and a date',
+      editRecurring: 'Edit recurring billing',
+      updated: 'Recurring billing updated',
     },
     status: {
       pending: 'Pending',

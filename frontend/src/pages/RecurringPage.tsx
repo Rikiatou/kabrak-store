@@ -15,7 +15,7 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { cn, formatCurrency, formatDate } from '@/lib/utils';
 import { getErrorMessage } from '@/lib/errors';
 import api from '@/lib/api';
-import { RefreshCw, Plus, Trash2, Pause, Play, Calendar } from 'lucide-react';
+import { RefreshCw, Plus, Trash2, Pause, Play, Calendar, Pencil } from 'lucide-react';
 
 interface RecurringBilling {
   id: string;
@@ -51,6 +51,7 @@ export function RecurringPage() {
   const [services, setServices] = useState<ServiceProduct[]>([]);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     try {
@@ -93,6 +94,20 @@ export function RecurringPage() {
     }
   };
 
+  const openCreate = () => { setEditingId(null); setForm(emptyForm); setShowForm(true); };
+
+  const openEdit = (item: RecurringBilling) => {
+    setEditingId(item.id);
+    setForm({
+      clientId: item.client?.id || '',
+      productId: item.product?.id || '',
+      amount: item.amount,
+      frequency: item.frequency,
+      nextBillingDate: item.nextBillingDate.slice(0, 10),
+    });
+    setShowForm(true);
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.clientId || !form.amount || !form.nextBillingDate) {
@@ -101,14 +116,20 @@ export function RecurringPage() {
     }
     setSaving(true);
     try {
-      await api.post('/recurring', {
+      const payload = {
         clientId: form.clientId,
         productId: form.productId || undefined,
         amount: form.amount,
         frequency: form.frequency,
         nextBillingDate: form.nextBillingDate,
-      });
-      toast.success(t('recurring.created'));
+      };
+      if (editingId) {
+        await api.put(`/recurring/${editingId}`, payload);
+      } else {
+        await api.post('/recurring', payload);
+      }
+      toast.success(t(editingId ? 'recurring.updated' : 'recurring.created'));
+      setEditingId(null);
       setShowForm(false);
       setForm(emptyForm);
       fetchItems();
@@ -129,12 +150,12 @@ export function RecurringPage() {
     <div className="space-y-6">
       <PageHeader
         title={t('recurring.title')}
-        actions={<Button onClick={() => { setForm(emptyForm); setShowForm(true); }}><Plus className="mr-2 h-4 w-4" /> {t('recurring.addRecurring')}</Button>}
+        actions={<Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> {t('recurring.addRecurring')}</Button>}
       />
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{t('recurring.addRecurring')}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t(editingId ? 'recurring.editRecurring' : 'recurring.addRecurring')}</DialogTitle></DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -179,7 +200,7 @@ export function RecurringPage() {
         <LoadingState />
       ) : items.length === 0 ? (
         <EmptyState icon={RefreshCw} title={t('recurring.empty')} description={t('recurring.emptyDesc')}
-          action={<Button onClick={() => { setForm(emptyForm); setShowForm(true); }}><Plus className="mr-2 h-4 w-4" /> {t('recurring.addRecurring')}</Button>} />
+          action={<Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> {t('recurring.addRecurring')}</Button>} />
       ) : (
         <div className="space-y-3">
           {items.map((item) => (
@@ -202,6 +223,9 @@ export function RecurringPage() {
                   <div className="flex gap-1">
                     <Button variant="outline" size="sm" onClick={() => handleToggle(item)}>
                       {item.isActive ? <><Pause className="mr-1.5 h-3.5 w-3.5" />{t('recurring.pause')}</> : <><Play className="mr-1.5 h-3.5 w-3.5" />{t('recurring.resume')}</>}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => openEdit(item)} aria-label={t('common.edit')} title={t('common.edit')}>
+                      <Pencil className="h-3.5 w-3.5" />
                     </Button>
                     <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(item.id)} aria-label={t('common.delete')} title={t('common.delete')}>
                       <Trash2 className="h-3.5 w-3.5" />
