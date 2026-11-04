@@ -254,7 +254,7 @@ export function LandingPage() {
 
       <footer className="border-t border-gray-200 py-8 px-5">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
-          <span>© 2025 KABRAK Store</span>
+          <span>© 2025 KABRAK ENG</span>
           <div className="flex gap-5">
             <Link to="/register" className="hover:text-gray-900">{fr ? 'Essai gratuit' : 'Free trial'}</Link>
             <Link to="/login" className="hover:text-gray-900">{fr ? 'Connexion' : 'Login'}</Link>
