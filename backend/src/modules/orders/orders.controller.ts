@@ -107,7 +107,11 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     const data = req.body as CreateOrderInput;
 
     const totalAmount = data.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    const finalAmount = Math.max(0, totalAmount - data.discount);
+    if (data.discount > totalAmount) {
+      res.status(400).json({ success: false, code: 'DISCOUNT_TOO_HIGH', message: 'La remise dépasse le total' });
+      return;
+    }
+    const finalAmount = totalAmount - data.discount;
 
     const order = await prisma.$transaction(async (tx) => {
       const newOrder = await tx.order.create({
@@ -278,6 +282,12 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
     }
 
     const order = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.order.updateMany({
+        where: { id, tenantId: req.user!.tenantId, status: existing.status },
+        data: { status },
+      });
+      if (claimed.count === 0) throw new Error('STATUS_CONFLICT');
+
       // Restore stock when cancelling (only for non-service items)
       if (status === 'CANCELLED') {
         for (const item of existing.items) {
@@ -289,9 +299,8 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
         }
       }
 
-      return tx.order.update({
+      return tx.order.findUniqueOrThrow({
         where: { id },
-        data: { status },
         include: {
           client: true,
           items: { include: { product: true } },
@@ -301,6 +310,10 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
 
     res.json({ success: true, data: order });
   } catch (error) {
+    if (error instanceof Error && error.message === 'STATUS_CONFLICT') {
+      res.status(409).json({ success: false, code: 'STATUS_CONFLICT', message: 'La commande a déjà été modifiée' });
+      return;
+    }
     const message = error instanceof Error ? error.message : 'Failed to update order';
     res.status(500).json({ success: false, message });
   }

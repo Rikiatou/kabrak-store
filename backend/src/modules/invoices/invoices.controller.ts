@@ -279,34 +279,35 @@ export const addPayment = async (req: Request, res: Response): Promise<void> => 
         },
       });
 
-      // Update loyalty points if payment is now complete
-      if (paymentStatus === 'PAID' && invoice.clientId) {
+      // Credit only this payment (order creation already credited the initial payment)
+      if (invoice.clientId) {
         try {
           const pointsPerXFCFA = parseInt(process.env.LOYALTY_POINTS_PER_FCFA || '1000');
-          const pointsEarned = Math.floor(invoice.totalAmount / pointsPerXFCFA);
-          if (pointsEarned > 0) {
-            const client = await tx.client.update({
+          const credited = Math.min(amount, Math.max(0, invoice.totalAmount - invoice.amountPaid));
+          const pointsEarned =
+            Math.floor(Math.min(newAmountPaid, invoice.totalAmount) / pointsPerXFCFA) -
+            Math.floor(invoice.amountPaid / pointsPerXFCFA);
+          const client = await tx.client.update({
+            where: { id: invoice.clientId },
+            data: {
+              loyaltyPoints: { increment: Math.max(0, pointsEarned) },
+              totalSpent: { increment: credited },
+              ...(paymentStatus === 'PAID' && !invoice.orderId ? { totalOrders: { increment: 1 } } : {}),
+              lastVisit: new Date(),
+            },
+          });
+          const TIERS = [
+            { name: 'PLATINUM', min: 1000 },
+            { name: 'GOLD', min: 500 },
+            { name: 'SILVER', min: 100 },
+            { name: 'BRONZE', min: 0 },
+          ];
+          const newTier = TIERS.find((t) => client.loyaltyPoints >= t.min)?.name || 'BRONZE';
+          if (newTier !== client.loyaltyTier) {
+            await tx.client.update({
               where: { id: invoice.clientId },
-              data: {
-                loyaltyPoints: { increment: pointsEarned },
-                totalSpent: { increment: invoice.totalAmount },
-                totalOrders: { increment: 1 },
-                lastVisit: new Date(),
-              },
+              data: { loyaltyTier: newTier },
             });
-            const TIERS = [
-              { name: 'PLATINUM', min: 1000 },
-              { name: 'GOLD', min: 500 },
-              { name: 'SILVER', min: 100 },
-              { name: 'BRONZE', min: 0 },
-            ];
-            const newTier = TIERS.find((t) => client.loyaltyPoints >= t.min)?.name || 'BRONZE';
-            if (newTier !== client.loyaltyTier) {
-              await tx.client.update({
-                where: { id: invoice.clientId },
-                data: { loyaltyTier: newTier },
-              });
-            }
           }
         } catch (loyaltyErr) {
           console.warn('Loyalty update skipped:', (loyaltyErr as Error).message);

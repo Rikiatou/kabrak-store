@@ -8,6 +8,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
     const where: Record<string, unknown> = { tenantId: req.user!.tenantId };
+    if (req.query.includeInactive !== 'true') where.isActive = true;
     if (search) where.name = { contains: search as string, mode: 'insensitive' };
     if (categoryId) where.categoryId = categoryId as string;
     if (businessType) where.businessType = businessType as string;
@@ -117,6 +118,13 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    const soldCount = await prisma.orderItem.count({ where: { productId: id } });
+    if (soldCount > 0) {
+      await prisma.product.update({ where: { id }, data: { isActive: false } });
+      res.json({ success: true, archived: true, message: 'Produit archivé (déjà vendu)' });
+      return;
+    }
+
     await prisma.product.delete({ where: { id } });
     res.json({ success: true, message: 'Produit supprimé' });
   } catch (error) {
@@ -155,6 +163,7 @@ export const getLowStock = async (req: Request, res: Response): Promise<void> =>
     >`
       SELECT id FROM products
       WHERE "tenantId" = ${req.user!.tenantId}
+        AND "isActive" = true
         AND "totalStock" <= "lowStockAlert"
       ORDER BY "totalStock" ASC
     `;
