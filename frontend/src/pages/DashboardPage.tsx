@@ -5,6 +5,7 @@ import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown, Globe, Copy, Monitor, PackagePlus, UserPlus, Receipt, HandCoins, ClipboardCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DrawerStatusCard } from '@/components/CashDrawer';
+import { storefrontAccess } from '@/lib/storefront';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 
@@ -182,6 +183,7 @@ export function DashboardPage() {
   const { t, language } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const tenant = useAuthStore((s) => s.tenant);
+  const storefront = storefrontAccess(useAuthStore((s) => s.subscription));
   const plan = tenant?.plan || 'STORE';
   const businessMode = tenant?.businessMode || 'PRODUCT';
   const businessCategories = tenant?.businessCategories || [];
@@ -283,7 +285,17 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {tenant?.slug && (
+            {tenant?.slug && storefront === 'locked' && (
+              <Link
+                to="/billing"
+                title={language === 'fr' ? 'La vitrine en ligne est réservée à l’offre BUSINESS' : 'The online storefront is a BUSINESS feature'}
+                className="flex items-center gap-1.5 border border-amber-300 bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-medium"
+              >
+                <Globe className="w-3 h-3" />
+                {language === 'fr' ? 'Vitrine : offre BUSINESS' : 'Storefront: BUSINESS plan'}
+              </Link>
+            )}
+            {tenant?.slug && storefront !== 'locked' && (
               <>
                 <button
                   onClick={() => {

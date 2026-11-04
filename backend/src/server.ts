@@ -85,6 +85,14 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Public routes (no auth required — storefront)
+const storefrontOrderLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, code: 'TOO_MANY_ORDERS', message: 'Trop de commandes, réessayez plus tard' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/public/storefront', storefrontOrderLimiter);
 app.use('/api/public', publicRoutes);
 
 // Auth routes (no subscription check — must be accessible to login/register)
