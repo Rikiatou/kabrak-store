@@ -14,7 +14,11 @@ export function formatCurrency(amount: number, currency = 'XAF'): string {
   }).format(amount);
 }
 
-export function formatDate(date: string | Date, locale = 'fr-FR'): string {
+function appLocale(): string {
+  return localStorage.getItem('kabrak_lang') === 'en' ? 'en-GB' : 'fr-FR';
+}
+
+export function formatDate(date: string | Date, locale = appLocale()): string {
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: 'short',
@@ -22,7 +26,7 @@ export function formatDate(date: string | Date, locale = 'fr-FR'): string {
   }).format(new Date(date));
 }
 
-export function formatDateTime(date: string | Date, locale = 'fr-FR'): string {
+export function formatDateTime(date: string | Date, locale = appLocale()): string {
   return new Intl.DateTimeFormat(locale, {
     year: 'numeric',
     month: 'short',
