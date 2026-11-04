@@ -47,6 +47,9 @@ export const translations = {
       services: 'Services',
       recurring: 'Facturation récurrente',
       pos: 'Caisse POS',
+      debts: 'Dettes clients',
+      closing: 'Clôture du jour',
+      agenda: 'Agenda commandes',
     },
     auth: {
       login: 'Connexion',
@@ -303,6 +306,9 @@ export const translations = {
       services: 'Services',
       recurring: 'Recurring Billing',
       pos: 'POS Register',
+      debts: 'Client debts',
+      closing: 'Daily closing',
+      agenda: 'Order agenda',
     },
     auth: {
       login: 'Login',

@@ -156,6 +156,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       const newOrder = await tx.order.create({
         data: {
           offlineId: data.offlineId,
+          dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
           ...(createdAt ? { createdAt } : {}),
           reference: generateReference(),
           publicToken: generatePublicToken(),
@@ -389,6 +390,27 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
       return;
     }
     const message = error instanceof Error ? error.message : 'Failed to update order';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+/** Upcoming orders with a pickup/delivery date (cakes, made-to-order). */
+export const getAgenda = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const from = req.query.from ? new Date(req.query.from as string) : new Date(new Date().setHours(0, 0, 0, 0));
+    const to = req.query.to ? new Date(req.query.to as string) : new Date(from.getTime() + 31 * 24 * 3600 * 1000);
+    const orders = await prisma.order.findMany({
+      where: { tenantId: req.user!.tenantId, dueDate: { gte: from, lt: to }, status: { not: 'CANCELLED' } },
+      orderBy: { dueDate: 'asc' },
+      include: {
+        client: { select: { id: true, name: true, phone: true } },
+        items: { include: { product: { select: { id: true, name: true } } } },
+        invoice: { select: { id: true, amountPaid: true, amountDue: true, paymentStatus: true } },
+      },
+    });
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch agenda';
     res.status(500).json({ success: false, message });
   }
 };

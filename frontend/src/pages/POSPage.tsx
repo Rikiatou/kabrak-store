@@ -72,6 +72,7 @@ export function POSPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [discount, setDiscount] = useState<number | ''>('');
   const [notes, setNotes] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [showInvoice, setShowInvoice] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<unknown>(null);
   const [variantPicker, setVariantPicker] = useState<{ product: Product; sizes: string[] } | null>(null);
@@ -183,6 +184,7 @@ export function POSPage() {
       amountPaid: Math.min(Number(amountPaid) || 0, total),
       discount: Number(discount) || 0,
       notes: notes || undefined,
+      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
       items: cart.map(item => ({
         productId: item.product.id,
         quantity: item.quantity,
@@ -228,6 +230,7 @@ export function POSPage() {
     setAmountPaid('');
     setDiscount('');
     setNotes('');
+    setDueDate('');
     setPaymentMethod('CASH');
   };
 
@@ -279,9 +282,9 @@ export function POSPage() {
   };
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] sm:h-[calc(100vh-4rem)] flex flex-col lg:flex-row gap-3 sm:gap-4 overflow-hidden">
+    <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:h-[calc(100vh-4rem)] lg:overflow-hidden">
       {/* Left: Products */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-0">
+      <div className="lg:flex-1 flex flex-col min-w-0 min-h-0">
         <div className="flex items-center gap-2 mb-3 sm:mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -299,7 +302,7 @@ export function POSPage() {
           ) : null}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="max-h-[55vh] lg:max-h-none lg:flex-1 overflow-y-auto">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {products.map((product) => {
               const inCart = cart.find(item => item.product.id === product.id);
@@ -344,7 +347,7 @@ export function POSPage() {
       </div>
 
       {/* Right: Cart */}
-      <div className="w-full lg:w-80 xl:w-96 flex flex-col bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm min-h-0 max-h-[70vh] lg:max-h-full">
+      <div className="w-full lg:w-80 xl:w-96 flex flex-col bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm min-h-0 lg:max-h-full">
         {/* Cart header */}
         <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -396,8 +399,8 @@ export function POSPage() {
         {/* Cart items */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2 min-h-0">
           {cart.length === 0 ? (
-            <div className="text-center text-gray-400 py-12">
-              <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-30" />
+            <div className="text-center text-gray-400 py-4 lg:py-12">
+              <ShoppingCart className="w-8 h-8 lg:w-12 lg:h-12 mx-auto mb-2 opacity-30" />
               <p className="text-sm">{language === 'fr' ? 'Panier vide' : 'Cart empty'}</p>
             </div>
           ) : (
@@ -442,6 +445,17 @@ export function POSPage() {
                 value={discount ?? ''} onChange={(e) => setDiscount(e.target.value === '' ? '' : Math.max(0, +e.target.value))}
               />
             </div>
+            <details className="text-sm text-gray-500" open={Boolean(notes || dueDate)}>
+              <summary className="cursor-pointer select-none">{language === 'fr' ? 'Note / date de retrait (optionnel)' : 'Note / pickup date (optional)'}</summary>
+              <div className="mt-2 space-y-2">
+                <Input
+                  className="h-8 text-xs" maxLength={200}
+                  placeholder={language === 'fr' ? 'Ex : écrire « Joyeux anniversaire Awa »' : 'e.g. write "Happy birthday Awa"'}
+                  value={notes} onChange={(e) => setNotes(e.target.value)}
+                />
+                <Input type="datetime-local" className="h-8 text-xs" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+              </div>
+            </details>
             <div className="flex justify-between font-bold text-lg text-gray-900 dark:text-white pt-1 border-t border-gray-100 dark:border-gray-700">
               <span>Total</span>
               <span className="text-blue-600">{formatCurrency(total)}</span>
@@ -499,7 +513,7 @@ export function POSPage() {
           >
             {processing
               ? (language === 'fr' ? 'Traitement...' : 'Processing...')
-              : (language === 'fr' ? `Valider la vente (${paymentStatus})` : `Complete sale (${paymentStatus})`)
+              : (language === 'fr' ? `Valider la vente${paymentStatus === 'PAID' ? '' : paymentStatus === 'PARTIAL' ? ' (acompte)' : ' (à crédit)'}` : `Complete sale${paymentStatus === 'PAID' ? '' : paymentStatus === 'PARTIAL' ? ' (deposit)' : ' (on credit)'}`)
             }
           </Button>
         </div>

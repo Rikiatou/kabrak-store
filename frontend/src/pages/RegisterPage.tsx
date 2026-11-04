@@ -471,7 +471,7 @@ export function RegisterPage() {
               </h3>
               <div className="flex items-center justify-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl py-2 px-3">
                 <span>🎁</span>
-                <span className="font-medium">{language === 'fr' ? '14 jours gratuits — aucune carte requise' : '14 days free — no card required'}</span>
+                <span className="font-medium">{language === 'fr' ? '7 jours gratuits — aucune carte requise' : '7 days free — no card required'}</span>
               </div>
               <div className="space-y-3">
                 {plans.map((plan) => {

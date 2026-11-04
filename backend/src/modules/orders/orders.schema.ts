@@ -17,6 +17,7 @@ export const createOrderSchema = z.object({
   notes: z.string().optional(),
   sellerId: z.string().uuid().optional().nullable(),
   offlineId: z.string().uuid().optional(),
+  dueDate: z.string().datetime().optional().nullable(),
   createdAt: z.string().datetime().optional(),
 });
 

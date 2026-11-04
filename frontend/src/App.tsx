@@ -37,6 +37,9 @@ const SuppliersPage = lazy(() => import('./pages/SuppliersPage').then(m => ({ de
 const StorefrontPage = lazy(() => import('./pages/StorefrontPage').then(m => ({ default: m.StorefrontPage })));
 const PublicOrderPage = lazy(() => import('./pages/PublicOrderPage').then(m => ({ default: m.PublicOrderPage })));
 const AIReportsPage = lazy(() => import('./pages/AIReportsPage').then(m => ({ default: m.AIReportsPage })));
+const DebtsPage = lazy(() => import('./pages/DebtsPage').then(m => ({ default: m.DebtsPage })));
+const ClosingPage = lazy(() => import('./pages/ClosingPage').then(m => ({ default: m.ClosingPage })));
+const AgendaPage = lazy(() => import('./pages/AgendaPage').then(m => ({ default: m.AgendaPage })));
 const GuidePage = lazy(() => import('./pages/GuidePage').then(m => ({ default: m.GuidePage })));
 
 const PageLoader = () => (
@@ -194,6 +197,9 @@ function App() {
           <Route path="/billing" element={<BillingPage />} />
           <Route path="/stores" element={<StoresPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/debts" element={<DebtsPage />} />
+          <Route path="/closing" element={<ModeGuard mode="PRODUCT"><ClosingPage /></ModeGuard>} />
+          <Route path="/agenda" element={<ModeGuard mode="PRODUCT"><AgendaPage /></ModeGuard>} />
           <Route path="/suppliers" element={<PlanGuard plans={['SHOP','BUSINESS']}><SuppliersPage /></PlanGuard>} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/guide" element={<GuidePage />} />

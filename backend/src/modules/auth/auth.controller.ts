@@ -34,7 +34,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const hashedPassword = await bcrypt.hash(data.password, 12);
     const slug = generateSlug(data.storeName);
     const trialEnd = new Date();
-    trialEnd.setDate(trialEnd.getDate() + 14);
+    trialEnd.setDate(trialEnd.getDate() + 7);
 
     const result = await prisma.$transaction(async (tx) => {
       const tenant = await tx.tenant.create({
