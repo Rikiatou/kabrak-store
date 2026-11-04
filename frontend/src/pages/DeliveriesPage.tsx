@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Badge } from '@/components/ui/badge';
+import { NativeSelect } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -40,6 +41,14 @@ export function DeliveriesPage() {
 
   useEffect(() => { fetchDeliveries(); }, [fetchDeliveries]);
 
+  const handleStatusChange = async (id: string, status: string) => {
+    try {
+      await api.patch(`/deliveries/${id}/status`, { status });
+      setDeliveries((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)));
+      toast.success(t('delivery.statusUpdated'));
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader title={t('delivery.title')} />
@@ -65,7 +74,14 @@ export function DeliveriesPage() {
                     </p>
                   )}
                 </div>
-                <Badge variant={statusColors[del.status]} className="shrink-0">{statusKeys[del.status] ? t(statusKeys[del.status]) : del.status}</Badge>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <Badge variant={statusColors[del.status]}>{statusKeys[del.status] ? t(statusKeys[del.status]) : del.status}</Badge>
+                  <div className="w-36">
+                    <NativeSelect aria-label={t('delivery.status')} className="h-8 text-xs" value={del.status} onChange={(e) => handleStatusChange(del.id, e.target.value)}>
+                      {Object.keys(statusKeys).map((s) => <option key={s} value={s}>{t(statusKeys[s])}</option>)}
+                    </NativeSelect>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           ))}

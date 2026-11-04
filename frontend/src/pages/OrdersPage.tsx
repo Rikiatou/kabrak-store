@@ -13,7 +13,8 @@ import { getErrorMessage } from '@/lib/errors';
 import { Badge } from '@/components/ui/badge';
 import { useTranslation } from '@/i18n/useTranslation';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
-import { Plus, ShoppingCart, X, MessageCircle } from 'lucide-react';
+import { Plus, ShoppingCart, X, MessageCircle, Truck, Wallet } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import api from '@/lib/api';
 
 interface OrderItem {
@@ -61,6 +62,10 @@ const statusColors: Record<string, 'default' | 'success' | 'warning' | 'destruct
   PAID: 'success', PARTIAL: 'warning',
 };
 
+const ORDER_STATUSES = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERING', 'DELIVERED', 'CANCELLED'];
+
+const emptyDelivery = { address: '', phone: '', deliveryDate: '', notes: '' };
+
 interface CartItem {
   productId: string;
   name: string;
@@ -83,6 +88,11 @@ export function OrdersPage() {
   const [discount, setDiscount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentMethodExtra, setPaymentMethodExtra] = useState('CASH');
+  const [deliveryOrder, setDeliveryOrder] = useState<Order | null>(null);
+  const [deliveryForm, setDeliveryForm] = useState(emptyDelivery);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -142,6 +152,60 @@ export function OrdersPage() {
       toast.success(t('orders.created'));
       setShowForm(false);
       fetchOrders();
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+    finally { setSaving(false); }
+  };
+
+  const handleStatusChange = async (order: Order, status: string) => {
+    try {
+      await api.patch(`/orders/${order.id}/status`, { status });
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status } : o)));
+      toast.success(t('orders.statusUpdated'));
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+  };
+
+  const openPayment = (order: Order) => {
+    setPaymentOrder(order);
+    setPaymentAmount(order.amountRemaining);
+    setPaymentMethodExtra('CASH');
+  };
+
+  const handleRecordPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentOrder) return;
+    if (paymentAmount <= 0 || paymentAmount > paymentOrder.amountRemaining) {
+      toast.error(t('orders.invalidAmount'));
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post(`/orders/${paymentOrder.id}/payment`, { amount: paymentAmount, method: paymentMethodExtra });
+      toast.success(t('orders.paymentRecorded'));
+      setPaymentOrder(null);
+      fetchOrders();
+    } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
+    finally { setSaving(false); }
+  };
+
+  const openDelivery = (order: Order) => {
+    setDeliveryOrder(order);
+    setDeliveryForm({ ...emptyDelivery, phone: order.client?.phone || '' });
+  };
+
+  const handleCreateDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deliveryOrder) return;
+    setSaving(true);
+    try {
+      await api.post('/deliveries', {
+        orderId: deliveryOrder.id,
+        address: deliveryForm.address,
+        phone: deliveryForm.phone || undefined,
+        notes: deliveryForm.notes || undefined,
+        deliveryDate: deliveryForm.deliveryDate || undefined,
+      });
+      toast.success(t('delivery.created'));
+      setDeliveryOrder(null);
     } catch (err) { toast.error(getErrorMessage(err, t('common.error'))); }
     finally { setSaving(false); }
   };
@@ -244,6 +308,59 @@ export function OrdersPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!paymentOrder} onOpenChange={(open) => { if (!open) setPaymentOrder(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>{t('orders.recordPayment')} · {paymentOrder?.reference}</DialogTitle></DialogHeader>
+          <form onSubmit={handleRecordPayment} className="space-y-4">
+            <p className="text-sm text-muted-foreground">{t('orders.remaining')} : <span className="font-semibold text-foreground">{formatCurrency(paymentOrder?.amountRemaining || 0)}</span></p>
+            <div className="space-y-2">
+              <Label htmlFor="pay-amount">{t('orders.amount')} (FCFA)</Label>
+              <Input id="pay-amount" type="number" min={1} max={paymentOrder?.amountRemaining} required value={paymentAmount} onChange={(e) => setPaymentAmount(Number(e.target.value))} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pay-method">{t('orders.paymentMethod')}</Label>
+              <NativeSelect id="pay-method" value={paymentMethodExtra} onChange={(e) => setPaymentMethodExtra(e.target.value)}>
+                {['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER'].map((m) => <option key={m} value={m}>{t(`payment.${m}`)}</option>)}
+              </NativeSelect>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setPaymentOrder(null)}>{t('common.cancel')}</Button>
+              <Button type="submit" disabled={saving}>{saving && <Spinner className="mr-2" />}{t('common.save')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deliveryOrder} onOpenChange={(open) => { if (!open) setDeliveryOrder(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{t('delivery.addDelivery')} · {deliveryOrder?.reference}</DialogTitle></DialogHeader>
+          <form onSubmit={handleCreateDelivery} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="del-address">{t('delivery.address')} *</Label>
+              <Input id="del-address" required value={deliveryForm.address} onChange={(e) => setDeliveryForm({ ...deliveryForm, address: e.target.value })} />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="del-phone">{t('delivery.phone')}</Label>
+                <Input id="del-phone" type="tel" value={deliveryForm.phone} onChange={(e) => setDeliveryForm({ ...deliveryForm, phone: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="del-date">{t('delivery.deliveryDate')}</Label>
+                <Input id="del-date" type="date" value={deliveryForm.deliveryDate} onChange={(e) => setDeliveryForm({ ...deliveryForm, deliveryDate: e.target.value })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="del-notes">{t('delivery.notes')}</Label>
+              <Textarea id="del-notes" rows={2} value={deliveryForm.notes} onChange={(e) => setDeliveryForm({ ...deliveryForm, notes: e.target.value })} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setDeliveryOrder(null)}>{t('common.cancel')}</Button>
+              <Button type="submit" disabled={saving}>{saving && <Spinner className="mr-2" />}{t('common.save')}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Orders List */}
       {loading ? (
         <LoadingState />
@@ -282,6 +399,21 @@ export function OrdersPage() {
                       {item.product.name} x{item.quantity}
                     </span>
                   ))}
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                  <div className="w-full sm:w-44">
+                    <NativeSelect aria-label={t('orders.status')} className="h-8 text-xs" value={order.status} onChange={(e) => handleStatusChange(order, e.target.value)}>
+                      {ORDER_STATUSES.map((s) => <option key={s} value={s}>{t(`status.${s.toLowerCase()}`)}</option>)}
+                    </NativeSelect>
+                  </div>
+                  {order.amountRemaining > 0 && (
+                    <Button variant="outline" size="sm" className="h-8" onClick={() => openPayment(order)}>
+                      <Wallet className="mr-1.5 h-3.5 w-3.5" /> {t('orders.recordPayment')}
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" className="h-8" onClick={() => openDelivery(order)}>
+                    <Truck className="mr-1.5 h-3.5 w-3.5" /> {t('orders.createDelivery')}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
