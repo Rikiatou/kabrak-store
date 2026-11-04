@@ -170,6 +170,7 @@ export const getLowStock = async (req: Request, res: Response): Promise<void> =>
     >`
       SELECT id FROM products
       WHERE "tenantId" = ${req.user!.tenantId}
+        AND "isActive" = true
         AND "totalStock" <= "lowStockAlert"
       ORDER BY "totalStock" ASC
     `;

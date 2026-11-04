@@ -11,15 +11,23 @@ async function adjustVariantStock(tx: Prisma.TransactionClient, productId: strin
   const product = await tx.product.findUnique({ where: { id: productId }, select: { variants: true } });
   if (!Array.isArray(product?.variants)) return;
   const variants = product.variants as unknown as ProductVariant[];
-  const next = variants.map((v) => (v.name === variant ? { ...v, stock: v.stock + delta } : v));
+  const exists = variants.some((v) => v.name === variant);
+  // A variant renamed or removed since the sale gets its restored units back under the original name.
+  const next = exists
+    ? variants.map((v) => (v.name === variant ? { ...v, stock: v.stock + delta } : v))
+    : delta > 0 ? [...variants, { name: variant, stock: delta }] : variants;
   await tx.product.update({ where: { id: productId }, data: { variants: next } });
 }
 
 class InsufficientStockError extends Error {
   constructor(variant: string) {
     super(`Stock insuffisant pour la variante ${variant}`);
+    this.variant = variant;
   }
+  variant: string;
 }
+
+class StatusConflictError extends Error {}
 
 function generateReference(): string {
   const date = new Date();
@@ -119,6 +127,10 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     }
 
     const totalAmount = data.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    if (data.discount > totalAmount) {
+      res.status(400).json({ success: false, code: 'DISCOUNT_TOO_HIGH', message: 'La remise ne peut pas dépasser le total' });
+      return;
+    }
     const finalAmount = totalAmount - data.discount;
     const amountRemaining = finalAmount - data.amountPaid;
     const paymentStatus = data.amountPaid >= finalAmount ? 'PAID' : data.amountPaid > 0 ? 'PARTIAL' : 'PENDING';
@@ -210,7 +222,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     res.status(201).json({ success: true, data: order });
   } catch (error) {
     if (error instanceof InsufficientStockError) {
-      res.status(400).json({ success: false, message: error.message });
+      res.status(400).json({ success: false, code: 'VARIANT_STOCK', variant: error.variant, message: error.message });
       return;
     }
     // Two replays of the same offline sale raced: return the order the first one saved.
@@ -250,6 +262,9 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
     const isCancelled = status === 'CANCELLED';
 
     const order = await prisma.$transaction(async (tx) => {
+      // Conditional on the status we read, so two concurrent changes cannot both move stock.
+      const { count } = await tx.order.updateMany({ where: { id, status: existing.status }, data: { status } });
+      if (count === 0) throw new StatusConflictError();
       if (wasCancelled !== isCancelled) {
         for (const item of existing.items) {
           await tx.product.update({
@@ -259,9 +274,8 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
           await adjustVariantStock(tx, item.productId, item.variant, isCancelled ? item.quantity : -item.quantity);
         }
       }
-      return tx.order.update({
+      return tx.order.findUniqueOrThrow({
         where: { id },
-        data: { status },
         include: {
           client: true,
           items: { include: { product: true } },
@@ -271,6 +285,10 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
 
     res.json({ success: true, data: order });
   } catch (error) {
+    if (error instanceof StatusConflictError) {
+      res.status(409).json({ success: false, code: 'ORDER_STATUS_CONFLICT', message: 'Commande modifiée entre-temps' });
+      return;
+    }
     const message = error instanceof Error ? error.message : 'Failed to update order';
     res.status(500).json({ success: false, message });
   }

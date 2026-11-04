@@ -13,8 +13,8 @@ import { Check, Crown, Copy, Clock, ArrowLeft, Shield, Zap, Star } from 'lucide-
 import api from '@/lib/api';
 
 const PLANS = [
-  { value: 'STORE', price: 4900, icon: Shield, features: ['orders', 'clients', 'invoicing', 'whatsapp', 'simpleDashboard'] },
-  { value: 'SHOP', price: 7900, icon: Zap, features: ['allStore', 'stock', 'pos', 'lightEmployees', 'advancedDashboard'] },
+  { value: 'STORE', price: 4900, icon: Shield, features: ['orders', 'pos', 'clients', 'invoicing', 'whatsapp', 'simpleDashboard'] },
+  { value: 'SHOP', price: 7900, icon: Zap, features: ['allStore', 'stock', 'scanner', 'lightEmployees', 'advancedDashboard'] },
   { value: 'BUSINESS', price: 12900, icon: Star, features: ['allShop', 'multiEmployees', 'permissions', 'multiStores', 'advancedReports'] },
 ];
 

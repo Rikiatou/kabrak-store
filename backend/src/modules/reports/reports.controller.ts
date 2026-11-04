@@ -28,7 +28,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       prisma.product.count({ where: { tenantId, isActive: true } }),
       prisma.client.count({ where: { tenantId } }),
       prisma.product.findMany({
-        where: { tenantId, totalStock: { lte: 5 } },
+        where: { tenantId, isActive: true, totalStock: { lte: 5 } },
         orderBy: { totalStock: 'asc' },
         take: 10,
       }),

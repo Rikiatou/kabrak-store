@@ -2,6 +2,17 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../config/prisma';
 
+import { PLAN_USER_LIMITS } from '../../lib/plans';
+
+async function userLimitError(tenantId: string) {
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { plan: true } });
+  const limit = PLAN_USER_LIMITS[tenant?.plan ?? 'STORE'];
+  const activeUsers = await prisma.user.count({ where: { tenantId, isActive: true } });
+  return activeUsers >= limit
+    ? { success: false, code: 'PLAN_USER_LIMIT', limit, message: `Votre offre permet ${limit} utilisateur(s)` }
+    : null;
+}
+
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
     const employees = await prisma.user.findMany({
@@ -24,6 +35,12 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       res.status(400).json({ success: false, message: 'Cet email est déjà utilisé' });
+      return;
+    }
+
+    const limitError = await userLimitError(req.user!.tenantId);
+    if (limitError) {
+      res.status(403).json(limitError);
       return;
     }
 
@@ -60,6 +77,14 @@ export const update = async (req: Request, res: Response): Promise<void> => {
     if (!existing) {
       res.status(404).json({ success: false, message: 'Employé non trouvé' });
       return;
+    }
+
+    if (isActive === true && !existing.isActive) {
+      const limitError = await userLimitError(req.user!.tenantId);
+      if (limitError) {
+        res.status(403).json(limitError);
+        return;
+      }
     }
 
     if (existing.role === 'OWNER') {

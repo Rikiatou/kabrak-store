@@ -23,7 +23,9 @@ export const createProductSchema = z.object({
   barcode: z.string().optional().nullable(),
   sku: z.string().optional().nullable(),
   adaptiveFields: z.any().optional(),
-  variants: z.array(z.object({ name: z.string().min(1), stock: z.number().int().min(0) })).optional().nullable(),
+  variants: z.array(z.object({ name: z.string().trim().min(1), stock: z.number().int().min(0) }))
+    .refine((vs) => new Set(vs.map((v) => v.name.toLowerCase())).size === vs.length, 'Chaque variante doit avoir un nom différent')
+    .optional().nullable(),
   isService: z.boolean().default(false),
   duration: z.string().optional().nullable(),
   recurringType: z.string().optional().nullable(),

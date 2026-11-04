@@ -151,7 +151,7 @@ export function OrdersPage() {
       await api.post('/orders', {
         clientId: selectedClient || undefined,
         items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice, variant: i.variant })),
-        discount,
+        discount: Math.min(discount, cartTotal),
         paymentMethod,
         amountPaid,
       });

@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
   { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'] },
   { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'] },
   { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'] },
-  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
+  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'] },
   { key: 'projects', icon: FolderKanban, path: '/projects', modes: ['SERVICE'] },
   { key: 'services', icon: Package, path: '/services', modes: ['SERVICE'] },
   { key: 'recurring', icon: RefreshCw, path: '/recurring', modes: ['SERVICE'] },

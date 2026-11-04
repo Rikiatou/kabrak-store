@@ -197,7 +197,7 @@ export function POSPage() {
       clientId: selectedClient?.id || null,
       paymentMethod,
       amountPaid: Math.min(amountPaid, total),
-      discount,
+      discount: Math.min(discount, subtotal),
       notes: notes || undefined,
       items: cart.map(item => ({
         productId: item.product.id,

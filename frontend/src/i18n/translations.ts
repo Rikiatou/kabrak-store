@@ -146,6 +146,8 @@ export const translations = {
       pReports: 'Rapports avancés',
       trialNote: '14 jours d\'essai gratuit, sans carte bancaire',
       invalidCredentials: 'Email ou mot de passe incorrect',
+      pScanner: 'Scanner code-barres',
+      pOffline: 'Caisse hors ligne',
     },
     dashboard: {
       todaySales: "Ventes aujourd'hui",
@@ -631,6 +633,7 @@ export const translations = {
       permissions: 'Permissions',
       multiStores: 'Multi-magasins',
       advancedReports: 'Rapports avancés',
+      scanner: 'Scanner code-barres',
     },
     reports: {
       totalProjects: 'Total projets',
@@ -707,6 +710,13 @@ export const translations = {
       failedTitle: 'Ventes non synchronisées',
       failedDesc: '{count} vente(s) hors ligne ont été refusées par le serveur (produit supprimé ou données invalides). Les retirer de cet appareil ?',
       cachedData: 'Hors ligne : produits enregistrés sur l\'appareil',
+    },
+    errors: {
+      PLAN_USER_LIMIT: 'Votre offre permet {limit} utilisateur(s). Passez à l\'offre supérieure pour en ajouter.',
+      PLAN_UPGRADE_REQUIRED: 'Cette fonction n\'est pas incluse dans votre offre. Passez à l\'offre supérieure.',
+      DISCOUNT_TOO_HIGH: 'La remise ne peut pas dépasser le total.',
+      ORDER_STATUS_CONFLICT: 'Cette commande vient d\'être modifiée. Actualisez la page.',
+      VARIANT_STOCK: 'Stock insuffisant pour la variante {variant}.',
     },
   },
   en: {
@@ -856,6 +866,8 @@ export const translations = {
       pReports: 'Advanced reports',
       trialNote: '14-day free trial, no card required',
       invalidCredentials: 'Incorrect email or password',
+      pScanner: 'Barcode scanner',
+      pOffline: 'Offline checkout',
     },
     dashboard: {
       todaySales: "Today's Sales",
@@ -1341,6 +1353,7 @@ export const translations = {
       permissions: 'Permissions',
       multiStores: 'Multiple stores',
       advancedReports: 'Advanced reports',
+      scanner: 'Barcode scanner',
     },
     reports: {
       totalProjects: 'Total projects',
@@ -1417,6 +1430,13 @@ export const translations = {
       failedTitle: 'Sales not synced',
       failedDesc: '{count} offline sale(s) were rejected by the server (deleted product or invalid data). Remove them from this device?',
       cachedData: 'Offline: showing products saved on this device',
+    },
+    errors: {
+      PLAN_USER_LIMIT: 'Your plan allows {limit} user(s). Upgrade to add more.',
+      PLAN_UPGRADE_REQUIRED: 'This feature is not included in your plan. Please upgrade.',
+      DISCOUNT_TOO_HIGH: 'The discount cannot exceed the total.',
+      ORDER_STATUS_CONFLICT: 'This order was just changed. Please refresh.',
+      VARIANT_STOCK: 'Not enough stock for variant {variant}.',
     },
   },
 } as const;

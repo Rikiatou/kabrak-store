@@ -17,8 +17,8 @@ type BusinessMode = 'PRODUCT' | 'SERVICE';
 
 
 const PLANS = [
-  { value: 'STORE', price: '4 900', features: ['featOrders', 'pClients', 'pInvoicing', 'pWhatsapp'] },
-  { value: 'SHOP', price: '7 900', features: ['allStore', 'pStock', 'pPos', 'pEmployees'] },
+  { value: 'STORE', price: '4 900', features: ['featOrders', 'pOffline', 'pClients', 'pInvoicing', 'pWhatsapp'] },
+  { value: 'SHOP', price: '7 900', features: ['allStore', 'pStock', 'pScanner', 'pEmployees'] },
   { value: 'BUSINESS', price: '12 900', features: ['allShop', 'pMultiEmployees', 'pPermissions', 'pReports'] },
 ];
 
