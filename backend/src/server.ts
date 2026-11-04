@@ -23,6 +23,9 @@ import exportRoutes from './modules/exports/exports.routes';
 import projectRoutes from './modules/projects/projects.routes';
 import recurringRoutes from './modules/recurring/recurring.routes';
 import adminRoutes from './modules/admin/admin.routes';
+import expenseRoutes from './modules/expenses/expenses.routes';
+import supplierRoutes from './modules/suppliers/suppliers.routes';
+import publicRoutes from './modules/public/public.routes';
 import { startRecurringBillingCron } from './cron/recurringBilling';
 
 process.on('uncaughtException', (err) => {
@@ -86,6 +89,11 @@ app.use('/api/auth', authRoutes);
 // Billing routes (subscription check skipped — must be accessible to renew expired accounts)
 app.use('/api/billing', billingRoutes);
 
+// Public shop catalogue (no auth); order placement is throttled.
+const publicOrderLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false });
+app.post('/api/public/shop/:slug/orders', publicOrderLimiter);
+app.use('/api/public', publicRoutes);
+
 // Admin routes (super admin only, subscription check skipped)
 app.use('/api/admin', adminRoutes);
 
@@ -103,6 +111,8 @@ app.use('/api/stores', authenticate, requireActiveSubscription, storeRoutes);
 app.use('/api/notifications', authenticate, requireActiveSubscription, notificationRoutes);
 app.use('/api/exports', authenticate, requireActiveSubscription, exportRoutes);
 app.use('/api/projects', authenticate, requireActiveSubscription, projectRoutes);
+app.use('/api/expenses', authenticate, requireActiveSubscription, expenseRoutes);
+app.use('/api/suppliers', authenticate, requireActiveSubscription, supplierRoutes);
 app.use('/api/recurring', authenticate, requireActiveSubscription, recurringRoutes);
 
 // 404

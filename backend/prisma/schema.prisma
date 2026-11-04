@@ -155,6 +155,9 @@ model Tenant {
   dataExports        DataExport[]
   projects           Project[]
   recurringBillings  RecurringBilling[]
+  expenses           Expense[]
+  suppliers          Supplier[]
+  purchases          Purchase[]
 
   @@map("tenants")
 }
@@ -242,6 +245,7 @@ model Product {
   orderItems      OrderItem[]
   invoiceLineItems InvoiceLineItem[]
   recurringBillings RecurringBilling[]
+  purchaseItems   PurchaseItem[]
 
   @@map("products")
 }
@@ -290,6 +294,7 @@ model Order {
   paymentStatus   PaymentStatus @default(PENDING)
   notes           String?
   offlineId       String?       @unique
+  dueDate         DateTime?
   tenantId        String
   clientId        String?
   createdById     String
@@ -605,4 +610,68 @@ model DataExport {
   tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("data_exports")
+}
+
+model Expense {
+  id        String   @id @default(uuid())
+  label     String
+  category  String   @default("OTHER")
+  amount    Float
+  date      DateTime @default(now())
+  notes     String?
+  tenantId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, date])
+  @@map("expenses")
+}
+
+model Supplier {
+  id        String     @id @default(uuid())
+  name      String
+  phone     String?
+  notes     String?
+  tenantId  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  purchases Purchase[]
+
+  @@map("suppliers")
+}
+
+model Purchase {
+  id         String         @id @default(uuid())
+  totalCost  Float
+  amountPaid Float          @default(0)
+  date       DateTime       @default(now())
+  notes      String?
+  tenantId   String
+  supplierId String?
+  createdAt  DateTime       @default(now())
+
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  supplier   Supplier?      @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  items      PurchaseItem[]
+
+  @@index([tenantId, date])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String   @id @default(uuid())
+  purchaseId String
+  productId  String
+  variant    String?
+  quantity   Int
+  unitCost   Float
+
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@map("purchase_items")
 }

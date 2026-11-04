@@ -83,6 +83,25 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+/** Orders with a pickup/delivery date in [from, to], for the agenda view. */
+export const getSchedule = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { from, to } = req.query;
+    const orders = await prisma.order.findMany({
+      where: {
+        tenantId: req.user!.tenantId,
+        status: { not: 'CANCELLED' },
+        dueDate: { not: null, ...(from ? { gte: new Date(from as string) } : {}), ...(to ? { lte: new Date(to as string) } : {}) },
+      },
+      include: { client: { select: { id: true, name: true, phone: true } }, items: { include: { product: { select: { id: true, name: true } } } } },
+      orderBy: { dueDate: 'asc' },
+    });
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
+  }
+};
+
 export const getOne = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
@@ -168,6 +187,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
           offlineId: data.offlineId,
           ...(data.createdAt && new Date(data.createdAt) <= new Date() ? { createdAt: new Date(data.createdAt) } : {}),
           notes: data.notes,
+          dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
           tenantId: req.user!.tenantId,
           clientId: data.clientId ?? undefined,
           createdById: req.user!.id,

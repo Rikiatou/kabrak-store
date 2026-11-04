@@ -14,6 +14,7 @@ export const createOrderSchema = z.object({
   paymentMethod: z.enum(['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER']).default('CASH'),
   amountPaid: z.number().min(0).default(0),
   notes: z.string().optional(),
+  dueDate: z.string().optional().nullable(),
   sellerId: z.string().uuid().optional().nullable(),
 });
 
