@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kabrak-v3';
+const CACHE_NAME = 'kabrak-v4';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
@@ -40,30 +40,21 @@ self.addEventListener('fetch', (event) => {
   // Skip API calls — always go to network
   if (event.request.url.includes('/api/')) return;
 
-  // For navigation requests (HTML): cache-first with network fallback
+  // Navigation (HTML): network-first so deploys show up, cached SPA shell when offline
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) {
-          // Fetch in background and update cache
-          fetch(event.request).then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            }
-          });
-          return cached;
-        }
-        return fetch(event.request).then((response) => {
+      fetch(event.request)
+        .then((response) => {
           if (response.ok) {
             const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            caches.open(CACHE_NAME).then((cache) => cache.put('/', clone));
           }
           return response;
-        }).catch(() =>
-          caches.match(OFFLINE_URL).then((response) => response || new Response('Offline', { status: 503 }))
-        );
-      })
+        })
+        .catch(() =>
+          caches.match('/').then((shell) => shell || caches.match(OFFLINE_URL))
+            .then((response) => response || new Response('Offline', { status: 503 }))
+        )
     );
     return;
   }

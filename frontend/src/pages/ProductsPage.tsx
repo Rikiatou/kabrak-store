@@ -116,9 +116,9 @@ export function ProductsPage() {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
   useEffect(() => { setPage(1); }, [debouncedSearch]);
 
-  // Auto-calculate totalStock from sizes for HIJABS_ABAYAS
+  // Auto-calculate totalStock from per-size quantities ("S:5, M:10")
   useEffect(() => {
-    if (form.businessType === 'HIJABS_ABAYAS' && form.adaptiveFields.sizes) {
+    if (typeof form.adaptiveFields.sizes === 'string' && form.adaptiveFields.sizes.includes(':')) {
       const sizesStr = form.adaptiveFields.sizes as string;
       const total = sizesStr.split(',').reduce((sum, part) => {
         const match = part.trim().match(/(\d+)$/);
@@ -126,7 +126,7 @@ export function ProductsPage() {
       }, 0);
       setForm(prev => ({ ...prev, totalStock: total }));
     }
-  }, [form.businessType, form.adaptiveFields.sizes]);
+  }, [form.adaptiveFields.sizes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

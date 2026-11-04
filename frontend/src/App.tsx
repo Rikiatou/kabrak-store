@@ -10,6 +10,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { InstallPrompt } from './components/InstallPrompt';
 import { Onboarding } from './components/Onboarding';
+import { syncOfflineSales } from '@/lib/offline';
 import { useAuthStore } from './stores/authStore';
 import { useTranslation } from './i18n/useTranslation';
 
@@ -141,6 +142,15 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  useEffect(() => {
+    if (!token) return;
+    const sync = () => { syncOfflineSales().catch(() => undefined); };
+    sync();
+    window.addEventListener('online', sync);
+    const timer = window.setInterval(sync, 60_000);
+    return () => { window.removeEventListener('online', sync); window.clearInterval(timer); };
+  }, [token]);
+
   return (
     <BrowserRouter>
       <Toaster position="top-right" toastOptions={{ duration: 4000 }} />
@@ -166,7 +176,7 @@ function App() {
           {/* Product mode routes */}
           <Route path="/products" element={<ModeGuard mode="PRODUCT"><ProductsPage /></ModeGuard>} />
           <Route path="/orders" element={<ModeGuard mode="PRODUCT"><OrdersPage /></ModeGuard>} />
-          <Route path="/pos" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><POSPage /></PlanGuard></ModeGuard>} />
+          <Route path="/pos" element={<ModeGuard mode="PRODUCT"><POSPage /></ModeGuard>} />
           {/* SHOP+ only */}
           <Route path="/categories" element={<ModeGuard mode="PRODUCT"><PlanGuard plans={['SHOP','BUSINESS']}><CategoriesPage /></PlanGuard></ModeGuard>} />
           <Route path="/deliveries" element={<ModeGuard mode="PRODUCT"><DeliveriesGuard><DeliveriesPage /></DeliveriesGuard></ModeGuard>} />

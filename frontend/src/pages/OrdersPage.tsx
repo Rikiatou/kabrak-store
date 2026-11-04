@@ -387,6 +387,7 @@ export function OrdersPage() {
           <p className="text-muted-foreground">{t('common.noResults')}</p>
         </div>
       ) : (
+        <>
         <div className="space-y-2 sm:space-y-3">
           {paginatedOrders.map((order) => (
             <Card key={order.id} className="hover:shadow-md transition-shadow">
@@ -452,6 +453,7 @@ export function OrdersPage() {
           onNext={ordersNextPage}
           onGoToPage={ordersGoToPage}
         />
+        </>
       )}
     </div>
   );

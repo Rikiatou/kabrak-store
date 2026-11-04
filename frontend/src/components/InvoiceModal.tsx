@@ -97,7 +97,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const fullPhone = phone ? (phone.startsWith('237') ? phone : `237${phone}`) : null;
   const dateStr = new Date(invoice.createdAt).toLocaleDateString(fr ? 'fr-FR' : 'en-US');
   const paymentMethod = invoice.order?.paymentMethod || 'CASH';
-  const paymentLabel = (paymentLabels[paymentMethod] || paymentLabels.OTHER)[language];
+  const paymentLabel = (paymentLabels[paymentMethod] || paymentLabels.OTHER)[language as 'fr' | 'en'];
   const invoiceColor = tenant?.invoiceColor || '#2563eb';
 
   // Adaptive labels per business category

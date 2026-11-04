@@ -1,4 +1,5 @@
-import { Moon, Sun, Globe, LogOut, Download, Menu } from 'lucide-react';
+import { Moon, Sun, Globe, LogOut, Download, Menu, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useOfflineStatus, syncOfflineSales, discardFailedSales } from '@/lib/offline';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +14,14 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const { user, tenant, theme, toggleTheme, language, setLanguage, logout } = useAuthStore();
   const navigate = useNavigate();
+  const offline = useOfflineStatus();
+  const fr = language === 'fr';
+
+  const handleSync = async () => {
+    const { synced, failed } = await syncOfflineSales();
+    if (synced) toast.success(fr ? `${synced} vente(s) synchronisée(s)` : `${synced} sale(s) synced`);
+    if (failed) toast.error(fr ? `${failed} vente(s) refusée(s) par le serveur` : `${failed} sale(s) rejected by the server`);
+  };
 
   const handleLogout = () => {
     logout();
@@ -53,6 +62,33 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-1 sm:gap-2">
+        {!offline.online && (
+          <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200">
+            <WifiOff className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{fr ? 'Hors ligne' : 'Offline'}</span>
+          </span>
+        )}
+        {offline.pending > 0 && (
+          <button
+            onClick={handleSync}
+            disabled={!offline.online || offline.syncing}
+            className="flex items-center gap-1 rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 disabled:opacity-60 dark:bg-blue-900/40 dark:text-blue-200"
+            title={fr ? 'Synchroniser maintenant' : 'Sync now'}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${offline.syncing ? 'animate-spin' : ''}`} />
+            {offline.pending} {fr ? 'en attente' : 'pending'}
+          </button>
+        )}
+        {offline.failed > 0 && (
+          <button
+            onClick={() => { discardFailedSales(); toast(fr ? 'Ventes refusées effacées' : 'Rejected sales cleared'); }}
+            className="flex items-center gap-1 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-200"
+            title={fr ? 'Ventes hors ligne refusées par le serveur (cliquer pour effacer)' : 'Offline sales rejected by the server (click to clear)'}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            {offline.failed}
+          </button>
+        )}
         <Button
           variant="ghost"
           size="icon"

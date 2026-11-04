@@ -11,6 +11,7 @@ import { InvoiceModal } from '@/components/InvoiceModal';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
+import { cacheGet, cacheSet, queueSale, isNetworkError, newOfflineId } from '@/lib/offline';
 
 interface Product {
   id: string;
@@ -32,6 +33,26 @@ interface Client {
   id: string;
   name: string;
   phone?: string;
+}
+
+function applyLocalSale(list: Product[], sold: CartItem[]): Product[] {
+  return list.map((p) => {
+    const lines = sold.filter((i) => i.product.id === p.id);
+    if (lines.length === 0) return p;
+    let sizes = p.adaptiveFields?.sizes as string | undefined;
+    for (const line of lines) {
+      if (!line.variant || !sizes) continue;
+      sizes = sizes.split(',').map((part) => {
+        const [k, v] = part.split(':').map((x) => x.trim());
+        return k && k.toLowerCase() === line.variant!.toLowerCase() ? `${k}:${(parseInt(v) || 0) - line.quantity}` : part.trim();
+      }).join(', ');
+    }
+    return {
+      ...p,
+      totalStock: p.totalStock - lines.reduce((sum, i) => sum + i.quantity, 0),
+      adaptiveFields: sizes !== undefined ? { ...p.adaptiveFields, sizes } : p.adaptiveFields,
+    };
+  });
 }
 
 export function POSPage() {
@@ -62,16 +83,34 @@ export function POSPage() {
 
   const fetchProducts = useCallback(async () => {
     try {
-      const { data } = await api.get('/products', { params: { search: debouncedSearch, limit: 50, isService: false } });
+      const { data } = await api.get('/products', { params: { search: debouncedSearch, limit: 200, isService: false } });
       setProducts(data.data || []);
-    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
+      if (!debouncedSearch) cacheSet('pos_products', data.data || []);
+    } catch (err) {
+      const cached = isNetworkError(err) ? cacheGet<Product[]>('pos_products') : null;
+      if (cached) {
+        const q = debouncedSearch.toLowerCase();
+        setProducts(q ? cached.filter((p) => p.name.toLowerCase().includes(q)) : cached);
+        return;
+      }
+      console.error(err); toast.error(getApiErrorMessage(err));
+    }
   }, [debouncedSearch]);
 
   const fetchClients = useCallback(async () => {
     try {
-      const { data } = await api.get('/clients', { params: { search: debouncedClientSearch, limit: 20 } });
+      const { data } = await api.get('/clients', { params: { search: debouncedClientSearch, limit: 100 } });
       setClients(data.data || []);
-    } catch (err) { console.error(err); toast.error(getApiErrorMessage(err)); }
+      if (!debouncedClientSearch) cacheSet('pos_clients', data.data || []);
+    } catch (err) {
+      const cached = isNetworkError(err) ? cacheGet<Client[]>('pos_clients') : null;
+      if (cached) {
+        const q = debouncedClientSearch.toLowerCase();
+        setClients(q ? cached.filter((c) => c.name.toLowerCase().includes(q) || (c.phone || '').includes(q)) : cached);
+        return;
+      }
+      console.error(err); toast.error(getApiErrorMessage(err));
+    }
   }, [debouncedClientSearch]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
@@ -138,20 +177,22 @@ export function POSPage() {
     if (cart.length === 0) return;
     if (processing) return;
     setProcessing(true);
+    const payload = {
+      clientId: selectedClient?.id || null,
+      paymentMethod,
+      amountPaid: Math.min(Number(amountPaid) || 0, total),
+      discount: Number(discount) || 0,
+      notes: notes || undefined,
+      items: cart.map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        unitPrice: item.product.sellingPrice,
+        variant: item.variant || undefined,
+      })),
+    };
+    const offlineId = newOfflineId();
     try {
-      const res = await api.post('/orders', {
-        clientId: selectedClient?.id || null,
-        paymentMethod,
-        amountPaid: Math.min(Number(amountPaid) || 0, total),
-        discount: Number(discount) || 0,
-        notes: notes || undefined,
-        items: cart.map(item => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          unitPrice: item.product.sellingPrice,
-          variant: item.variant || undefined,
-        })),
-      });
+      const res = await api.post('/orders', { ...payload, offlineId });
       const orderData = res.data.data;
       // Show invoice immediately if created
       if (orderData?.invoice) {
@@ -164,6 +205,16 @@ export function POSPage() {
       resetData();
       fetchProducts();
     } catch (err) {
+      if (isNetworkError(err)) {
+        // No connection: keep the sale on the device, it is sent automatically when back online
+        queueSale(payload, total, offlineId);
+        setProducts((prev) => applyLocalSale(prev, cart));
+        const cached = cacheGet<Product[]>('pos_products');
+        if (cached) cacheSet('pos_products', applyLocalSale(cached, cart));
+        toast.success(language === 'fr' ? 'Vente enregistrée hors ligne. Elle sera synchronisée au retour d\'internet.' : 'Sale saved offline. It will sync when you are back online.');
+        resetData();
+        return;
+      }
       console.error(err);
       toast.error(getApiErrorMessage(err, language === 'fr' ? 'Erreur lors de la vente' : 'Error during sale'));
     } finally {

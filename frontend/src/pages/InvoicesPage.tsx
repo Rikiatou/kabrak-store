@@ -452,6 +452,7 @@ export function InvoicesPage() {
           )}
         </div>
       ) : (
+        <>
         <div className="space-y-3">
           {paginatedInvoices.map((inv) => (
             <Card key={inv.id} className="hover:shadow-md transition-shadow dark:bg-gray-800">
@@ -520,6 +521,7 @@ export function InvoicesPage() {
           onNext={invNextPage}
           onGoToPage={invGoToPage}
         />
+        </>
       )}
 
       {selectedInvoice && (

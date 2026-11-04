@@ -5,6 +5,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Package, Plus, Edit2, Trash2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Input } from '@/components/ui/input';
 
 interface ServicePackage {
   id: string;

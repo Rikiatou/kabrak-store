@@ -306,6 +306,7 @@ model Order {
   id              String        @id @default(uuid())
   reference       String
   publicToken     String?       @unique
+  offlineId       String?       @unique
   status          OrderStatus   @default(PENDING)
   totalAmount     Float         @default(0)
   discount        Float         @default(0)
@@ -341,6 +342,7 @@ model OrderItem {
   quantity    Int     @default(1)
   unitPrice   Float
   totalPrice  Float
+  unitCost    Float?
   variant     String?
   orderId     String
   productId   String

@@ -75,10 +75,16 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       where: { id: { in: topProductIds }, tenantId },
     });
 
+    const topProductItems = await prisma.orderItem.findMany({
+      where: { productId: { in: topProductIds }, order: { tenantId, createdAt: { gte: startDate, lt: endDate } } },
+      select: { productId: true, quantity: true, unitCost: true },
+    });
+
     const topProductsWithDetails = topProducts.map((tp) => {
       const product = topProductDetails.find((p) => p.id === tp.productId);
-      const costPrice = product?.costPrice || 0;
-      const totalCost = costPrice * (tp._sum.quantity || 0);
+      const totalCost = topProductItems
+        .filter((i) => i.productId === tp.productId)
+        .reduce((sum, i) => sum + (i.unitCost ?? product?.costPrice ?? 0) * i.quantity, 0);
       const totalPrice = tp._sum.totalPrice || 0;
       const grossMargin = totalPrice - totalCost;
       return {
@@ -157,7 +163,7 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       salesByPeriod[key].orders += 1;
 
       for (const item of order.items) {
-        salesByPeriod[key].profit += (item.unitPrice - (item.product.costPrice || 0)) * item.quantity;
+        salesByPeriod[key].profit += (item.unitPrice - (item.unitCost ?? item.product.costPrice ?? 0)) * item.quantity;
       }
     }
 

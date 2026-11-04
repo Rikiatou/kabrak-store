@@ -1,3 +1,4 @@
+import { PLAN_LIMITS } from '../../config/pricing';
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../config/prisma';
@@ -33,6 +34,14 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     // Only OWNER can create OWNER/MANAGER
     if (role === 'OWNER' && req.user!.role !== 'OWNER') {
       res.status(403).json({ success: false, message: 'Seul le propriétaire peut créer un propriétaire' });
+      return;
+    }
+
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.user!.tenantId }, select: { plan: true } });
+    const userLimit = PLAN_LIMITS[tenant?.plan ?? 'STORE']?.users ?? 1;
+    const userCount = await prisma.user.count({ where: { tenantId: req.user!.tenantId } });
+    if (userCount >= userLimit) {
+      res.status(403).json({ success: false, code: 'PLAN_USER_LIMIT', limit: userLimit, message: `Votre offre permet ${userLimit} utilisateur(s)` });
       return;
     }
 

@@ -10,12 +10,14 @@ export const createOrderSchema = z.object({
   })).min(1, 'Au moins un article requis'),
   discount: z.number().min(0).default(0),
   // Initial payment for invoice (optional)
-  paymentMethod: z.enum(['CASH', 'MOBILE_MONEY', 'BANK_TRANSFER', 'OTHER']).default('CASH'),
+  paymentMethod: z.enum(['CASH', 'MOBILE_MONEY', 'ORANGE_MONEY', 'MTN_MOMO', 'BANK_TRANSFER', 'OTHER']).default('CASH'),
   amountPaid: z.number().min(0).default(0),
   paymentReference: z.string().optional(),
   paymentNotes: z.string().optional(),
   notes: z.string().optional(),
   sellerId: z.string().uuid().optional().nullable(),
+  offlineId: z.string().uuid().optional(),
+  createdAt: z.string().datetime().optional(),
 });
 
 export const updateOrderStatusSchema = z.object({

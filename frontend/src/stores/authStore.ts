@@ -51,6 +51,17 @@ interface AuthState {
   fetchMe: () => Promise<void>;
 }
 
+const PROFILE_KEY = 'kabrak_profile';
+
+function readCachedProfile(token: string) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
+    return raw && raw.token === token ? raw.data : null;
+  } catch {
+    return null;
+  }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   tenant: null,
@@ -81,6 +92,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     localStorage.removeItem('kabrak_token');
+    localStorage.removeItem(PROFILE_KEY);
     set({ user: null, tenant: null, subscription: null, token: null });
   },
 
@@ -94,6 +106,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true });
     try {
       const { data } = await api.get('/auth/me');
+      localStorage.setItem(PROFILE_KEY, JSON.stringify({ token, data: data.data }));
       set({
         user: data.data.user,
         tenant: data.data.tenant,
@@ -106,9 +119,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 401) {
         localStorage.removeItem('kabrak_token');
+        localStorage.removeItem(PROFILE_KEY);
         set({ user: null, tenant: null, subscription: null, token: null, isLoading: false });
       } else {
-        set({ isLoading: false });
+        // Offline start: reuse the last profile saved for this same token
+        const cached = readCachedProfile(token);
+        set(cached
+          ? { user: cached.user, tenant: cached.tenant, subscription: cached.subscription, isLoading: false }
+          : { isLoading: false });
       }
     }
   },
