@@ -1,7 +1,19 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { CreateOrderInput } from './orders.schema';
 import { calculateTier, POINTS_PER_FCFA } from '../loyalty/loyalty.controller';
+
+type ProductVariant = { name: string; stock: number };
+
+async function adjustVariantStock(tx: Prisma.TransactionClient, productId: string, variant: string | null | undefined, delta: number) {
+  if (!variant) return;
+  const product = await tx.product.findUnique({ where: { id: productId }, select: { variants: true } });
+  if (!Array.isArray(product?.variants)) return;
+  const variants = product.variants as unknown as ProductVariant[];
+  const next = variants.map((v) => (v.name === variant ? { ...v, stock: Math.max(0, v.stock + delta) } : v));
+  await tx.product.update({ where: { id: productId }, data: { variants: next } });
+}
 
 function generateReference(): string {
   const date = new Date();
@@ -139,6 +151,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
           where: { id: item.productId },
           data: { totalStock: { decrement: item.quantity } },
         });
+        await adjustVariantStock(tx, item.productId, item.variant, -item.quantity);
       }
 
       // Update client stats
@@ -194,6 +207,7 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
             where: { id: item.productId },
             data: { totalStock: isCancelled ? { increment: item.quantity } : { decrement: item.quantity } },
           });
+          await adjustVariantStock(tx, item.productId, item.variant, isCancelled ? item.quantity : -item.quantity);
         }
       }
       return tx.order.update({

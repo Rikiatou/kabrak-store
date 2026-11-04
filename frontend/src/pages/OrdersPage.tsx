@@ -17,6 +17,7 @@ import { Plus, ShoppingCart, X, MessageCircle, Truck, Wallet, FileText } from 'l
 import { useNavigate } from 'react-router-dom';
 import { Textarea } from '@/components/ui/textarea';
 import api from '@/lib/api';
+import { VariantPicker, type ProductVariant } from '@/components/VariantPicker';
 
 interface OrderItem {
   id: string;
@@ -49,6 +50,7 @@ interface Product {
   name: string;
   sellingPrice: number;
   totalStock: number;
+  variants?: ProductVariant[] | null;
 }
 
 interface Client {
@@ -90,6 +92,7 @@ export function OrdersPage() {
   const [saving, setSaving] = useState(false);
   const [opening, setOpening] = useState(false);
   const navigate = useNavigate();
+  const [variantProduct, setVariantProduct] = useState<Product | null>(null);
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [paymentMethodExtra, setPaymentMethodExtra] = useState('CASH');
@@ -128,13 +131,14 @@ export function OrdersPage() {
     setShowForm(true);
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, variant?: string) => {
+    if (product.variants?.length && !variant) { setVariantProduct(product); return; }
     setCart((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
-      if (existing) {
-        return prev.map((i) => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      const same = (i: CartItem) => i.productId === product.id && (i.variant || '') === (variant || '');
+      if (prev.some(same)) {
+        return prev.map((i) => same(i) ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { productId: product.id, name: product.name, quantity: 1, unitPrice: product.sellingPrice }];
+      return [...prev, { productId: product.id, name: product.name, quantity: 1, unitPrice: product.sellingPrice, variant }];
     });
   };
 
@@ -275,7 +279,7 @@ export function OrdersPage() {
                 <div className="border rounded-lg p-3 space-y-2">
                   {cart.map((item, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
-                      <span className="font-medium min-w-0 truncate">{item.name}</span>
+                      <span className="font-medium min-w-0 truncate">{item.name}{item.variant && <span className="text-muted-foreground"> · {item.variant}</span>}</span>
                       <div className="flex shrink-0 items-center gap-2">
                         <Input type="number" className="w-16 h-8 text-center" min={1} value={item.quantity}
                           onChange={(e) => setCart((prev) => prev.map((ci, ci2) => ci2 === i ? { ...ci, quantity: Math.max(1, +e.target.value) } : ci))} />
@@ -370,6 +374,13 @@ export function OrdersPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <VariantPicker
+        productName={variantProduct?.name}
+        variants={variantProduct?.variants}
+        onClose={() => setVariantProduct(null)}
+        onPick={(v) => { if (variantProduct) addToCart(variantProduct, v.name); setVariantProduct(null); }}
+      />
 
       {/* Orders List */}
       {loading ? (

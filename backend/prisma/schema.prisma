@@ -229,6 +229,7 @@ model Product {
   barcode         String?
   sku             String?
   adaptiveFields  Json?
+  variants        Json?            // [{ name, stock }] e.g. sizes/colours with their own stock
 
   // Service mode fields
   isService       Boolean          @default(false)

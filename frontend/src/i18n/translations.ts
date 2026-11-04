@@ -201,6 +201,11 @@ export const translations = {
       inStock: 'en stock',
       categoryLabel: 'Catégorie',
       noCategory: 'Sans catégorie',
+      variants: 'Variantes (taille, couleur…)',
+      variantName: 'Variante (ex : M, Rouge)',
+      addVariant: 'Ajouter une variante',
+      removeVariant: 'Retirer la variante',
+      variantsHint: 'Chaque variante a son propre stock ; le stock total en est la somme.',
     },
     orders: {
       title: 'Commandes',
@@ -554,6 +559,7 @@ export const translations = {
       clearConfirm: 'Vider le panier ?',
       paymentMethod: 'Mode de paiement',
       lastSale: 'Vente enregistrée : {ref}',
+      chooseVariant: 'Choisir la variante',
     },
     invoiceDoc: {
       hello: 'Bonjour {name},',
@@ -869,6 +875,11 @@ export const translations = {
       inStock: 'in stock',
       categoryLabel: 'Category',
       noCategory: 'No category',
+      variants: 'Variants (size, colour…)',
+      variantName: 'Variant (e.g. M, Red)',
+      addVariant: 'Add variant',
+      removeVariant: 'Remove variant',
+      variantsHint: 'Each variant has its own stock; total stock is their sum.',
     },
     orders: {
       title: 'Orders',
@@ -1222,6 +1233,7 @@ export const translations = {
       clearConfirm: 'Clear the cart?',
       paymentMethod: 'Payment method',
       lastSale: 'Sale recorded: {ref}',
+      chooseVariant: 'Choose a variant',
     },
     invoiceDoc: {
       hello: 'Hello {name},',

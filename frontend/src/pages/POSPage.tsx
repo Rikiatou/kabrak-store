@@ -13,6 +13,7 @@ import { getErrorMessage } from '@/lib/errors';
 import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, Banknote, Smartphone, Landmark, X, Package, FileText } from 'lucide-react';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
+import { VariantPicker, type ProductVariant } from '@/components/VariantPicker';
 
 interface Product {
   id: string;
@@ -21,6 +22,7 @@ interface Product {
   totalStock: number;
   image?: string;
   businessType: string;
+  variants?: ProductVariant[] | null;
 }
 
 interface CartItem {
@@ -47,6 +49,7 @@ export function POSPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [variantProduct, setVariantProduct] = useState<Product | null>(null);
   const [lastOrder, setLastOrder] = useState<{ id: string; reference: string } | null>(null);
   const navigate = useNavigate();
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
@@ -79,34 +82,38 @@ export function POSPage() {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
   useEffect(() => { if (showClientPicker) fetchClients(); }, [showClientPicker, fetchClients]);
 
-  const addToCart = (product: Product) => {
+  const cartKey = (item: CartItem) => `${item.product.id}|${item.variant || ''}`;
+  const stockFor = (item: CartItem) =>
+    item.variant ? item.product.variants?.find((v) => v.name === item.variant)?.stock ?? 0 : item.product.totalStock;
+
+  const addToCart = (product: Product, variant?: string) => {
+    if (product.variants?.length && !variant) { setVariantProduct(product); return; }
+    const key = `${product.id}|${variant || ''}`;
     setCart(prev => {
-      const existing = prev.find(item => item.product.id === product.id);
+      const existing = prev.find(item => cartKey(item) === key);
       if (existing) {
-        if (existing.quantity >= product.totalStock) return prev;
-        return prev.map(item =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
+        if (existing.quantity >= stockFor(existing)) return prev;
+        return prev.map(item => cartKey(item) === key ? { ...item, quantity: item.quantity + 1 } : item);
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: 1, variant }];
     });
   };
 
-  const updateQuantity = (productId: string, delta: number) => {
+  const updateQuantity = (key: string, delta: number) => {
     setCart(prev => prev
       .map(item => {
-        if (item.product.id !== productId) return item;
+        if (cartKey(item) !== key) return item;
         const newQty = item.quantity + delta;
         if (newQty <= 0) return null;
-        if (newQty > item.product.totalStock) return item;
+        if (newQty > stockFor(item)) return item;
         return { ...item, quantity: newQty };
       })
       .filter(Boolean) as CartItem[]
     );
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+  const removeFromCart = (key: string) => {
+    setCart(prev => prev.filter(item => cartKey(item) !== key));
   };
 
   const clearCart = async () => {
@@ -300,22 +307,22 @@ export function POSPage() {
             </div>
           ) : (
             cart.map((item) => (
-              <div key={item.product.id} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2">
+              <div key={cartKey(item)} className="flex items-center gap-2 rounded-lg bg-muted/50 p-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{item.product.name}</p>
+                  <p className="truncate text-sm font-medium">{item.product.name}{item.variant && <span className="text-muted-foreground"> · {item.variant}</span>}</p>
                   <p className="text-xs text-muted-foreground">{formatCurrency(item.product.sellingPrice)}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.product.id, -1)} aria-label={t('pos.decrease')}>
+                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(cartKey(item), -1)} aria-label={t('pos.decrease')}>
                     <Minus className="h-3 w-3" />
                   </Button>
                   <span className="w-7 text-center text-sm font-semibold">{item.quantity}</span>
-                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(item.product.id, 1)} aria-label={t('pos.increase')}>
+                  <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => updateQuantity(cartKey(item), 1)} aria-label={t('pos.increase')}>
                     <Plus className="h-3 w-3" />
                   </Button>
                 </div>
                 <p className="w-20 text-right text-sm font-semibold">{formatCurrency(item.product.sellingPrice * item.quantity)}</p>
-                <button onClick={() => removeFromCart(item.product.id)} className="p-1 text-muted-foreground hover:text-destructive" aria-label={t('pos.remove')} title={t('pos.remove')}>
+                <button onClick={() => removeFromCart(cartKey(item))} className="p-1 text-muted-foreground hover:text-destructive" aria-label={t('pos.remove')} title={t('pos.remove')}>
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -417,6 +424,13 @@ export function POSPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <VariantPicker
+        productName={variantProduct?.name}
+        variants={variantProduct?.variants}
+        onClose={() => setVariantProduct(null)}
+        onPick={(v) => { if (variantProduct) addToCart(variantProduct, v.name); setVariantProduct(null); }}
+      />
 
       {showScanner && (
         <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setShowScanner(false)} />

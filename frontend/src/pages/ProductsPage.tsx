@@ -20,6 +20,7 @@ import { Plus, Search, Package, Pencil, Trash2, ScanLine, Download, ChevronLeft,
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import api from '@/lib/api';
 import { NativeSelect } from '@/components/ui/select';
+import type { ProductVariant } from '@/components/VariantPicker';
 import { cn } from '@/lib/utils';
 
 interface Product {
@@ -34,6 +35,7 @@ interface Product {
   image?: string;
   adaptiveFields?: Record<string, unknown>;
   category?: { id: string; name: string } | null;
+  variants?: ProductVariant[] | null;
 }
 
 const ADAPTIVE_FIELDS: Record<string, string[]> = {
@@ -64,6 +66,7 @@ const defaultForm = {
   name: '', businessType: 'OTHER', costPrice: 0, sellingPrice: 0,
   totalStock: 0, lowStockAlert: 5, categoryId: null as string | null,
   adaptiveFields: {} as Record<string, unknown>,
+  variants: [] as ProductVariant[],
 };
 
 export function ProductsPage() {
@@ -103,15 +106,21 @@ export function ProductsPage() {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
   useEffect(() => { setPage(1); }, [search]);
 
+  const variantStock = form.variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+  const setVariant = (i: number, patch: Partial<ProductVariant>) =>
+    setForm({ ...form, variants: form.variants.map((v, j) => (j === i ? { ...v, ...patch } : v)) });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (form.sellingPrice <= 0) { toast.error(t('products.priceError')); return; }
+    const variants = form.variants.filter((v) => v.name.trim());
+    const payload = { ...form, variants, totalStock: variants.length ? variantStock : form.totalStock };
     setSaving(true);
     try {
       if (editingId) {
-        await api.put(`/products/${editingId}`, form);
+        await api.put(`/products/${editingId}`, payload);
       } else {
-        await api.post('/products', form);
+        await api.post('/products', payload);
       }
       setShowForm(false);
       setEditingId(null);
@@ -132,6 +141,7 @@ export function ProductsPage() {
       lowStockAlert: product.lowStockAlert,
       categoryId: product.category?.id || null,
       adaptiveFields: (product.adaptiveFields || {}) as Record<string, unknown>,
+      variants: product.variants || [],
     });
     setEditingId(product.id);
     setShowForm(true);
@@ -246,7 +256,7 @@ export function ProductsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label>{t('products.stock')}</Label>
-                    <Input type="number" min={0} inputMode="numeric" value={form.totalStock} onChange={(e) => setForm({ ...form, totalStock: +e.target.value })} />
+                    <Input type="number" min={0} inputMode="numeric" disabled={form.variants.length > 0} value={form.variants.length > 0 ? variantStock : form.totalStock} onChange={(e) => setForm({ ...form, totalStock: +e.target.value })} />
                   </div>
                   <div>
                     <Label>{t('products.lowStock')}</Label>
@@ -255,6 +265,25 @@ export function ProductsPage() {
                 </div>
 
                 {/* Adaptive Fields */}
+                <div className="space-y-2 rounded-lg border p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="mb-0">{t('products.variants')}</Label>
+                    <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => setForm({ ...form, variants: [...form.variants, { name: '', stock: 0 }] })}>
+                      <Plus className="mr-1 h-3.5 w-3.5" /> {t('products.addVariant')}
+                    </Button>
+                  </div>
+                  {form.variants.length > 0 && <p className="text-xs text-muted-foreground">{t('products.variantsHint')}</p>}
+                  {form.variants.map((v, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Input aria-label={t('products.variantName')} placeholder={t('products.variantName')} value={v.name} onChange={(e) => setVariant(i, { name: e.target.value })} />
+                      <Input aria-label={t('products.stock')} type="number" min={0} inputMode="numeric" className="w-24" value={v.stock} onChange={(e) => setVariant(i, { stock: Math.max(0, +e.target.value) })} />
+                      <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" aria-label={t('products.removeVariant')} onClick={() => setForm({ ...form, variants: form.variants.filter((_, j) => j !== i) })}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
                 {form.businessType && ADAPTIVE_FIELDS[form.businessType]?.map((field) => (
                   <div key={field}>
                     <Label>{t(`productFields.${field}`)}</Label>
@@ -300,6 +329,13 @@ export function ProductsPage() {
                     <div className="min-w-0 flex-1 mr-2">
                       <h3 className="font-semibold text-sm truncate">{product.name}</h3>
                       <p className="text-xs text-muted-foreground">{t(businessTypeKey(product.businessType))}</p>
+                      {product.variants && product.variants.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {product.variants.map((v) => (
+                            <span key={v.name} className={cn('rounded bg-muted px-1.5 py-0.5 text-[10px]', v.stock <= 0 && 'text-destructive')}>{v.name} : {v.stock}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <Badge variant={product.totalStock <= product.lowStockAlert ? 'warning' : 'secondary'} className="shrink-0 text-xs" title={t('products.stock')}>
                       {product.totalStock} {t('products.inStock')}
