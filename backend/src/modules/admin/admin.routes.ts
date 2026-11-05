@@ -16,7 +16,12 @@ import {
   getAnalytics,
   deleteTenant,
   resetUserPassword,
+  getErrorLogs,
+  resolveErrorLog,
+  resolveAllErrorLogs,
+  getAuditLogs,
 } from './admin.controller';
+import { auditAdminAction } from './adminAudit';
 
 const router = Router();
 
@@ -48,6 +53,7 @@ const adminAuth = (req: Request, res: Response, next: NextFunction): void => {
 };
 
 router.use(adminAuth);
+router.use(auditAdminAction);
 
 // Dashboard
 router.get('/dashboard', getDashboard);
@@ -68,5 +74,11 @@ router.get('/payments/pending', getPendingPayments);
 router.get('/payments', getAllPayments);
 router.post('/payments/:paymentId/approve', approvePayment);
 router.post('/payments/:paymentId/reject', rejectPayment);
+
+// Bugs (error_logs) and admin action history
+router.get('/errors', getErrorLogs);
+router.post('/errors/resolve-all', resolveAllErrorLogs);
+router.post('/errors/:id/resolve', resolveErrorLog);
+router.get('/audit', getAuditLogs);
 
 export default router;

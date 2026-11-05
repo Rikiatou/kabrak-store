@@ -49,6 +49,7 @@ export const getDashboard = async (_req: Request, res: Response): Promise<void> 
         select: { amountXAF: true, confirmedAt: true, createdAt: true, plan: true },
       }),
     ]);
+    const openErrors = await prisma.errorLog.count({ where: { resolved: false } });
 
     const counts = { ACTIVE: 0, TRIAL: 0, EXPIRED: 0, CANCELLED: 0, NONE: 0 } as Record<string, number>;
     const payingByPlan: Record<string, number> = { STORE: 0, SHOP: 0, BUSINESS: 0 };
@@ -97,6 +98,7 @@ export const getDashboard = async (_req: Request, res: Response): Promise<void> 
         expiredSubs: counts.EXPIRED,
         cancelledSubs: counts.CANCELLED,
         pendingPayments,
+        openErrors,
         totalRevenue,
         revenueThisMonth,
         mrr,
@@ -182,6 +184,10 @@ export const getTenantDetail = async (req: Request, res: Response): Promise<void
       prisma.order.aggregate({ where: { ...notCancelled, createdAt: { gte: since30 } }, _sum: { finalAmount: true }, _count: { id: true } }),
       prisma.order.findFirst({ where: { tenantId }, orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
     ]);
+    const [errorLogs, auditLogs] = await Promise.all([
+      prisma.errorLog.findMany({ where: { tenantId }, orderBy: { lastSeen: 'desc' }, take: 20 }),
+      prisma.adminAuditLog.findMany({ where: { tenantId }, orderBy: { createdAt: 'desc' }, take: 30 }),
+    ]);
 
     res.json({
       success: true,
@@ -190,6 +196,8 @@ export const getTenantDetail = async (req: Request, res: Response): Promise<void
         billingPayments: tenant.billingPayments.map(withReference),
         effectiveStatus: effectiveStatus(tenant.subscription),
         subscriptionEnd: subscriptionEnd(tenant.subscription),
+        errorLogs,
+        auditLogs,
         activity: {
           salesCount: allTime._count.id,
           salesTotal: allTime._sum.finalAmount || 0,
@@ -492,5 +500,54 @@ export const getAnalytics = async (_req: Request, res: Response): Promise<void> 
   } catch (error) {
     console.error('[ADMIN] analytics error:', error);
     res.status(500).json({ success: false, message: 'Erreur analytics' });
+  }
+};
+
+export const getErrorLogs = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { resolved, source, tenantId } = req.query;
+    const where: Record<string, unknown> = { resolved: resolved === 'true' };
+    if (source) where.source = source;
+    if (tenantId) where.tenantId = tenantId;
+    const [logs, openCount] = await Promise.all([
+      prisma.errorLog.findMany({ where, orderBy: { lastSeen: 'desc' }, take: 200 }),
+      prisma.errorLog.count({ where: { resolved: false } }),
+    ]);
+    const tenantIds = [...new Set(logs.map((l) => l.tenantId).filter((x): x is string => Boolean(x)))];
+    const tenants = await prisma.tenant.findMany({ where: { id: { in: tenantIds } }, select: { id: true, name: true, phone: true } });
+    const byId = Object.fromEntries(tenants.map((t) => [t.id, t]));
+    res.json({ success: true, data: logs.map((l) => ({ ...l, tenant: l.tenantId ? byId[l.tenantId] || null : null })), openCount });
+  } catch (error) {
+    console.error('[ADMIN] error logs:', error);
+    res.status(500).json({ success: false, message: 'Erreur chargement des bugs' });
+  }
+};
+
+export const resolveErrorLog = async (req: Request, res: Response): Promise<void> => {
+  try {
+    await prisma.errorLog.update({ where: { id: req.params.id as string }, data: { resolved: req.body?.resolved !== false } });
+    res.json({ success: true, message: 'Bug mis à jour' });
+  } catch (error) {
+    res.status(404).json({ success: false, message: 'Bug introuvable' });
+  }
+};
+
+export const resolveAllErrorLogs = async (_req: Request, res: Response): Promise<void> => {
+  const { count } = await prisma.errorLog.updateMany({ where: { resolved: false }, data: { resolved: true } });
+  res.json({ success: true, message: `${count} bug(s) marqué(s) corrigé(s)` });
+};
+
+export const getAuditLogs = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { tenantId } = req.query;
+    const logs = await prisma.adminAuditLog.findMany({
+      where: tenantId ? { tenantId: tenantId as string } : {},
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+    });
+    res.json({ success: true, data: logs });
+  } catch (error) {
+    console.error('[ADMIN] audit logs:', error);
+    res.status(500).json({ success: false, message: 'Erreur historique' });
   }
 };

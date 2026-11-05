@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { reportError } from './errorReporter';
 
 /**
  * Extracts a human-readable message from an axios/unknown error.
@@ -44,6 +45,11 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const path = window.location.pathname.toLowerCase();
+
+    // 502/503/504 come from the hosting proxy (server down), so the backend can't log them itself
+    if (status && status >= 502 && status <= 504) {
+      reportError(`API ${status} (serveur indisponible)`, { url: error.config?.url, method: error.config?.method?.toUpperCase(), statusCode: status });
+    }
 
     if (status === 401) {
       // Avoid redirect loop when already on login/register/forgot/reset pages

@@ -21,6 +21,16 @@ function getPlanPrice(plan: string): number {
   }
 }
 
+
+const LEGACY_CATEGORIES: Record<string, string> = {
+  FOOD_DELIVERY: 'FOOD_BUSINESS',
+  HOME_COOKING: 'FOOD_BUSINESS',
+  WHATSAPP_SELLER: 'MIXED_SHOP',
+  MADE_TO_ORDER: 'OTHER',
+};
+// Old cached frontends can still send retired categories.
+const normalizeCategories = (cats: string[]) => [...new Set(cats.map((c) => LEGACY_CATEGORIES[c] || c))];
+
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const data = req.body as RegisterInput;
@@ -43,7 +53,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           slug,
           plan: data.plan,
           businessMode: data.businessMode,
-          businessCategories: data.businessCategories,
+          businessCategories: normalizeCategories(data.businessCategories),
           phone: data.phone,
           email: data.email,
           language: data.language,
@@ -76,7 +86,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
       // Create categories from businessCategories
       if (data.businessCategories && data.businessCategories.length > 0) {
-        for (const catName of data.businessCategories) {
+        for (const catName of normalizeCategories(data.businessCategories)) {
           await tx.category.create({
             data: {
               name: catName,
@@ -285,7 +295,7 @@ export const updateCategories = async (req: Request, res: Response): Promise<voi
 
     const updated = await prisma.tenant.update({
       where: { id: tenantId },
-      data: { businessCategories },
+      data: { businessCategories: normalizeCategories(businessCategories) },
     });
 
     res.json({ success: true, data: updated });

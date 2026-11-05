@@ -776,3 +776,42 @@ model CashSession {
   @@index([tenantId, status])
   @@map("cash_sessions")
 }
+
+model ErrorLog {
+  id          String   @id @default(uuid())
+  fingerprint String   @unique
+  source      String
+  message     String
+  stack       String?
+  url         String?
+  method      String?
+  statusCode  Int?
+  userAgent   String?
+  appVersion  String?
+  tenantId    String?
+  userId      String?
+  count       Int      @default(1)
+  resolved    Boolean  @default(false)
+  firstSeen   DateTime @default(now())
+  lastSeen    DateTime @default(now())
+
+  @@index([resolved, lastSeen])
+  @@index([tenantId])
+  @@map("error_logs")
+}
+
+model AdminAuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  targetType String?
+  targetId   String?
+  tenantId   String?
+  tenantName String?
+  details    Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([tenantId])
+  @@map("admin_audit_logs")
+}
