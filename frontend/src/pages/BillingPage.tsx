@@ -90,6 +90,7 @@ export function BillingPage() {
     api.get('/billing/subscription')
       .then((res) => {
         setSub(res.data.data);
+        useAuthStore.getState().setSubscription(res.data.data);
         setSelectedPlan(res.data.data.plan);
       })
       .catch((err) => { console.error(err); toast.error(getApiErrorMessage(err)); })
@@ -124,6 +125,7 @@ export function BillingPage() {
       if (res.data?.data?.status === 'SUCCEEDED') {
         const { data } = await api.get('/billing/subscription');
         setSub(data.data);
+        useAuthStore.getState().setSubscription(data.data);
         setStep(1);
         setPaymentData(null);
       } else {

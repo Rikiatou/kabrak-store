@@ -6,6 +6,7 @@ const RULES: Array<{ re: RegExp; action: string; type: string }> = [
   { re: /^\/tenants\/([^/]+)\/suspend$/, action: 'TENANT_SUSPEND', type: 'tenant' },
   { re: /^\/tenants\/([^/]+)\/reactivate$/, action: 'TENANT_REACTIVATE', type: 'tenant' },
   { re: /^\/tenants\/([^/]+)\/extend$/, action: 'SUBSCRIPTION_EXTEND', type: 'tenant' },
+  { re: /^\/tenants\/([^/]+)\/set-end-date$/, action: 'SUBSCRIPTION_SET_END', type: 'tenant' },
   { re: /^\/tenants\/([^/]+)\/change-plan$/, action: 'PLAN_CHANGE', type: 'tenant' },
   { re: /^\/tenants\/([^/]+)$/, action: 'TENANT_DELETE', type: 'tenant' },
   { re: /^\/users\/([^/]+)\/reset-password$/, action: 'PASSWORD_RESET', type: 'user' },
@@ -14,7 +15,10 @@ const RULES: Array<{ re: RegExp; action: string; type: string }> = [
 ];
 
 async function resolveTenant(type: string, id: string) {
-  if (type === 'tenant') return prisma.tenant.findUnique({ where: { id }, select: { id: true, name: true } });
+  if (type === 'tenant') {
+    const t = await prisma.tenant.findUnique({ where: { id }, select: { id: true, name: true, subscription: { select: { endDate: true, plan: true } } } });
+    return t ? { id: t.id, name: t.name, previousEndDate: t.subscription?.endDate, previousPlan: t.subscription?.plan } : null;
+  }
   if (type === 'user') {
     const u = await prisma.user.findUnique({ where: { id }, select: { email: true, tenant: { select: { id: true, name: true } } } });
     return u ? { ...u.tenant, email: u.email } : null;

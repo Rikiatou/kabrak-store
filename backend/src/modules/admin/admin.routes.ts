@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import rateLimit from 'express-rate-limit';
 import { authenticate } from '../../middleware/auth';
-import { requireSuperAdmin, requireAdminToken } from '../../middleware/adminAuth';
+import { requireSuperAdmin, requireAdminToken, safeEqual } from '../../middleware/adminAuth';
 import {
   getDashboard,
   getAllTenants,
@@ -8,6 +9,7 @@ import {
   suspendTenant,
   reactivateTenant,
   extendSubscription,
+  setSubscriptionEnd,
   changeTenantPlan,
   getPendingPayments,
   getAllPayments,
@@ -26,14 +28,23 @@ import { auditAdminAction } from './adminAudit';
 const router = Router();
 
 // Admin auth: login via shared ADMIN_SECRET (same mechanism as Beauty Pro)
-router.post('/auth', (req: Request, res: Response) => {
+// Brute-force protection: 10 password attempts / 15 min per IP
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Trop de tentatives, réessayez dans 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post('/auth', adminLoginLimiter, (req: Request, res: Response) => {
   const { password } = req.body;
   const secret = process.env.ADMIN_SECRET;
   if (!secret) {
     res.status(503).json({ success: false, message: 'ADMIN_SECRET non configuré' });
     return;
   }
-  if (password !== secret) {
+  if (typeof password !== 'string' || !safeEqual(password, secret)) {
     res.status(401).json({ success: false, message: 'Mot de passe incorrect' });
     return;
   }
@@ -65,6 +76,7 @@ router.get('/tenants/:id', getTenantDetail);
 router.post('/tenants/:id/suspend', suspendTenant);
 router.post('/tenants/:id/reactivate', reactivateTenant);
 router.post('/tenants/:id/extend', extendSubscription);
+router.post('/tenants/:id/set-end-date', setSubscriptionEnd);
 router.post('/tenants/:id/change-plan', changeTenantPlan);
 router.delete('/tenants/:id', deleteTenant);
 router.post('/users/:userId/reset-password', resetUserPassword);
