@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useEffect, lazy, Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { AppLayout } from './components/layout/AppLayout';
@@ -51,6 +51,24 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const isLoading = useAuthStore((s) => s.isLoading);
   if (!token) return <Navigate to="/login" replace />;
   if (isLoading) return <div className="flex items-center justify-center min-h-screen text-gray-500">Loading…</div>;
+  return <SubscriptionGuard>{children}</SubscriptionGuard>;
+}
+
+// Mirrors the server's requireActiveSubscription on the device, so an expired shop is also
+// blocked when it opens the app offline (the server can't answer then). Uses the last
+// subscription saved by fetchMe; refreshed on every online start.
+const SUB_FREE_PATHS = ['/billing', '/guide'];
+
+function SubscriptionGuard({ children }: { children: React.ReactNode }) {
+  const subscription = useAuthStore((s) => s.subscription) as
+    | { status: string; endDate: string; trialEndsAt?: string | null }
+    | null;
+  const location = useLocation();
+  if (!subscription || SUB_FREE_PATHS.some((p) => location.pathname.startsWith(p))) return <>{children}</>;
+  const end = subscription.status === 'TRIAL' ? subscription.trialEndsAt || subscription.endDate : subscription.endDate;
+  const expired =
+    ['EXPIRED', 'CANCELLED'].includes(subscription.status) || (!!end && new Date(end).getTime() < Date.now());
+  if (expired) return <Navigate to="/billing" replace />;
   return <>{children}</>;
 }
 

@@ -271,6 +271,37 @@ export const extendSubscription = async (req: Request, res: Response): Promise<v
   }
 };
 
+// Sets an exact end date (shorten or lengthen a running subscription/trial).
+export const setSubscriptionEnd = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tenantId = req.params.id as string;
+    const endDate = new Date(String(req.body?.endDate || ''));
+    if (Number.isNaN(endDate.getTime())) {
+      res.status(400).json({ success: false, message: 'Date invalide' });
+      return;
+    }
+    endDate.setHours(23, 59, 59, 999);
+    const sub = await prisma.subscription.findUnique({ where: { tenantId } });
+    if (!sub) {
+      res.status(404).json({ success: false, message: 'Abonnement introuvable' });
+      return;
+    }
+    const future = endDate > new Date();
+    await prisma.subscription.update({
+      where: { tenantId },
+      data: {
+        endDate,
+        ...(sub.status === 'TRIAL' ? { trialEndsAt: endDate } : {}),
+        ...(future && sub.status === 'EXPIRED' ? { status: 'ACTIVE' as const } : {}),
+      },
+    });
+    res.json({ success: true, message: `Fin d'abonnement fixée au ${endDate.toLocaleDateString('fr-FR')}`, newEndDate: endDate });
+  } catch (error) {
+    console.error('[ADMIN] set end date:', error);
+    res.status(500).json({ success: false, message: 'Erreur modification de la date' });
+  }
+};
+
 export const changeTenantPlan = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.params.id as string;
