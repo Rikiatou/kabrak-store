@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { omService } from '../../services/orangeMoneyService';
 import { PLAN_PRICES } from '../../config/pricing';
+import { notifyAdmin } from '../../services/telegram';
 
 export const getSubscription = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -111,6 +112,11 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
       }
     }
 
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.user!.tenantId }, select: { name: true } });
+    notifyAdmin(
+      `💰 Nouveau paiement à valider\n${tenant?.name || req.user!.tenantId}\n${planName} · ${months} mois · ${total.toLocaleString('fr-FR')} FCFA\nRéf : ${orderId}\nhttps://admin.kabrakeng.com/payments`,
+    );
+
     res.json({
       success: true,
       data: {
@@ -171,28 +177,6 @@ export const getPaymentStatus = async (req: Request, res: Response): Promise<voi
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur';
-    res.status(500).json({ success: false, message });
-  }
-};
-
-export const confirmManual = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const paymentId = req.params.paymentId as string;
-    const billing = await prisma.billingPayment.findFirst({
-      where: { id: paymentId, tenantId: req.user!.tenantId },
-    });
-    if (!billing) {
-      res.status(404).json({ success: false, message: 'Introuvable' });
-      return;
-    }
-    if (billing.status === 'SUCCEEDED') {
-      res.json({ success: true, message: 'Déjà confirmé' });
-      return;
-    }
-    await confirmBillingPayment(billing.id);
-    res.json({ success: true, message: 'Paiement confirmé, abonnement activé !' });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Erreur confirmation';
     res.status(500).json({ success: false, message });
   }
 };

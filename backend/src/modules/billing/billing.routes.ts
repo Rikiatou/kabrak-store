@@ -5,7 +5,6 @@ import {
   changePlan,
   initiatePayment,
   getPaymentStatus,
-  confirmManual,
   webhook,
   getHistory,
 } from './billing.controller';
@@ -23,6 +22,5 @@ router.get('/history', getHistory);
 router.get('/status/:paymentId', getPaymentStatus);
 router.post('/change-plan', authorize('OWNER'), changePlan);
 router.post('/initiate', authorize('OWNER'), initiatePayment);
-router.post('/confirm/:paymentId', authorize('OWNER'), confirmManual);
 
 export default router;
