@@ -1,3 +1,4 @@
+import { notifyAdmin } from '../../services/telegram';
 import crypto from 'crypto';
 import { AsyncLocalStorage } from 'async_hooks';
 import { prisma } from '../../config/prisma';
@@ -41,11 +42,20 @@ export async function recordError(input: ErrorInput): Promise<void> {
       appVersion: input.appVersion?.slice(0, 40) ?? null,
       userId: input.userId ?? null,
     };
+    const existing = await prisma.errorLog.findUnique({ where: { fingerprint }, select: { resolved: true } });
     await prisma.errorLog.upsert({
       where: { fingerprint },
       create: { fingerprint, source: input.source, message, url, tenantId: input.tenantId ?? null, ...data },
       update: { ...data, count: { increment: 1 }, lastSeen: now, resolved: false },
     });
+    if (!existing || existing.resolved) {
+      const shop = input.tenantId
+        ? (await prisma.tenant.findUnique({ where: { id: input.tenantId }, select: { name: true } }))?.name
+        : null;
+      notifyAdmin(
+        `🐞 ${existing ? 'Bug revenu' : 'Nouveau bug'} (${input.source})\n${shop || 'Boutique inconnue'}\n${url || '-'}\n${message.slice(0, 300)}\nhttps://admin.kabrakeng.com/kabrak/bugs`,
+      );
+    }
   } catch (e) {
     process.stderr.write(`[error-log] failed to record: ${(e as Error).message}\n`);
   }
