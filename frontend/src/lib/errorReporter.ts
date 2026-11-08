@@ -2,6 +2,7 @@ declare const __APP_VERSION__: string;
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 const IGNORED = [/ResizeObserver loop/i, /^Script error\.?$/i, /Non-Error promise rejection/i];
+const BOT_UA = /bot|crawl|spider|slurp|Google-Read-Aloud|Lighthouse|HeadlessChrome|facebookexternalhit|WhatsApp\//i;
 const sent = new Set<string>();
 let sentCount = 0;
 
@@ -14,7 +15,7 @@ interface Extra {
 
 // Sends app crashes to the backend (admin "Bugs" page). Fire-and-forget, max 20 distinct errors per page load.
 export function reportError(message: string, extra: Extra = {}): void {
-  if (!message || IGNORED.some((re) => re.test(message))) return;
+  if (!message || IGNORED.some((re) => re.test(message)) || BOT_UA.test(navigator.userAgent)) return;
   const key = `${message}|${extra.url || ''}`;
   if (sent.has(key) || sentCount >= 20) return;
   sent.add(key);
