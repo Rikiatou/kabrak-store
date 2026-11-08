@@ -17,7 +17,7 @@ const optionList = (p: Product): string[] => {
   return typeof raw === 'string' ? raw.split(/[,/]/).map((x) => x.trim()).filter(Boolean) : [];
 };
 
-const fr = typeof navigator !== 'undefined' && (navigator.language || '').startsWith('fr');
+const LANG_KEY = 'kabrak-storefront-lang';
 
 interface Tenant {
   id: string;
@@ -29,6 +29,7 @@ interface Tenant {
   businessMode: string;
   businessCategories: string[];
   storefrontOpen?: boolean;
+  language?: string;
 }
 
 interface Product {
@@ -56,6 +57,14 @@ export function StorefrontPage() {
   const [customer, setCustomer] = useState({ name: '', phone: '', note: '' });
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<{ reference: string; message: string } | null>(null);
+  const [savedLang] = useState(() => localStorage.getItem(LANG_KEY));
+  const [lang, setLang] = useState<'fr' | 'en'>(() => (savedLang === 'en' || savedLang === 'fr' ? savedLang : 'fr'));
+  const fr = lang === 'fr';
+  const toggleLang = () => {
+    const next = fr ? 'en' : 'fr';
+    localStorage.setItem(LANG_KEY, next);
+    setLang(next);
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -64,7 +73,10 @@ export function StorefrontPage() {
     const fetchAll = async () => {
       try {
         const tenantRes = await client.get(`/api/public/tenant/${slug}`);
-        if (tenantRes.data.success) setTenant(tenantRes.data.data);
+        if (tenantRes.data.success) {
+          setTenant(tenantRes.data.data);
+          if (!savedLang) setLang(tenantRes.data.data?.language === 'en' ? 'en' : 'fr');
+        }
         if (tenantRes.data.data?.storefrontOpen === false) { setLocked(true); return; }
         const prodRes = await client.get(`/api/public/products/${slug}?limit=200`);
         if (prodRes.data.success) setProducts(prodRes.data.data);
@@ -233,6 +245,9 @@ export function StorefrontPage() {
             <span className="font-bold text-gray-900 truncate">{tenant.name}</span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={toggleLang} className="px-2 py-1 rounded-lg border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-100" title={fr ? 'Switch to English' : 'Passer en français'}>
+              {fr ? 'EN' : 'FR'}
+            </button>
             <button onClick={handleShare} className="p-2 rounded-lg hover:bg-gray-100 transition-colors" title={fr ? 'Partager' : 'Share'}>
               <Share2 className="w-4 h-4 text-gray-500" />
             </button>
