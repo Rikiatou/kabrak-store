@@ -373,45 +373,63 @@ export const approvePayment = async (req: Request, res: Response): Promise<void>
       res.status(404).json({ success: false, message: 'Paiement introuvable' });
       return;
     }
-    if (billing.status === 'SUCCEEDED') {
+    // Atomic claim: a double click or a second admin tab cannot extend the subscription twice.
+    const outcome = await prisma.$transaction(async (tx) => {
+      const claimed = await tx.billingPayment.updateMany({
+        where: { id: billing.id, status: { not: 'SUCCEEDED' } },
+        data: { status: 'SUCCEEDED', confirmedAt: new Date() },
+      });
+      if (claimed.count === 0) return null;
+
+      // Same shop, same offer, sent within 24h of this one and still pending = duplicate clicks.
+      const day = 24 * 60 * 60 * 1000;
+      const duplicates = await tx.billingPayment.updateMany({
+        where: {
+          id: { not: billing.id },
+          tenantId: billing.tenantId,
+          plan: billing.plan,
+          months: billing.months,
+          amountXAF: billing.amountXAF,
+          status: 'PENDING',
+          createdAt: { gte: new Date(billing.createdAt.getTime() - day), lte: new Date(billing.createdAt.getTime() + day) },
+        },
+        data: { status: 'CANCELLED' },
+      });
+
+      const sub = await tx.subscription.findUnique({ where: { tenantId: billing.tenantId } });
+      if (sub) {
+        const now = new Date();
+        const base = sub.endDate > now ? sub.endDate : now;
+        const newEnd = new Date(base);
+        newEnd.setMonth(newEnd.getMonth() + billing.months);
+        await tx.subscription.update({
+          where: { tenantId: billing.tenantId },
+          data: {
+            plan: billing.plan as 'STORE' | 'SHOP' | 'BUSINESS',
+            status: 'ACTIVE',
+            priceMonthly: PLAN_PRICES[billing.plan] || 4900,
+            startDate: base,
+            endDate: newEnd,
+          },
+        });
+        await tx.tenant.update({
+          where: { id: billing.tenantId },
+          data: { plan: billing.plan as 'STORE' | 'SHOP' | 'BUSINESS' },
+        });
+      }
+      const updated = await tx.billingPayment.findUnique({ where: { id: billing.id } });
+      return { updated, duplicates: duplicates.count };
+    });
+
+    if (!outcome) {
       res.json({ success: true, message: 'Déjà approuvé' });
       return;
     }
-
-    // Update payment status
-    const updated = await prisma.billingPayment.update({
-      where: { id: billing.id },
-      data: { status: 'SUCCEEDED', confirmedAt: new Date() },
-    });
-
-    // Activate subscription
-    const sub = await prisma.subscription.findUnique({
-      where: { tenantId: billing.tenantId },
-    });
-    if (sub) {
-      const now = new Date();
-      const base = sub.endDate > now ? sub.endDate : now;
-      const newEnd = new Date(base);
-      newEnd.setMonth(newEnd.getMonth() + billing.months);
-
-      await prisma.subscription.update({
-        where: { tenantId: billing.tenantId },
-        data: {
-          plan: billing.plan as 'STORE' | 'SHOP' | 'BUSINESS',
-          status: 'ACTIVE',
-          priceMonthly: PLAN_PRICES[billing.plan] || 4900,
-          startDate: base,
-          endDate: newEnd,
-        },
-      });
-
-      await prisma.tenant.update({
-        where: { id: billing.tenantId },
-        data: { plan: billing.plan as 'STORE' | 'SHOP' | 'BUSINESS' },
-      });
-    }
-
-    res.json({ success: true, message: 'Paiement approuvé, abonnement activé', data: updated });
+    const { updated, duplicates } = outcome;
+    const message = duplicates
+      ? `Paiement approuvé, abonnement activé (${duplicates} doublon(s) annulé(s))`
+      : 'Paiement approuvé, abonnement activé';
+    res.json({ success: true, message, data: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Erreur approbation' });
   }
