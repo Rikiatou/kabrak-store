@@ -25,6 +25,7 @@ interface Product {
   lowStockAlert: number;
   isActive: boolean;
   image?: string;
+  images?: string[];
   adaptiveFields?: Record<string, unknown>;
   category?: { id: string; name: string } | null;
 }
@@ -99,7 +100,7 @@ export function ProductsPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
-  const [formImage, setFormImage] = useState('');
+  const [formImages, setFormImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const debouncedSearch = useDebounce(search);
@@ -137,7 +138,8 @@ export function ProductsPage() {
     try {
       const payload = {
         ...form,
-        image: formImage,
+        image: formImages[0] || '',
+        images: formImages,
         costPrice: form.costPrice === '' ? 0 : Number(form.costPrice),
         sellingPrice: form.sellingPrice === '' ? 0 : Number(form.sellingPrice),
         totalStock: form.totalStock === '' ? 0 : Number(form.totalStock),
@@ -152,7 +154,7 @@ export function ProductsPage() {
       setShowForm(false);
       setEditingId(null);
       setForm(defaultForm);
-      setFormImage('');
+      setFormImages([]);
       fetchProducts();
     } catch (err) {
       console.error(err);
@@ -174,7 +176,7 @@ export function ProductsPage() {
       adaptiveFields: (product.adaptiveFields || {}) as Record<string, unknown>,
       image: product.image || '',
     });
-    setFormImage(product.image || '');
+    setFormImages(product.images?.length ? product.images : product.image ? [product.image] : []);
     setEditingId(product.id);
     setShowForm(true);
   };
@@ -270,7 +272,7 @@ export function ProductsPage() {
               <ScanLine className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Scanner</span>
             </Button>
           )}
-          <Button size="sm" onClick={() => { setForm(defaultForm); setFormImage(''); setEditingId(null); setShowForm(true); }}>
+          <Button size="sm" onClick={() => { setForm(defaultForm); setFormImages([]); setEditingId(null); setShowForm(true); }}>
             <Plus className="w-4 h-4 mr-1" /> {t('products.addProduct')}
           </Button>
         </div>
@@ -303,9 +305,9 @@ export function ProductsPage() {
                 </div>
 
                 <ImageUpload
-                  value={formImage}
-                  onChange={setFormImage}
-                  label={language === 'fr' ? 'Image du produit' : 'Product image'}
+                  values={formImages}
+                  onChange={setFormImages}
+                  label={language === 'fr' ? 'Photos du produit (la 1re est la principale)' : 'Product photos (the first is the main one)'}
                 />
 
                 <div>

@@ -61,7 +61,7 @@ export const getPublicProducts = async (req: Request, res: Response): Promise<vo
       where,
       take: parseInt(limit as string),
       orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, description: true, image: true, sellingPrice: true, totalStock: true, businessType: true, adaptiveFields: true },
+      select: { id: true, name: true, description: true, image: true, images: true, sellingPrice: true, totalStock: true, businessType: true, adaptiveFields: true },
     });
     res.json({ success: true, data: products });
   } catch (error) {

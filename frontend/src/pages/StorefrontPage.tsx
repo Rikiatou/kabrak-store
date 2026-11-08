@@ -17,6 +17,8 @@ const optionList = (p: Product): string[] => {
   return typeof raw === 'string' ? raw.split(/[,/]/).map((x) => x.trim()).filter(Boolean) : [];
 };
 
+const photosOf = (p: Product): string[] => (p.images?.length ? p.images : p.image ? [p.image] : []);
+
 const LANG_KEY = 'kabrak-storefront-lang';
 
 interface Tenant {
@@ -37,6 +39,7 @@ interface Product {
   name: string;
   description?: string;
   image?: string;
+  images?: string[];
   sellingPrice: number;
   totalStock: number;
   businessType: string;
@@ -57,6 +60,7 @@ export function StorefrontPage() {
   const [customer, setCustomer] = useState({ name: '', phone: '', note: '' });
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<{ reference: string; message: string } | null>(null);
+  const [viewing, setViewing] = useState<{ product: Product; index: number } | null>(null);
   const [savedLang] = useState(() => localStorage.getItem(LANG_KEY));
   const [lang, setLang] = useState<'fr' | 'en'>(() => (savedLang === 'en' || savedLang === 'fr' ? savedLang : 'fr'));
   const fr = lang === 'fr';
@@ -330,10 +334,17 @@ export function StorefrontPage() {
             {filteredProducts.map(product => (
               <div key={product.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
                 <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                  {product.image ? (
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  {photosOf(product).length > 0 ? (
+                    <button type="button" onClick={() => setViewing({ product, index: 0 })} className="w-full h-full">
+                      <img src={photosOf(product)[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </button>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-4xl select-none">📦</div>
+                  )}
+                  {photosOf(product).length > 1 && (
+                    <span className="absolute top-1.5 right-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-black/50 text-white pointer-events-none">
+                      1/{photosOf(product).length}
+                    </span>
                   )}
                   {product.totalStock <= 0 && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
@@ -386,6 +397,54 @@ export function StorefrontPage() {
           <Phone className="w-6 h-6" />
         </button>
       )}
+
+      {/* Photo viewer */}
+      {viewing && (() => {
+        const imgs = photosOf(viewing.product);
+        const go = (d: number) => setViewing({ ...viewing, index: (viewing.index + d + imgs.length) % imgs.length });
+        return (
+          <div className="fixed inset-0 z-40 bg-black/80 flex items-end sm:items-center justify-center" onClick={() => setViewing(null)}>
+            <div className="bg-white w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="relative bg-gray-100 aspect-square">
+                <img src={imgs[viewing.index]} alt={viewing.product.name} className="w-full h-full object-contain" />
+                <button onClick={() => setViewing(null)} className="absolute top-2 right-2 p-1.5 rounded-full bg-black/50 text-white"><X className="w-4 h-4" /></button>
+                {imgs.length > 1 && (
+                  <>
+                    <button onClick={() => go(-1)} className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white text-xl leading-none" aria-label={fr ? 'Photo précédente' : 'Previous photo'}>‹</button>
+                    <button onClick={() => go(1)} className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 text-white text-xl leading-none" aria-label={fr ? 'Photo suivante' : 'Next photo'}>›</button>
+                  </>
+                )}
+              </div>
+              {imgs.length > 1 && (
+                <div className="flex gap-2 px-4 pt-3 overflow-x-auto">
+                  {imgs.map((u, i) => (
+                    <button key={u + i} onClick={() => setViewing({ ...viewing, index: i })}
+                      className="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden border-2"
+                      style={{ borderColor: i === viewing.index ? accentColor : 'transparent' }}>
+                      <img src={u} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="p-4 space-y-2">
+                <h3 className="font-bold text-gray-900">{viewing.product.name}</h3>
+                {viewing.product.description && <p className="text-sm text-gray-500 whitespace-pre-line">{viewing.product.description}</p>}
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <span className="font-black" style={{ color: accentColor }}>{formatCurrency(viewing.product.sellingPrice)}</span>
+                  {viewing.product.totalStock > 0 ? (
+                    <button onClick={() => { const p = viewing.product; setViewing(null); startAdd(p); }}
+                      className="px-4 py-2 rounded-lg text-sm font-bold text-white" style={{ background: accentColor }}>
+                      {fr ? 'Ajouter au panier' : 'Add to cart'}
+                    </button>
+                  ) : (
+                    <span className="text-sm font-semibold text-gray-400">{fr ? 'Rupture' : 'Out of stock'}</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Size / option picker */}
       {picking && (
