@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kabrak-v6';
+const CACHE_NAME = 'kabrak-v7';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
@@ -65,7 +65,8 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       return fetch(event.request).then((response) => {
         // Cache successful responses for static assets
-        if (response.ok && (
+        const type = response.headers.get('content-type') || '';
+        if (response.ok && !type.includes('text/html') && (
           event.request.url.endsWith('.js') ||
           event.request.url.endsWith('.css') ||
           event.request.url.endsWith('.png') ||

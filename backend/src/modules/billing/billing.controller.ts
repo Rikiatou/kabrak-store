@@ -72,9 +72,23 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
     }
 
     const { total, planName } = omService.calculateTotal(plan as string, months as number);
-    const orderId = `KBS-${Date.now()}-${req.user!.tenantId.slice(0, 8)}`;
 
-    const billing = await prisma.billingPayment.create({
+    // Repeated clicks on "Pay" reuse the same pending request instead of creating duplicates.
+    const reused = omService.isConfigured() ? null : await prisma.billingPayment.findFirst({
+      where: {
+        tenantId: req.user!.tenantId,
+        plan: plan as string,
+        months: months as number,
+        amountXAF: total,
+        status: 'PENDING',
+        mode: 'manual',
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const orderId = reused?.omOrderId || `KBS-${Date.now()}-${req.user!.tenantId.slice(0, 8)}`;
+
+    const billing = reused ?? await prisma.billingPayment.create({
       data: {
         tenantId: req.user!.tenantId,
         plan: plan as string,
@@ -112,8 +126,8 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
       }
     }
 
-    const tenant = await prisma.tenant.findUnique({ where: { id: req.user!.tenantId }, select: { name: true } });
-    notifyAdmin(
+    const tenant = reused ? null : await prisma.tenant.findUnique({ where: { id: req.user!.tenantId }, select: { name: true } });
+    if (!reused) notifyAdmin(
       `💰 Nouveau paiement à valider\n${tenant?.name || req.user!.tenantId}\n${planName} · ${months} mois · ${total.toLocaleString('fr-FR')} FCFA\nRéf : ${orderId}\nhttps://admin.kabrakeng.com/payments`,
     );
 
