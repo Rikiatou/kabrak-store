@@ -14,6 +14,7 @@ export const createProductSchema = z.object({
   name: z.string().min(1, 'Nom du produit requis'),
   description: z.string().optional(),
   image: z.string().optional(),
+  images: z.array(z.string().url()).max(5).optional(),
   categoryId: z.string().uuid().optional().nullable(),
   businessType: z.enum(BUSINESS_CATEGORIES),
   costPrice: z.number().min(0).default(0),
