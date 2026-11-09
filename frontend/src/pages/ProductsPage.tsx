@@ -125,7 +125,11 @@ export function ProductsPage() {
   const [gen, setGen] = useState({ sizes: '', colors: '' });
   const fr = language === 'fr';
 
-  const newRow = (name = ''): VariantRow => ({ name, sellingPrice: String(form.sellingPrice ?? ''), costPrice: String(form.costPrice ?? ''), stock: '', barcode: '', packPrice: '' });
+  // New rows start with the last variant's prices (or the product prices), so only what differs needs typing.
+  const newRow = (name = ''): VariantRow => {
+    const last = form.variants[form.variants.length - 1];
+    return { name, sellingPrice: last?.sellingPrice ?? String(form.sellingPrice ?? ''), costPrice: last?.costPrice ?? String(form.costPrice ?? ''), stock: '', barcode: '', packPrice: last?.packPrice ?? '' };
+  };
   const setRow = (i: number, patch: Partial<VariantRow>) => setForm((prev) => ({ ...prev, variants: prev.variants.map((r, j) => (j === i ? { ...r, ...patch } : r)) }));
   const generateVariants = () => {
     const split = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
@@ -413,16 +417,23 @@ export function ProductsPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">{t('products.costPrice')} (FCFA)</label>
-                    <Input type="number" min={0} placeholder="0" value={form.costPrice ?? ''} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} />
+                {filledRows.length > 0 ? (
+                  <p className="text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 py-2">
+                    {fr ? 'Ce produit a des variantes : les prix et le stock se mettent dans chaque variante, plus bas.' : 'This product has variants: prices and stock are set on each variant below.'}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">{fr ? "Prix d'achat (1 pièce)" : 'Purchase price (1 item)'}</label>
+                      <Input type="number" min={0} placeholder="0" value={form.costPrice ?? ''} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} />
+                      <p className="text-[10px] text-muted-foreground mt-1">{fr ? 'Ex : carton de 50 acheté 5 000 → 100' : 'E.g. box of 50 bought 5,000 → 100'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">{fr ? 'Prix de vente au détail (1 pièce)' : 'Retail price (1 item)'}</label>
+                      <Input type="number" min={0} placeholder="0" value={form.sellingPrice ?? ''} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })} />
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">{t('products.sellingPrice')} (FCFA)</label>
-                    <Input type="number" min={0} placeholder="0" value={form.sellingPrice ?? ''} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })} />
-                  </div>
-                </div>
+                )}
 
                 {ORDER_BASED_TYPES.has(form.businessType) ? (
                   <p className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
@@ -433,7 +444,7 @@ export function ProductsPage() {
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-1 block">{t('products.stock')}</label>
+                      <label className="text-sm font-medium mb-1 block">{filledRows.length > 0 ? (fr ? 'Stock total (calculé)' : 'Total stock (calculated)') : t('products.stock')}</label>
                       {filledRows.length > 0 ? (
                         <Input type="number" value={variantStock} readOnly className="bg-gray-50" title={t('products.autoCalculated')} />
                       ) : (
@@ -476,8 +487,8 @@ export function ProductsPage() {
                         </Button>
                       </div>
                       <div className="grid grid-cols-3 gap-1.5">
-                        <label className="text-[10px] text-muted-foreground">{fr ? 'Prix vente' : 'Price'}<Input className="h-8" type="number" min={0} value={r.sellingPrice} onChange={(e) => setRow(i, { sellingPrice: e.target.value })} /></label>
-                        <label className="text-[10px] text-muted-foreground">{fr ? 'Prix achat' : 'Cost'}<Input className="h-8" type="number" min={0} value={r.costPrice} onChange={(e) => setRow(i, { costPrice: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? 'Achat (1 pièce)' : 'Cost (1 item)'}<Input className="h-8" type="number" min={0} value={r.costPrice} onChange={(e) => setRow(i, { costPrice: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? 'Détail (1 pièce)' : 'Retail (1 item)'}<Input className="h-8" type="number" min={0} value={r.sellingPrice} onChange={(e) => setRow(i, { sellingPrice: e.target.value })} /></label>
                         {!ORDER_BASED_TYPES.has(form.businessType) && (
                           <label className="text-[10px] text-muted-foreground">{fr ? 'Stock (unités)' : 'Stock (units)'}<Input className="h-8" type="number" value={r.stock} onChange={(e) => setRow(i, { stock: e.target.value })} /></label>
                         )}
@@ -485,7 +496,7 @@ export function ProductsPage() {
                       <div className="grid grid-cols-2 gap-1.5">
                         <Input className="h-8" placeholder={fr ? 'Code-barres (facultatif)' : 'Barcode (optional)'} value={r.barcode} onChange={(e) => setRow(i, { barcode: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
                         {form.packEnabled && (
-                          <Input className="h-8" type="number" min={0} placeholder={fr ? 'Prix du paquet' : 'Pack price'} value={r.packPrice} onChange={(e) => setRow(i, { packPrice: e.target.value })} />
+                          <Input className="h-8" type="number" min={0} placeholder={fr ? 'Prix du paquet (gros)' : 'Pack price (wholesale)'} value={r.packPrice} onChange={(e) => setRow(i, { packPrice: e.target.value })} />
                         )}
                       </div>
                     </div>
@@ -503,7 +514,7 @@ export function ProductsPage() {
                       <div className="grid grid-cols-3 gap-2">
                         <label className="text-[10px] text-muted-foreground">{fr ? 'Nom' : 'Name'}<Input className="h-8" placeholder={fr ? 'Paquet' : 'Pack'} value={form.packName} onChange={(e) => setForm({ ...form, packName: e.target.value })} /></label>
                         <label className="text-[10px] text-muted-foreground">{fr ? 'Unités dedans' : 'Units inside'}<Input className="h-8" type="number" min={2} placeholder="10" value={form.packSize} onChange={(e) => setForm({ ...form, packSize: e.target.value })} /></label>
-                        <label className="text-[10px] text-muted-foreground">{fr ? 'Prix du paquet' : 'Pack price'}<Input className="h-8" type="number" min={0} value={form.packPrice} onChange={(e) => setForm({ ...form, packPrice: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? 'Prix du paquet (gros)' : 'Pack price (wholesale)'}<Input className="h-8" type="number" min={0} value={form.packPrice} onChange={(e) => setForm({ ...form, packPrice: e.target.value })} /></label>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {fr ? `Le stock est compté à l'unité : vendre 1 paquet retire ${Number(form.packSize) || 'N'} unités. Avec des variantes, vous pouvez mettre un prix de paquet par variante.`
