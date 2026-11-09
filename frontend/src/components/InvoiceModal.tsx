@@ -85,7 +85,18 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const fr = language === 'fr';
   const printRef = useRef<HTMLDivElement>(null);
   const [sharing, setSharing] = useState(false);
-  const [printFormat, setPrintFormat] = useState<'standard' | 'thermal' | 'thermal58'>('standard');
+  type PrintFormat = 'standard' | 'thermal' | 'thermal58';
+  const [printFormat, setPrintFormatState] = useState<PrintFormat>(() => {
+    const saved = localStorage.getItem('kabrak.printFormat');
+    return saved === 'thermal' || saved === 'thermal58' ? saved : 'standard';
+  });
+  const setPrintFormat = (f: PrintFormat) => { setPrintFormatState(f); localStorage.setItem('kabrak.printFormat', f); };
+  // Receipt text size, remembered on this device (thermal printers print small px text)
+  const TEXT_SIZES = [{ key: 'M', scale: 1.25 }, { key: 'L', scale: 1.5 }, { key: 'XL', scale: 1.8 }, { key: 'XXL', scale: 2.1 }] as const;
+  const [textSize, setTextSizeState] = useState<string>(() => localStorage.getItem('kabrak.receiptTextSize') || 'L');
+  const setTextSize = (k: string) => { setTextSizeState(k); localStorage.setItem('kabrak.receiptTextSize', k); };
+  const scale = (TEXT_SIZES.find((t) => t.key === textSize) ?? TEXT_SIZES[1]).scale;
+  const fs = (px: number) => `${Math.round(px * scale)}px`;
   const isThermal = printFormat !== 'standard';
   const paperWidth = printFormat === 'thermal58' ? '58mm' : '80mm';
 
@@ -306,6 +317,20 @@ export function InvoiceModal({ invoice, onClose }: Props) {
             </button>
           ))}
         </div>
+        {isThermal && (
+          <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700">
+            <span className="text-xs text-gray-500 mr-1">{fr ? 'Taille du texte' : 'Text size'}</span>
+            {TEXT_SIZES.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTextSize(t.key)}
+                className={`flex-1 py-1 text-xs font-bold rounded-lg ${textSize === t.key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+              >
+                {t.key}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Invoice Content */}
         <div className="print-area-wrapper overflow-y-auto max-h-[60vh] bg-gray-50/50">
@@ -314,12 +339,13 @@ export function InvoiceModal({ invoice, onClose }: Props) {
             style={
               isThermal
                 ? {
-                    fontFamily: "'Courier New', Courier, monospace",
-                    fontSize: printFormat === 'thermal58' ? '10px' : '12px',
-                    lineHeight: '1.4',
+                    fontFamily: 'Arial, Helvetica, sans-serif',
+                    fontSize: fs(11),
+                    fontWeight: 600,
+                    lineHeight: '1.35',
                     color: '#000',
                     backgroundColor: '#fff',
-                    padding: '16px 12px',
+                    padding: '8px 4px',
                     width: '100%',
                     maxWidth: '320px',
                     margin: '0 auto',
@@ -338,18 +364,18 @@ export function InvoiceModal({ invoice, onClose }: Props) {
               /* ===== THERMAL RECEIPT ===== */
               <div>
                 <div style={{ textAlign: 'center', marginBottom: '14px' }}>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
+                  <div style={{ fontSize: fs(16), fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                     {tenant?.name}
                   </div>
                   <div style={{ margin: '8px 0', borderTop: '1px dashed #000' }} />
-                  <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{fr ? 'TICKET DE CAISSE' : 'CASH RECEIPT'}</div>
-                  <div style={{ fontSize: '11px' }}>N° {invoice.invoiceNumber}</div>
-                  <div style={{ fontSize: '11px' }}>{fr ? 'Date' : 'Date'}: {dateStr}</div>
+                  <div style={{ fontSize: fs(13), fontWeight: 'bold' }}>{fr ? 'TICKET DE CAISSE' : 'CASH RECEIPT'}</div>
+                  <div style={{ fontSize: fs(11) }}>N° {invoice.invoiceNumber}</div>
+                  <div style={{ fontSize: fs(11) }}>{fr ? 'Date' : 'Date'}: {dateStr}</div>
                 </div>
 
                 <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
 
-                <div style={{ marginBottom: '10px', fontSize: '11px' }}>
+                <div style={{ marginBottom: '10px', fontSize: fs(11) }}>
                   <div>
                     {fr ? 'Client' : 'Client'}: <strong>{invoice.client?.name || (fr ? 'Client Anonyme' : 'Anonymous Client')}</strong>
                   </div>
@@ -361,7 +387,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
                 <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
 
-                <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', fontSize: fs(11), borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid #000', fontWeight: 'bold' }}>
                       <th style={{ textAlign: 'left', paddingBottom: '4px' }}>{fr ? 'Article' : 'Item'}</th>
@@ -384,24 +410,24 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
                 <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: fs(14) }}>
                   <span>{fr ? 'TOTAL' : 'TOTAL'}</span>
                   <span>{formatCurrency(total)} FCFA</span>
                 </div>
                 {due > 0 && (
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: fs(11) }}>
                       <span>{fr ? 'Payé' : 'Paid'}</span>
                       <span>{formatCurrency(paid)} F</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 'bold', color: '#c00' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: fs(11), fontWeight: 'bold', color: '#c00' }}>
                       <span>{fr ? 'Reste' : 'Due'}</span>
                       <span>{formatCurrency(due)} F</span>
                     </div>
                   </>
                 )}
 
-                <div style={{ textAlign: 'center', marginTop: '16px', fontSize: '11px', color: '#666' }}>
+                <div style={{ textAlign: 'center', marginTop: '16px', fontSize: fs(11), color: '#000' }}>
                   {fr ? 'Merci pour votre achat !' : 'Thank you for your purchase!'}
                   <br />
                   {tenant?.name}
