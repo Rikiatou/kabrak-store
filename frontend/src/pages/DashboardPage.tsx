@@ -522,7 +522,7 @@ export function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm text-gray-900 dark:text-white">{order.reference}</p>
                       <p className="text-xs text-gray-400 truncate">
-                        {order.client?.name || (language === 'fr' ? 'Anonyme' : 'Anonymous')} · {formatDateTime(order.createdAt)}
+                        {order.client?.name || (language === 'fr' ? 'Client de passage' : 'Walk-in customer')} · {formatDateTime(order.createdAt)}
                       </p>
                     </div>
                     <p className="font-semibold text-sm text-gray-900 dark:text-white flex-shrink-0">{formatCurrency(order.finalAmount)}</p>

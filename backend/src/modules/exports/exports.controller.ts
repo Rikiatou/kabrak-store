@@ -99,7 +99,7 @@ export const exportOrders = async (req: Request, res: Response): Promise<void> =
     const rows = orders.map((o) =>
       toCsvRow([
         o.reference,
-        o.client?.name || 'Anonyme',
+        o.client?.name || 'Client de passage',
         o.finalAmount,
         o.invoice?.amountPaid || 0,
         o.invoice?.amountDue || o.finalAmount,
@@ -142,7 +142,7 @@ export const exportInvoices = async (req: Request, res: Response): Promise<void>
     const rows = invoices.map((inv) =>
       toCsvRow([
         inv.invoiceNumber,
-        inv.client?.name || 'Anonyme',
+        inv.client?.name || 'Client de passage',
         inv.totalAmount,
         inv.amountPaid,
         inv.amountDue,

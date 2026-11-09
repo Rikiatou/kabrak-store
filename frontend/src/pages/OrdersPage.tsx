@@ -305,7 +305,7 @@ export function OrdersPage() {
                 <label className="text-sm font-medium mb-1 block">{t('clients.title')}</label>
                 <select className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
                   value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)}>
-                  <option value="">-- Client anonyme --</option>
+                  <option value="">-- {language === 'fr' ? 'Client de passage' : 'Walk-in customer'} --</option>
                   {clients.map((c) => <option key={c.id} value={c.id}>{c.name} {c.phone ? `(${c.phone})` : ''}</option>)}
                 </select>
               </div>
@@ -434,7 +434,7 @@ export function OrdersPage() {
                   <div className="min-w-0">
                     <p className="font-bold text-sm sm:text-base">{order.reference}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {order.client?.name || 'Client anonyme'} · {formatDateTime(order.createdAt)}
+                      {order.client?.name || (language === 'fr' ? 'Client de passage' : 'Walk-in customer')} · {formatDateTime(order.createdAt)}
                     </p>
                   </div>
                   <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
