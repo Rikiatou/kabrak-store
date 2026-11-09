@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../../config/prisma';
 import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 import { generatePublicToken, generateReference } from '../orders/orders.controller';
-import { StockError, STOCK_SELECT, itemCost, itemPrice, moveStock, notifyLowStock, readVariants, unitsPerItem } from '../../utils/stock';
+import { StockError, STOCK_SELECT, itemCost, moveStock, notifyLowStock, isMainMode, readVariants, tieredItemPrice, unitsPerItem } from '../../utils/stock';
 
 /** Storefront is a BUSINESS feature; every plan gets it during the free trial. */
 async function isStorefrontOpen(tenantId: string): Promise<boolean> {
@@ -63,7 +63,7 @@ export const getPublicProducts = async (req: Request, res: Response): Promise<vo
       where,
       take: parseInt(limit as string),
       orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, description: true, image: true, images: true, sellingPrice: true, totalStock: true, businessType: true, adaptiveFields: true, variants: true, packSize: true, packPrice: true, packName: true },
+      select: { id: true, name: true, description: true, image: true, images: true, sellingPrice: true, totalStock: true, businessType: true, adaptiveFields: true, variants: true, packSize: true, packPrice: true, packName: true, priceTiers: true },
     });
     // Never expose purchase prices on the public storefront
     const data = products.map((p) => ({
@@ -151,7 +151,10 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
         select: { id: true },
       })).id;
 
-      const total = lines.reduce((sum, { item, p }) => sum + itemPrice(p, item.variant, item.pack) * item.quantity, 0);
+      const mainQty = new Map<string, number>();
+      for (const { item, p } of lines) if (isMainMode(p, item.pack)) mainQty.set(p.id, (mainQty.get(p.id) ?? 0) + item.quantity);
+      const priceOf = (p: (typeof lines)[number]['p'], item: (typeof lines)[number]['item']) => tieredItemPrice(p, item.variant, item.pack, mainQty.get(p.id) ?? 0);
+      const total = lines.reduce((sum, { item, p }) => sum + priceOf(p, item) * item.quantity, 0);
       const options = lines.filter(({ item }) => item.option).map(({ item, p }) => `${p.name}: ${item.option}`);
       const notes = [
         `Commande en ligne (vitrine) · ${data.customerName} · ${data.customerPhone}`,
@@ -174,8 +177,8 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
             create: lines.map(({ item, p }) => ({
               productId: p.id,
               quantity: item.quantity,
-              unitPrice: itemPrice(p, item.variant, item.pack),
-              totalPrice: itemPrice(p, item.variant, item.pack) * item.quantity,
+              unitPrice: priceOf(p, item),
+              totalPrice: priceOf(p, item) * item.quantity,
               unitCost: itemCost(p, item.variant, item.pack),
               variant: item.variant,
               packSize: unitsPerItem(p, item.pack) > 1 ? p.packSize : null,

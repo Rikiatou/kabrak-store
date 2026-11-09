@@ -35,6 +35,7 @@ export const createProductSchema = z.object({
   packSize: z.number().int().min(2).max(10000).optional().nullable(),
   packPrice: z.number().min(0).optional().nullable(),
   packName: z.string().trim().max(30).optional().nullable(),
+  priceTiers: z.array(z.object({ minQty: z.number().int().min(2).max(100000), price: z.number().min(0) })).max(5).optional().nullable(),
   isService: z.boolean().default(false),
   duration: z.string().optional().nullable(),
   recurringType: z.string().optional().nullable(),

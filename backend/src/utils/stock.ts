@@ -56,16 +56,45 @@ export interface StockProduct {
   variants: Prisma.JsonValue | null;
   packSize: number | null;
   packPrice: number | null;
+  priceTiers?: Prisma.JsonValue | null;
 }
 
 export const STOCK_SELECT = {
   id: true, name: true, totalStock: true, costPrice: true, sellingPrice: true,
-  adaptiveFields: true, variants: true, packSize: true, packPrice: true, isService: true,
+  adaptiveFields: true, variants: true, packSize: true, packPrice: true, priceTiers: true, isService: true,
 } as const;
 
 /** Units taken from stock for one sold item (a pack counts `packSize` units). */
 export const unitsPerItem = (product: Pick<StockProduct, 'packSize'>, pack?: boolean) =>
   pack && product.packSize && product.packSize > 1 ? product.packSize : 1;
+
+export interface PriceTier { minQty: number; price: number }
+
+/** Sorted quantity prices, one per minimum quantity. */
+export const readTiers = (raw: unknown): PriceTier[] => {
+  if (!Array.isArray(raw)) return [];
+  const byQty = new Map<number, number>();
+  for (const t of raw) {
+    const minQty = Math.trunc(num((t as PriceTier)?.minQty));
+    const price = Math.max(0, num((t as PriceTier)?.price));
+    if (minQty >= 2 && price > 0) byQty.set(minQty, price);
+  }
+  return [...byQty].sort((a, b) => a[0] - b[0]).map(([minQty, price]) => ({ minQty, price }));
+};
+
+/** Quantity prices apply to the normal sale: the pack when sold by pack, else the unit. */
+export const isMainMode = (product: Pick<StockProduct, 'packSize'>, pack?: boolean) =>
+  unitsPerItem(product, pack) === unitsPerItem(product, true);
+
+export const tierPrice = (product: Pick<StockProduct, 'priceTiers'>, qty: number): number | null => {
+  let price: number | null = null;
+  for (const t of readTiers(product.priceTiers)) if (qty >= t.minQty) price = t.price;
+  return price;
+};
+
+/** Item price with the quantity price once `mainQty` (all main-mode lines of this product) reaches a tier. */
+export const tieredItemPrice = (product: StockProduct, variant: string | null | undefined, pack: boolean | undefined, mainQty: number) =>
+  (isMainMode(product, pack) ? tierPrice(product, mainQty) : null) ?? itemPrice(product, variant, pack);
 
 /** Purchase cost of one sold item, from the variant when there is one. */
 export const itemCost = (product: StockProduct, variant?: string | null, pack?: boolean) => {

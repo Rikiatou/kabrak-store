@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { CreateProductInput, UpdateProductInput } from './products.schema';
-import { StockError, STOCK_SELECT, lowStockLines, moveStock, notifyLowStock, readVariants } from '../../utils/stock';
+import { StockError, STOCK_SELECT, lowStockLines, moveStock, notifyLowStock, readVariants, readTiers } from '../../utils/stock';
 
 const PAYMENT_METHODS = ['CASH', 'MOBILE_MONEY', 'ORANGE_MONEY', 'MTN_MOMO', 'BANK_TRANSFER', 'OTHER'];
 
@@ -90,10 +90,14 @@ const barcodeTakenBy = async (tenantId: string, barcode: string | null | undefin
   });
 };
 
-type VariantInput = { variants?: unknown; totalStock?: number; packSize?: number | null; packPrice?: number | null };
+type VariantInput = { variants?: unknown; totalStock?: number; packSize?: number | null; packPrice?: number | null; priceTiers?: unknown };
 
 /** Cleans variants (unique names, stock as integers) and keeps totalStock = sum of variant stock. Returns an error message or null. */
 const prepareVariants = (data: VariantInput): string | null => {
+  if (data.priceTiers !== undefined) {
+    const tiers = readTiers(data.priceTiers);
+    data.priceTiers = tiers.length ? tiers : Prisma.DbNull;
+  }
   if (data.variants === undefined) return null;
   const variants = readVariants(data.variants);
   const names = new Set<string>();
@@ -134,7 +138,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     const product = await prisma.product.create({
       data: {
         ...data,
-        variants: data.variants as Prisma.InputJsonValue | typeof Prisma.DbNull | undefined,
+        variants: data.variants as Prisma.InputJsonValue | typeof Prisma.DbNull | undefined, priceTiers: data.priceTiers as Prisma.InputJsonValue | typeof Prisma.DbNull | undefined,
         tenantId: req.user!.tenantId,
       },
       include: { category: true },
@@ -172,7 +176,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
 
     const product = await prisma.product.update({
       where: { id },
-      data: { ...data, variants: data.variants as Prisma.InputJsonValue | typeof Prisma.DbNull | undefined },
+      data: { ...data, variants: data.variants as Prisma.InputJsonValue | typeof Prisma.DbNull | undefined, priceTiers: data.priceTiers as Prisma.InputJsonValue | typeof Prisma.DbNull | undefined },
       include: { category: true },
     });
 

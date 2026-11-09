@@ -262,6 +262,8 @@ model Product {
   packSize        Int?
   packPrice       Float?
   packName        String?
+  // [{ minQty, price }] — price per item once the cart holds minQty (all variants together)
+  priceTiers      Json?
 
   // Service mode fields
   isService       Boolean          @default(false)

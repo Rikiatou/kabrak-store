@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { type Sellable, hasPack, packLabel, priceOf, variantsOf } from '@/lib/variants';
+import { type Sellable, hasPack, isMainMode, packLabel, priceOf, tieredPrice, variantsOf } from '@/lib/variants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -174,7 +174,13 @@ export function OrdersPage() {
     return p ? { ...next, unitPrice: priceOf(p, next.variant, next.pack) } : next;
   }));
 
-  const cartTotal = cart.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
+  const priceFor = (i: CartItem) => {
+    const p = productOf(i.productId);
+    if (!p) return i.unitPrice;
+    const qty = cart.filter((c) => c.productId === i.productId && isMainMode(p, c.pack)).reduce((n, c) => n + c.quantity, 0);
+    return tieredPrice(p, i.variant, i.pack, qty);
+  };
+  const cartTotal = cart.reduce((sum, i) => sum + priceFor(i) * i.quantity, 0);
   const finalTotal = cartTotal - (Number(discount) || 0);
 
   const handleCreateOrder = async () => {
@@ -183,7 +189,7 @@ export function OrdersPage() {
     try {
       await api.post('/orders', {
         clientId: selectedClient || undefined,
-        items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice, variant: i.variant, pack: i.pack || undefined })),
+        items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: priceFor(i), variant: i.variant, pack: i.pack || undefined })),
         discount: Number(discount) || 0,
         paymentMethod: initialPaymentMethod,
         amountPaid: Number(initialAmountPaid) || 0,
@@ -357,7 +363,7 @@ export function OrdersPage() {
                       <div className="flex items-center gap-2">
                         <Input type="number" className="w-16 h-8 text-center" min={1} value={item.quantity}
                           onChange={(e) => setCart((prev) => prev.map((ci, ci2) => ci2 === i ? { ...ci, quantity: Math.max(1, +e.target.value || 1) } : ci))} />
-                        <span className="w-24 text-right">{formatCurrency(item.unitPrice * item.quantity)}</span>
+                        <span className="w-24 text-right">{formatCurrency(priceFor(item) * item.quantity)}</span>
                         <Button variant="ghost" size="sm" onClick={() => setCart((prev) => prev.filter((_, ci2) => ci2 !== i))}>
                           <X className="w-3 h-3" />
                         </Button>

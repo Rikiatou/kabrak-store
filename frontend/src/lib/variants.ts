@@ -15,6 +15,7 @@ export interface Sellable {
   packSize?: number | null;
   packPrice?: number | null;
   packName?: string | null;
+  priceTiers?: PriceTier[] | null;
 }
 
 export const variantsOf = (p: Sellable): Variant[] => (Array.isArray(p.variants) ? p.variants : []);
@@ -71,3 +72,24 @@ export const stockText = (p: Sellable, units: number, fr = true) => {
   const name = (p.packName || (fr ? 'paquet' : 'pack')).toLowerCase();
   return `${packs} ${name}${Math.abs(packs) > 1 ? 's' : ''}${rest ? ` + ${rest}` : ''}`;
 };
+
+export interface PriceTier { minQty: number; price: number }
+
+export const tiersOf = (p: Sellable): PriceTier[] =>
+  (Array.isArray(p.priceTiers) ? p.priceTiers : []).filter((t) => t.minQty >= 2 && t.price > 0).sort((a, b) => a.minQty - b.minQty);
+
+/** Quantity prices apply to the normal sale: the pack when sold by pack, else the unit. */
+export const isMainMode = (p: Sellable, pack?: boolean) => !!pack === hasPack(p);
+
+export const tierPrice = (p: Sellable, qty: number): number | null => {
+  let price: number | null = null;
+  for (const t of tiersOf(p)) if (qty >= t.minQty) price = t.price;
+  return price;
+};
+
+/** Price with the quantity price once `mainQty` (all main-mode lines of this product in the cart) reaches a tier. */
+export const tieredPrice = (p: Sellable, variant: string | null | undefined, pack: boolean | undefined, mainQty: number) =>
+  (isMainMode(p, pack) ? tierPrice(p, mainQty) : null) ?? priceOf(p, variant, pack);
+
+export const tiersText = (p: Sellable, fmt: (n: number) => string, fr = true) =>
+  tiersOf(p).map((t) => `${fr ? 'dès' : 'from'} ${t.minQty} : ${fmt(t.price)}`).join(' · ');

@@ -13,7 +13,7 @@ import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { cacheGet, cacheSet, queueSale, isNetworkError, newOfflineId } from '@/lib/offline';
-import { type Sellable, hasMainRange, hasPack, itemLabel, mainPrice, packLabel, packUnits, priceOf, stockText, variantsOf } from '@/lib/variants';
+import { type Sellable, hasMainRange, hasPack, isMainMode, itemLabel, mainPrice, packLabel, packUnits, priceOf, stockText, tierPrice, tieredPrice, tiersText, variantsOf } from '@/lib/variants';
 
 interface Product extends Sellable {
   id: string;
@@ -193,7 +193,9 @@ export function POSPage() {
     setCart(prev => prev.filter((_, j) => j !== idx));
   };
 
-  const linePrice = (item: CartItem) => priceOf(item.product, item.variant, item.pack);
+  const mainQty = (id: string) => cart.filter((i) => i.product.id === id && isMainMode(i.product, i.pack)).reduce((n, i) => n + i.quantity, 0);
+  const tierOn = (item: CartItem) => isMainMode(item.product, item.pack) && tierPrice(item.product, mainQty(item.product.id)) !== null;
+  const linePrice = (item: CartItem) => tieredPrice(item.product, item.variant, item.pack, mainQty(item.product.id));
 
   const subtotal = cart.reduce((sum, item) => sum + (linePrice(item) * item.quantity), 0);
   const total = Math.max(0, subtotal - (Number(discount) || 0));
@@ -496,6 +498,8 @@ export function POSPage() {
                   {(item.variant || item.pack) && <span className="text-xs font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{itemLabel(item.variant, item.pack ? item.product.packSize : null, fr)}</span>}
                   <p className="text-xs text-gray-400">
                     {formatCurrency(linePrice(item))}
+                    {tierOn(item) && <span className="ml-1 text-green-600 font-semibold">{fr ? 'prix de gros' : 'bulk price'}</span>}
+                    {!tierOn(item) && tiersText(item.product, formatCurrency, fr) && <span className="ml-1 text-gray-400">({tiersText(item.product, formatCurrency, fr)})</span>}
                     {hasPack(item.product) && (
                       <button type="button" onClick={() => setCart((prev) => prev.map((it, j) => (j === idx ? { ...it, pack: !it.pack } : it)))} className="ml-2 text-blue-600 font-semibold underline">
                         {item.pack ? (fr ? '→ unité' : '→ unit') : `→ ${(item.product.packName || (fr ? 'paquet' : 'pack')).toLowerCase()}`}
