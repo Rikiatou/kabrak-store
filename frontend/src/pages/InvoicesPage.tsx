@@ -2,10 +2,11 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { FileText, MessageCircle, Eye, Download, Plus, Trash2, X, DollarSign } from 'lucide-react';
+import { FileText, MessageCircle, Eye, Download, Plus, Trash2, X, DollarSign, RotateCcw } from 'lucide-react';
 import { InvoiceModal } from '@/components/InvoiceModal';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -14,6 +15,10 @@ import toast from 'react-hot-toast';
 import { Pagination } from '@/components/Pagination';
 
 interface InvoiceItem {
+  id?: string;
+  variant?: string | null;
+  packSize?: number | null;
+  returnedQty?: number;
   product: { name: string };
   quantity: number;
   unitPrice: number;
@@ -36,6 +41,7 @@ interface Invoice {
   createdAt: string;
   client?: { name: string; phone?: string } | null;
   order?: {
+    id?: string;
     reference: string;
     paymentMethod: string;
     items: InvoiceItem[];
@@ -227,6 +233,38 @@ export function InvoicesPage() {
     setPaymentInvoice(invoice);
     setPaymentAmount(invoice.amountDue > 0 ? invoice.amountDue.toString() : '');
     setShowPaymentModal(true);
+  };
+
+  const authUser = useAuthStore((s) => s.user);
+  const canRefund = authUser?.role === 'OWNER' || authUser?.role === 'MANAGER';
+  const fr = language === 'fr';
+  const [returnInv, setReturnInv] = useState<Invoice | null>(null);
+  const [returnQty, setReturnQty] = useState<Record<string, string>>({});
+  const [returnMethod, setReturnMethod] = useState('CASH');
+  const [returning, setReturning] = useState(false);
+  const openReturn = (inv: Invoice) => { setReturnInv(inv); setReturnQty({}); setReturnMethod('CASH'); };
+  const returnLines = (returnInv?.order?.items || [])
+    .filter((i) => i.id)
+    .map((i) => ({ item: i, quantity: Math.min(i.quantity, Math.max(0, parseInt(returnQty[i.id!] || '') || 0)) }))
+    .filter((l) => l.quantity > 0);
+  const returnValue = returnLines.reduce((n, l) => n + l.item.unitPrice * l.quantity, 0);
+  const submitReturn = async () => {
+    if (!returnInv?.order?.id || !returnLines.length) return;
+    setReturning(true);
+    try {
+      const { data } = await api.post(`/orders/${returnInv.order.id}/return`, {
+        items: returnLines.map((l) => ({ itemId: l.item.id, quantity: l.quantity })),
+        method: returnMethod,
+      });
+      const refund = data?.data?.refund ?? 0;
+      toast.success(refund > 0 ? (fr ? `Retour enregistré · rendez ${formatCurrency(refund)} à la cliente` : `Return saved · give back ${formatCurrency(refund)}`) : (fr ? 'Retour enregistré · stock remis' : 'Return saved · stock restored'));
+      setReturnInv(null);
+      loadInvoices();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, fr ? 'Échec du retour' : 'Return failed'));
+    } finally {
+      setReturning(false);
+    }
   };
 
   return (
@@ -491,6 +529,11 @@ export function InvoicesPage() {
                       <DollarSign className="w-4 h-4" />
                     </Button>
                   )}
+                  {canRefund && inv.order?.id && inv.order.items.some((i) => i.quantity > 0) && (
+                    <Button variant="outline" size="sm" onClick={() => openReturn(inv)} title={language === 'fr' ? 'Retour / remboursement' : 'Return / refund'}>
+                      <RotateCcw className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button variant="outline" size="sm" onClick={() => setSelectedInvoice(inv)} title="Voir">
                     <Eye className="w-4 h-4" />
                   </Button>
@@ -526,6 +569,54 @@ export function InvoicesPage() {
 
       {selectedInvoice && (
         <InvoiceModal invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} />
+      )}
+
+      {/* Return / refund modal */}
+      {returnInv && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <Card className="w-full max-w-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold dark:text-white">{fr ? 'Retour d’articles' : 'Return items'}</h2>
+                <Button variant="ghost" size="sm" onClick={() => setReturnInv(null)}><X className="w-4 h-4" /></Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {fr ? 'Indiquez combien la cliente rapporte. Chaque article repart dans son stock (même variante, à l’unité ou en paquet comme vendu).' : 'Enter how many the client brings back. Each item goes back to its own stock (same variant, unit or pack as sold).'}
+              </p>
+              <div className="space-y-2">
+                {(returnInv.order?.items || []).filter((i) => i.id && i.quantity > 0).map((i) => (
+                  <div key={i.id} className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0 text-sm dark:text-white">
+                      <p className="truncate font-medium">{[i.product.name, i.variant, i.packSize && i.packSize > 1 ? `${fr ? 'paquet' : 'pack'} ×${i.packSize}` : ''].filter(Boolean).join(' · ')}</p>
+                      <p className="text-xs text-muted-foreground">{fr ? 'Acheté' : 'Bought'} : {i.quantity} × {formatCurrency(i.unitPrice)}</p>
+                    </div>
+                    <Input className="w-20 h-9" type="number" min={0} max={i.quantity} placeholder="0" value={returnQty[i.id!] ?? ''} onChange={(e) => setReturnQty({ ...returnQty, [i.id!]: e.target.value })} />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <label className="text-sm font-medium dark:text-white">{fr ? 'Rembourser en' : 'Refund by'}</label>
+                <select className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm" value={returnMethod} onChange={(e) => setReturnMethod(e.target.value)}>
+                  <option value="CASH">{fr ? 'Espèces' : 'Cash'}</option>
+                  <option value="ORANGE_MONEY">Orange Money</option>
+                  <option value="MTN_MOMO">MTN MoMo</option>
+                  <option value="MOBILE_MONEY">Mobile Money</option>
+                  <option value="BANK_TRANSFER">{fr ? 'Virement' : 'Bank transfer'}</option>
+                </select>
+              </div>
+              <div className="flex justify-between text-sm bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <span className="text-muted-foreground">{fr ? 'Valeur rendue' : 'Returned value'}</span>
+                <span className="font-bold dark:text-white">{formatCurrency(returnValue)}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setReturnInv(null)}>{fr ? 'Annuler' : 'Cancel'}</Button>
+                <Button className="flex-1" disabled={returning || returnValue <= 0} onClick={submitReturn}>
+                  {returning ? '…' : fr ? 'Valider le retour' : 'Confirm return'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Payment Modal */}
