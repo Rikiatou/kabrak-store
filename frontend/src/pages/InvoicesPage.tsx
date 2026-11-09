@@ -498,7 +498,7 @@ export function InvoicesPage() {
                 <div>
                   <p className="font-bold dark:text-white">{inv.invoiceNumber}</p>
                   <p className="text-xs text-muted-foreground dark:text-gray-400">
-                    {inv.client?.name || (language === 'fr' ? 'Client anonyme' : 'Anonymous client')} · {formatDate(inv.createdAt)}
+                    {inv.client?.name || (language === 'fr' ? 'Client de passage' : 'Walk-in customer')} · {formatDate(inv.createdAt)}
                   </p>
                   {inv.lineItems && inv.lineItems.length > 0 && !inv.order && (
                     <p className="text-xs text-violet-600 dark:text-violet-400 mt-0.5">

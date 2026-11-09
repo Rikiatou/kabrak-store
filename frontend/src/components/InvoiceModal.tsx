@@ -368,6 +368,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   <div style={{ fontSize: fs(16), fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' }}>
                     {tenant?.name}
                   </div>
+                  {tenant?.phone && <div style={{ fontSize: fs(12), fontWeight: 'bold' }}>Tél : {tenant.phone}</div>}
                   <div style={{ margin: '8px 0', borderTop: '1px dashed #000' }} />
                   <div style={{ fontSize: fs(13), fontWeight: 'bold' }}>{fr ? 'TICKET DE CAISSE' : 'CASH RECEIPT'}</div>
                   <div style={{ fontSize: fs(11) }}>N° {invoice.invoiceNumber}</div>
@@ -378,7 +379,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
                 <div style={{ marginBottom: '10px', fontSize: fs(11) }}>
                   <div>
-                    {fr ? 'Client' : 'Client'}: <strong>{invoice.client?.name || (fr ? 'Client Anonyme' : 'Anonymous Client')}</strong>
+                    {fr ? 'Client' : 'Client'}: <strong>{invoice.client?.name || (fr ? 'Client de passage' : 'Walk-in customer')}</strong>
                   </div>
                   <div>{fr ? 'Paiement' : 'Payment'}: {paymentLabel}</div>
                   <div>
@@ -433,6 +434,9 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                   <br />
                   {tenant?.name}
                 </div>
+                <div style={{ textAlign: 'center', marginTop: '10px', paddingTop: '4px', borderTop: '1px dotted #000', fontSize: '10px', fontWeight: 400, color: '#000' }}>
+                  Logiciel de caisse KABRAK Store · POS software by KABRAK Store
+                </div>
               </div>
             ) : (
               /* ===== STANDARD INVOICE — KABRAK PRO DESIGN ===== */
@@ -469,7 +473,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
                   <div style={{ background: '#f9fafb', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '12px 14px' }}>
                     <div style={{ fontSize: '9px', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>{fr ? 'Facturé à' : 'Billed to'}</div>
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>{invoice.client?.name || (fr ? 'Client anonyme' : 'Anonymous client')}</div>
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#111827' }}>{invoice.client?.name || (fr ? 'Client de passage' : 'Walk-in customer')}</div>
                     {invoice.client?.phone && <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>☎ {invoice.client.phone}</div>}
                   </div>
                   <div style={{ background: '#f9fafb', border: '1px solid #f3f4f6', borderRadius: '12px', padding: '12px 14px' }}>
@@ -536,6 +540,9 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
                 {/* Bottom accent bar */}
                 <div style={{ height: '3px', background: `linear-gradient(135deg, ${invoiceColor}, ${invoiceColor}dd)`, borderRadius: '4px', marginTop: '16px', opacity: 0.7 }} />
+                <div style={{ textAlign: 'center', marginTop: '6px', fontSize: '8px', color: '#9ca3af' }}>
+                  Logiciel de caisse KABRAK Store · POS software by KABRAK Store
+                </div>
               </div>
             )}
           </div>
