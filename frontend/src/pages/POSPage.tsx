@@ -13,8 +13,9 @@ import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { cacheGet, cacheSet, queueSale, isNetworkError, newOfflineId } from '@/lib/offline';
+import { type Sellable, fromPrice, hasPack, hasPriceRange, itemLabel, packLabel, packUnits, priceOf, variantsOf } from '@/lib/variants';
 
-interface Product {
+interface Product extends Sellable {
   id: string;
   name: string;
   sellingPrice: number;
@@ -26,12 +27,14 @@ interface Product {
   sku?: string | null;
 }
 
-const matchesCode = (p: Product, code: string) => !!code && (p.barcode === code || p.sku === code);
+const matchesCode = (p: Product, code: string) => !!code && (p.barcode === code || p.sku === code || variantsOf(p).some((v) => v.barcode === code));
+const variantForCode = (p: Product, code: string) => variantsOf(p).find((v) => v.barcode === code)?.name;
 
 interface CartItem {
   product: Product;
   quantity: number;
   variant?: string;
+  pack?: boolean;
 }
 
 interface Client {
@@ -45,16 +48,24 @@ function applyLocalSale(list: Product[], sold: CartItem[]): Product[] {
     const lines = sold.filter((i) => i.product.id === p.id);
     if (lines.length === 0) return p;
     let sizes = p.adaptiveFields?.sizes as string | undefined;
+    const variants = variantsOf(p).map((v) => ({ ...v }));
+    let units = 0;
     for (const line of lines) {
-      if (!line.variant || !sizes) continue;
+      const n = line.quantity * packUnits(p, line.pack);
+      units += n;
+      if (!line.variant) continue;
+      const v = variants.find((x) => x.name.toLowerCase() === line.variant!.toLowerCase());
+      if (v) { v.stock -= n; continue; }
+      if (!sizes) continue;
       sizes = sizes.split(',').map((part) => {
-        const [k, v] = part.split(':').map((x) => x.trim());
-        return k && k.toLowerCase() === line.variant!.toLowerCase() ? `${k}:${(parseInt(v) || 0) - line.quantity}` : part.trim();
+        const [k, q] = part.split(':').map((x) => x.trim());
+        return k && k.toLowerCase() === line.variant!.toLowerCase() ? `${k}:${(parseInt(q) || 0) - n}` : part.trim();
       }).join(', ');
     }
     return {
       ...p,
-      totalStock: p.totalStock - lines.reduce((sum, i) => sum + i.quantity, 0),
+      totalStock: p.totalStock - units,
+      variants: variants.length ? variants : p.variants,
       adaptiveFields: sizes !== undefined ? { ...p.adaptiveFields, sizes } : p.adaptiveFields,
     };
   });
@@ -83,7 +94,8 @@ export function POSPage() {
   const [dueDate, setDueDate] = useState('');
   const [showInvoice, setShowInvoice] = useState(false);
   const [completedInvoice, setCompletedInvoice] = useState<unknown>(null);
-  const [variantPicker, setVariantPicker] = useState<{ product: Product; sizes: string[] } | null>(null);
+  const [variantPicker, setVariantPicker] = useState<{ product: Product; pack: boolean } | null>(null);
+  const fr = language === 'fr';
 
   useEffect(() => {
     api.get('/cash-sessions/current').then((r) => setDrawerClosed(!r.data.data)).catch(() => {});
@@ -151,57 +163,52 @@ export function POSPage() {
   const parseSizes = (sizesStr: string): string[] =>
     sizesStr.split(',').map(s => s.trim()).filter(s => s.includes(':'));
 
-  const addToCart = (product: Product, variant?: string) => {
-    // If HIJABS_ABAYAS or product has sizes, show picker first
-    const sizesStr = product.adaptiveFields?.sizes as string | undefined;
-    if (!variant && sizesStr && sizesStr.includes(':')) {
-      setVariantPicker({ product, sizes: parseSizes(sizesStr) });
+  const needsChoice = (p: Product) =>
+    variantsOf(p).length > 0 || hasPack(p) || (typeof p.adaptiveFields?.sizes === 'string' && p.adaptiveFields.sizes.includes(':'));
+
+  const addToCart = (product: Product, choice?: { variant?: string; pack?: boolean }) => {
+    if (!choice && needsChoice(product)) {
+      setVariantPicker({ product, pack: false });
       return;
     }
+    const variant = choice?.variant;
+    const pack = !!choice?.pack;
     setCart(prev => {
-      const existing = prev.find(item => (variant ? item.variant === variant && item.product.id === product.id : item.product.id === product.id && !item.variant));
-      if (existing) {
-        return prev.map(item =>
-          (variant ? item.variant === variant && item.product.id === product.id : item.product.id === product.id && !item.variant)
-            ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...prev, { product, quantity: 1, variant }];
+      const idx = prev.findIndex(item => item.product.id === product.id && (item.variant || '') === (variant || '') && !!item.pack === pack);
+      if (idx >= 0) return prev.map((item, j) => j === idx ? { ...item, quantity: item.quantity + 1 } : item);
+      return [...prev, { product, quantity: 1, variant, pack }];
     });
     setVariantPicker(null);
   };
 
-  const updateQuantity = (productId: string, delta: number, variant?: string) => {
+  const updateQuantity = (idx: number, delta: number) => {
     setCart(prev => prev
-      .map(item => {
-        if (item.product.id !== productId) return item;
-        if (variant !== undefined && item.variant !== variant) return item;
-        const newQty = item.quantity + delta;
-        if (newQty <= 0) return null;
-        return { ...item, quantity: newQty };
-      })
+      .map((item, j) => (j !== idx ? item : item.quantity + delta <= 0 ? null : { ...item, quantity: item.quantity + delta }))
       .filter(Boolean) as CartItem[]
     );
   };
 
-  const removeFromCart = (productId: string, variant?: string) => {
-    setCart(prev => prev.filter(item => !(item.product.id === productId && item.variant === variant)));
+  const removeFromCart = (idx: number) => {
+    setCart(prev => prev.filter((_, j) => j !== idx));
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.product.sellingPrice * item.quantity), 0);
+  const linePrice = (item: CartItem) => priceOf(item.product, item.variant, item.pack);
+
+  const subtotal = cart.reduce((sum, item) => sum + (linePrice(item) * item.quantity), 0);
   const total = Math.max(0, subtotal - (Number(discount) || 0));
   const change = (Number(amountPaid) || 0) > total ? (Number(amountPaid) || 0) - total : 0;
   const paymentStatus = (Number(amountPaid) || 0) >= total ? 'PAID' : (Number(amountPaid) || 0) > 0 ? 'PARTIAL' : 'PENDING';
 
-  const addScanned = (p: Product) => {
-    if (p.totalStock <= 0) {
+  const addScanned = (p: Product, variant?: string) => {
+    const stock = variant ? (variantsOf(p).find((v) => v.name === variant)?.stock ?? 0) : p.totalStock;
+    if (stock <= 0) {
       toast.error(language === 'fr' ? `${p.name} : rupture de stock` : `${p.name}: out of stock`);
       return;
     }
-    const sizes = p.adaptiveFields?.sizes;
-    if (typeof sizes === 'string' && sizes.includes(':')) setShowScanner(false);
+    if (variant) { addToCart(p, { variant }); toast.success(`+1 ${p.name} · ${variant}`); return; }
+    if (needsChoice(p)) setShowScanner(false);
     addToCart(p);
-    toast.success(`+1 ${p.name}`);
+    if (!needsChoice(p)) toast.success(`+1 ${p.name}`);
   };
 
   // Looks in the products already on the device first, so scanning also works offline.
@@ -209,10 +216,10 @@ export function POSPage() {
     const code = raw.trim();
     if (!code) return;
     const local = products.find((p) => matchesCode(p, code)) || (cacheGet<Product[]>('pos_products') || []).find((p) => matchesCode(p, code));
-    if (local) { addScanned(local); return; }
+    if (local) { addScanned(local, variantForCode(local, code)); return; }
     try {
       const { data } = await api.get(`/products/barcode/${encodeURIComponent(code)}`);
-      if (data.data) addScanned(data.data);
+      if (data.data) addScanned(data.data, data.variant || undefined);
     } catch (err) {
       toast.error(isNetworkError(err)
         ? (language === 'fr' ? `Code ${code} introuvable sur cet appareil (hors ligne)` : `Code ${code} not found on this device (offline)`)
@@ -234,8 +241,9 @@ export function POSPage() {
       items: cart.map(item => ({
         productId: item.product.id,
         quantity: item.quantity,
-        unitPrice: item.product.sellingPrice,
+        unitPrice: linePrice(item),
         variant: item.variant || undefined,
+        pack: item.pack || undefined,
       })),
     };
     const offlineId = newOfflineId();
@@ -407,7 +415,7 @@ export function POSPage() {
                     <p className="font-medium text-sm text-gray-900 dark:text-white truncate">{product.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5">{product.totalStock} {language === 'fr' ? 'en stock' : 'in stock'}</p>
                     <div className="flex items-center justify-between mt-1">
-                      <p className="font-bold text-sm text-blue-600">{formatCurrency(product.sellingPrice)}</p>
+                      <p className="font-bold text-sm text-blue-600">{hasPriceRange(product) ? (fr ? 'dès ' : 'from ') : ''}{formatCurrency(fromPrice(product))}</p>
                       {inCart ? (
                         <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
                           {inCart.quantity}
@@ -484,22 +492,22 @@ export function POSPage() {
               <div key={`${item.product.id}-${idx}`} className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 dark:bg-gray-700/30">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.product.name}</p>
-                  {item.variant && <span className="text-xs font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{item.variant}</span>}
-                  {!item.variant && <p className="text-xs text-gray-400">{formatCurrency(item.product.sellingPrice)}</p>}
+                  {(item.variant || item.pack) && <span className="text-xs font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{itemLabel(item.variant, item.pack ? item.product.packSize : null, fr)}</span>}
+                  <p className="text-xs text-gray-400">{formatCurrency(linePrice(item))}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => updateQuantity(item.product.id, -1, item.variant)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                  <button onClick={() => updateQuantity(idx, -1)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
                     <Minus className="w-3 h-3" />
                   </button>
                   <span className="w-8 text-center text-sm font-bold">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.product.id, 1, item.variant)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
+                  <button onClick={() => updateQuantity(idx, 1)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
                     <Plus className="w-3 h-3" />
                   </button>
                 </div>
                 <div className="text-right w-20">
-                  <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(item.product.sellingPrice * item.quantity)}</p>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(linePrice(item) * item.quantity)}</p>
                 </div>
-                <button onClick={() => removeFromCart(item.product.id, item.variant)} className="text-red-400 hover:text-red-600 p-1">
+                <button onClick={() => removeFromCart(idx)} className="text-red-400 hover:text-red-600 p-1">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -603,41 +611,72 @@ export function POSPage() {
         <BarcodeScanner onScan={handleBarcodeScan} onClose={() => setShowScanner(false)} />
       ) : null}
 
-      {/* Variant / Size picker */}
-      {variantPicker ? (
-        <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
-          <Card className="w-full max-w-sm shadow-2xl">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold">{variantPicker.product.name}</h3>
-                <button onClick={() => setVariantPicker(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5" /></button>
-              </div>
-              <p className="text-sm text-gray-500 mb-3">{language === 'fr' ? 'Choisir la taille :' : 'Choose size:'}</p>
-              <div className="grid grid-cols-3 gap-2">
-                {variantPicker.sizes.map((sizeEntry) => {
-                  const [size, qty] = sizeEntry.split(':');
-                  const available = parseInt(qty, 10) || 0;
-                  return (
-                    <button
-                      key={size}
-                      disabled={available <= 0}
-                      onClick={() => addToCart(variantPicker.product, size.trim())}
-                      className={`p-3 rounded-xl border-2 text-center transition-all ${
-                        available <= 0
-                          ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50'
-                          : 'border-blue-200 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer'
-                      }`}
-                    >
-                      <div className="font-bold text-sm">{size.trim()}</div>
-                      <div className={`text-xs mt-0.5 ${available <= 3 ? 'text-orange-500 font-semibold' : 'text-gray-400'}`}>{available} {language === 'fr' ? 'dispo' : 'left'}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      ) : null}
+      {/* Variant / pack picker */}
+      {variantPicker ? (() => {
+        const p = variantPicker.product;
+        const pack = variantPicker.pack;
+        const units = packUnits(p, pack);
+        const legacy = parseSizes((p.adaptiveFields?.sizes as string) || '').map((e) => {
+          const [k, q] = e.split(':');
+          return { name: k.trim(), stock: parseInt(q, 10) || 0 };
+        });
+        const choices = variantsOf(p).length ? variantsOf(p) : legacy;
+        return (
+          <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4">
+            <Card className="w-full max-w-sm shadow-2xl">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold">{p.name}</h3>
+                  <button onClick={() => setVariantPicker(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X className="w-5 h-5" /></button>
+                </div>
+                {hasPack(p) && (
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    {[false, true].map((isPack) => (
+                      <button
+                        key={String(isPack)}
+                        onClick={() => setVariantPicker({ product: p, pack: isPack })}
+                        className={`py-2 rounded-lg text-sm font-semibold border ${pack === isPack ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 dark:border-gray-600'}`}
+                      >
+                        {isPack ? packLabel(p, fr) : (fr ? "À l'unité" : 'Single')}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {choices.length > 0 ? (
+                  <>
+                    <p className="text-sm text-gray-500 mb-3">{fr ? 'Choisir la variante :' : 'Choose the variant:'}</p>
+                    <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
+                      {choices.map((v) => {
+                        const available = Math.floor(v.stock / units);
+                        return (
+                          <button
+                            key={v.name}
+                            disabled={available <= 0}
+                            onClick={() => addToCart(p, { variant: v.name, pack })}
+                            className={`p-3 rounded-xl border-2 text-center transition-all ${
+                              available <= 0
+                                ? 'opacity-40 cursor-not-allowed border-gray-200 bg-gray-50'
+                                : 'border-blue-200 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer'
+                            }`}
+                          >
+                            <div className="font-bold text-sm">{v.name}</div>
+                            <div className="text-xs font-semibold text-blue-600">{formatCurrency(priceOf(p, v.name, pack))}</div>
+                            <div className={`text-xs mt-0.5 ${available <= (p.lowStockAlert ?? 3) ? 'text-orange-500 font-semibold' : 'text-gray-400'}`}>{available} {pack ? (fr ? 'paquet(s)' : 'pack(s)') : (fr ? 'dispo' : 'left')}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <Button className="w-full" disabled={Math.floor(p.totalStock / units) <= 0} onClick={() => addToCart(p, { pack })}>
+                    {fr ? 'Ajouter' : 'Add'} · {formatCurrency(priceOf(p, undefined, pack))}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+      })() : null}
 
       {/* Invoice modal after checkout */}
       {showInvoice && completedInvoice ? (

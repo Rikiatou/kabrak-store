@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { type Variant, fromPrice, hasPriceRange, isLowStock, variantsOf } from '@/lib/variants';
 
 interface Product {
   id: string;
@@ -29,7 +30,19 @@ interface Product {
   barcode?: string | null;
   adaptiveFields?: Record<string, unknown>;
   category?: { id: string; name: string } | null;
+  variants?: Variant[] | null;
+  packSize?: number | null;
+  packPrice?: number | null;
+  packName?: string | null;
 }
+
+interface VariantRow { name: string; sellingPrice: string; costPrice: string; stock: string; barcode: string; packPrice: string }
+
+const legacySizes = (p: Product): Array<[string, number]> => {
+  const raw = p.adaptiveFields?.sizes;
+  if (typeof raw !== 'string' || !raw.includes(':')) return [];
+  return raw.split(',').map((part) => part.split(':').map((x) => x.trim())).filter((kv) => kv.length === 2 && kv[0]).map(([k, v]) => [k, parseInt(v) || 0] as [string, number]);
+};
 
 const ADAPTIVE_FIELDS: Record<string, { label: string; labelEn: string; fields: string[] }> = {
   CLOTHING: { label: 'Vêtements', labelEn: 'Clothing', fields: ['color', 'sizes'] },
@@ -82,6 +95,11 @@ const defaultForm = {
   adaptiveFields: {} as Record<string, unknown>,
   image: '' as string,
   barcode: '' as string,
+  variants: [] as VariantRow[],
+  packEnabled: false,
+  packName: '' as string,
+  packSize: '' as string | number,
+  packPrice: '' as string | number,
 };
 
 export function ProductsPage() {
@@ -104,6 +122,24 @@ export function ProductsPage() {
   const [form, setForm] = useState(defaultForm);
   const [formImages, setFormImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [gen, setGen] = useState({ sizes: '', colors: '' });
+  const fr = language === 'fr';
+
+  const newRow = (name = ''): VariantRow => ({ name, sellingPrice: String(form.sellingPrice ?? ''), costPrice: String(form.costPrice ?? ''), stock: '', barcode: '', packPrice: '' });
+  const setRow = (i: number, patch: Partial<VariantRow>) => setForm((prev) => ({ ...prev, variants: prev.variants.map((r, j) => (j === i ? { ...r, ...patch } : r)) }));
+  const generateVariants = () => {
+    const split = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
+    const sizes = split(gen.sizes);
+    const colors = split(gen.colors);
+    const names = sizes.length && colors.length ? sizes.flatMap((s) => colors.map((c) => `${s} · ${c}`)) : [...sizes, ...colors];
+    const existing = new Set(form.variants.map((r) => r.name.toLowerCase()));
+    const added = names.filter((n) => !existing.has(n.toLowerCase())).map((n) => newRow(n));
+    if (!added.length) { toast.error(fr ? 'Écrivez des tailles et/ou des couleurs séparées par des virgules' : 'Type sizes and/or colours separated by commas'); return; }
+    setForm((prev) => ({ ...prev, variants: [...prev.variants, ...added] }));
+    setGen({ sizes: '', colors: '' });
+  };
+  const filledRows = form.variants.filter((r) => r.name.trim());
+  const variantStock = filledRows.reduce((sum, r) => sum + (parseInt(r.stock) || 0), 0);
 
   const debouncedSearch = useDebounce(search);
 
@@ -121,31 +157,43 @@ export function ProductsPage() {
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
   useEffect(() => { setPage(1); }, [debouncedSearch]);
 
-  // Auto-calculate totalStock from per-size quantities ("S:5, M:10")
-  useEffect(() => {
-    if (typeof form.adaptiveFields.sizes === 'string' && form.adaptiveFields.sizes.includes(':')) {
-      const sizesStr = form.adaptiveFields.sizes as string;
-      const total = sizesStr.split(',').reduce((sum, part) => {
-        const match = part.trim().match(/(\d+)$/);
-        return sum + (match ? parseInt(match[1], 10) : 0);
-      }, 0);
-      setForm(prev => ({ ...prev, totalStock: total }));
-    }
-  }, [form.adaptiveFields.sizes]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    const { packEnabled, ...base } = form;
+    const variants = filledRows.map((r) => ({
+      name: r.name.trim(),
+      sellingPrice: Number(r.sellingPrice) || 0,
+      costPrice: Number(r.costPrice) || 0,
+      stock: parseInt(r.stock) || 0,
+      barcode: r.barcode.trim() || null,
+      packPrice: packEnabled && r.packPrice !== '' ? Number(r.packPrice) : null,
+    }));
+    if (packEnabled && !(Number(form.packSize) >= 2)) {
+      toast.error(fr ? 'Indiquez combien d’unités il y a dans un paquet (2 ou plus)' : 'Enter how many units are in a pack (2 or more)');
+      return;
+    }
+    if (packEnabled && !(Number(form.packPrice) > 0) && !variants.some((v) => (v.packPrice ?? 0) > 0)) {
+      toast.error(fr ? 'Indiquez le prix du paquet' : 'Enter the pack price');
+      return;
+    }
+    const adaptiveFields = { ...form.adaptiveFields };
+    if (variants.length) delete adaptiveFields.sizes;
     setSubmitting(true);
     try {
       const payload = {
-        ...form,
+        ...base,
+        adaptiveFields,
+        variants,
+        packSize: packEnabled ? Number(form.packSize) : null,
+        packPrice: packEnabled ? Number(form.packPrice) || 0 : null,
+        packName: packEnabled ? form.packName.trim() || null : null,
         image: formImages[0] || '',
         images: formImages,
         barcode: form.barcode.trim() || null,
         costPrice: form.costPrice === '' ? 0 : Number(form.costPrice),
-        sellingPrice: form.sellingPrice === '' ? 0 : Number(form.sellingPrice),
-        totalStock: form.totalStock === '' ? 0 : Number(form.totalStock),
+        sellingPrice: variants.length ? Math.min(...variants.map((v) => v.sellingPrice)) : form.sellingPrice === '' ? 0 : Number(form.sellingPrice),
+        totalStock: variants.length ? variantStock : form.totalStock === '' ? 0 : Number(form.totalStock),
         lowStockAlert: form.lowStockAlert === '' ? 5 : Number(form.lowStockAlert),
       };
       if (editingId) {
@@ -179,6 +227,13 @@ export function ProductsPage() {
       adaptiveFields: (product.adaptiveFields || {}) as Record<string, unknown>,
       image: product.image || '',
       barcode: product.barcode || '',
+      variants: variantsOf(product).length
+        ? variantsOf(product).map((v) => ({ name: v.name, sellingPrice: String(v.sellingPrice), costPrice: String(v.costPrice ?? ''), stock: String(v.stock), barcode: v.barcode || '', packPrice: v.packPrice != null ? String(v.packPrice) : '' }))
+        : legacySizes(product).map(([k, q]) => ({ name: k, sellingPrice: String(product.sellingPrice), costPrice: String(product.costPrice), stock: String(q), barcode: '', packPrice: '' })),
+      packEnabled: !!product.packSize,
+      packName: product.packName || '',
+      packSize: product.packSize ?? '',
+      packPrice: product.packPrice ?? '',
     });
     setFormImages(product.images?.length ? product.images : product.image ? [product.image] : []);
     setEditingId(product.id);
@@ -188,9 +243,9 @@ export function ProductsPage() {
   const [restockTarget, setRestockTarget] = useState<Product | null>(null);
   const [restockForm, setRestockForm] = useState({ quantity: '', unitCost: '', variant: '', supplierId: '', recordExpense: true });
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
-  const restockVariants = restockTarget && typeof restockTarget.adaptiveFields?.sizes === 'string'
-    ? (restockTarget.adaptiveFields.sizes as string).split(',').map((p) => p.split(':')[0]?.trim()).filter(Boolean)
-    : [];
+  const restockVariants = !restockTarget ? []
+    : variantsOf(restockTarget).length ? variantsOf(restockTarget).map((v) => v.name)
+    : legacySizes(restockTarget).map(([k]) => k);
   const openRestock = (product: Product) => {
     setRestockTarget(product);
     setRestockForm({ quantity: '', unitCost: String(product.costPrice || ''), variant: '', supplierId: '', recordExpense: true });
@@ -379,14 +434,8 @@ export function ProductsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium mb-1 block">{t('products.stock')}</label>
-                      {form.businessType === 'HIJABS_ABAYAS' ? (
-                        <Input
-                          type="number"
-                          placeholder={t('products.autoCalculated')}
-                          value={form.totalStock === null || form.totalStock === undefined ? '' : form.totalStock}
-                          readOnly
-                          className="bg-gray-50"
-                        />
+                      {filledRows.length > 0 ? (
+                        <Input type="number" value={variantStock} readOnly className="bg-gray-50" title={t('products.autoCalculated')} />
                       ) : (
                         <Input type="number" min={0} placeholder="0" value={form.totalStock ?? ''} onChange={(e) => setForm({ ...form, totalStock: e.target.value })} />
                       )}
@@ -398,8 +447,74 @@ export function ProductsPage() {
                   </div>
                 )}
 
+                {/* Variants: own price & stock per size / colour */}
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">{fr ? 'Variantes (taille, couleur, modèle…)' : 'Variants (size, colour, model…)'}</p>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setForm((prev) => ({ ...prev, variants: [...prev.variants, newRow()] }))}>
+                      <Plus className="w-3 h-3 mr-1" /> {fr ? 'Ajouter' : 'Add'}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {fr ? 'Facultatif. Chaque variante a son prix et son stock. Ex : « Grand · Doré ».' : 'Optional. Each variant has its own price and stock. E.g. "Large · Gold".'}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder={fr ? 'Tailles : Petit, Grand' : 'Sizes: Small, Large'} value={gen.sizes} onChange={(e) => setGen({ ...gen, sizes: e.target.value })} />
+                    <Input placeholder={fr ? 'Couleurs : Rouge, Doré' : 'Colours: Red, Gold'} value={gen.colors} onChange={(e) => setGen({ ...gen, colors: e.target.value })} />
+                  </div>
+                  {(gen.sizes.trim() || gen.colors.trim()) && (
+                    <Button type="button" size="sm" variant="secondary" className="w-full" onClick={generateVariants}>
+                      {fr ? 'Créer les variantes' : 'Create variants'}
+                    </Button>
+                  )}
+                  {form.variants.map((r, i) => (
+                    <div key={i} className="rounded-md bg-muted/40 p-2 space-y-1.5">
+                      <div className="flex gap-2">
+                        <Input className="h-8" placeholder={fr ? 'Nom de la variante' : 'Variant name'} value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} />
+                        <Button type="button" variant="ghost" size="sm" className="h-8 text-destructive" onClick={() => setForm((prev) => ({ ...prev, variants: prev.variants.filter((_, j) => j !== i) }))}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <label className="text-[10px] text-muted-foreground">{fr ? 'Prix vente' : 'Price'}<Input className="h-8" type="number" min={0} value={r.sellingPrice} onChange={(e) => setRow(i, { sellingPrice: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? 'Prix achat' : 'Cost'}<Input className="h-8" type="number" min={0} value={r.costPrice} onChange={(e) => setRow(i, { costPrice: e.target.value })} /></label>
+                        {!ORDER_BASED_TYPES.has(form.businessType) && (
+                          <label className="text-[10px] text-muted-foreground">{fr ? 'Stock (unités)' : 'Stock (units)'}<Input className="h-8" type="number" value={r.stock} onChange={(e) => setRow(i, { stock: e.target.value })} /></label>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <Input className="h-8" placeholder={fr ? 'Code-barres (facultatif)' : 'Barcode (optional)'} value={r.barcode} onChange={(e) => setRow(i, { barcode: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
+                        {form.packEnabled && (
+                          <Input className="h-8" type="number" min={0} placeholder={fr ? 'Prix du paquet' : 'Pack price'} value={r.packPrice} onChange={(e) => setRow(i, { packPrice: e.target.value })} />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pack / box sale */}
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                    <input type="checkbox" className="w-4 h-4 accent-blue-600" checked={form.packEnabled} onChange={(e) => setForm({ ...form, packEnabled: e.target.checked })} />
+                    {fr ? 'Vendu aussi en paquet / carton' : 'Also sold as a pack / box'}
+                  </label>
+                  {form.packEnabled && (
+                    <>
+                      <div className="grid grid-cols-3 gap-2">
+                        <label className="text-[10px] text-muted-foreground">{fr ? 'Nom' : 'Name'}<Input className="h-8" placeholder={fr ? 'Paquet' : 'Pack'} value={form.packName} onChange={(e) => setForm({ ...form, packName: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? 'Unités dedans' : 'Units inside'}<Input className="h-8" type="number" min={2} placeholder="10" value={form.packSize} onChange={(e) => setForm({ ...form, packSize: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? 'Prix du paquet' : 'Pack price'}<Input className="h-8" type="number" min={0} value={form.packPrice} onChange={(e) => setForm({ ...form, packPrice: e.target.value })} /></label>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {fr ? `Le stock est compté à l'unité : vendre 1 paquet retire ${Number(form.packSize) || 'N'} unités. Avec des variantes, vous pouvez mettre un prix de paquet par variante.`
+                          : `Stock is counted in units: selling 1 pack removes ${Number(form.packSize) || 'N'} units. With variants you can set a pack price per variant.`}
+                      </p>
+                    </>
+                  )}
+                </div>
+
                 {/* Adaptive Fields */}
-                {form.businessType && ADAPTIVE_FIELDS[form.businessType]?.fields.map((field) => {
+                {form.businessType && ADAPTIVE_FIELDS[form.businessType]?.fields.filter((field) => field !== 'sizes').map((field) => {
                   const meta = FIELD_LABELS[field];
                   const label = meta ? (language === 'fr' ? meta.fr : meta.en) : field;
                   return (
@@ -458,10 +573,21 @@ export function ProductsPage() {
                       <h3 className="font-semibold text-sm truncate">{product.name}</h3>
                       <p className="text-xs text-muted-foreground">{ADAPTIVE_FIELDS[product.businessType]?.label || product.businessType}</p>
                     </div>
-                    <Badge variant={product.totalStock <= product.lowStockAlert ? 'warning' : 'secondary'} className="shrink-0 text-xs">
+                    <Badge variant={isLowStock(product) ? 'warning' : 'secondary'} className="shrink-0 text-xs">
                       {product.totalStock}
                     </Badge>
                   </div>
+                  {(variantsOf(product).length > 0 || product.packSize || isLowStock(product)) && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {variantsOf(product).length > 0 && <Badge variant="outline" className="text-[10px]">{variantsOf(product).length} {fr ? 'variantes' : 'variants'}</Badge>}
+                      {product.packSize ? <Badge variant="outline" className="text-[10px]">{product.packName || (fr ? 'Paquet' : 'Pack')} ×{product.packSize}</Badge> : null}
+                      {isLowStock(product) && !ORDER_BASED_TYPES.has(product.businessType) && (
+                        <Badge variant="warning" className="text-[10px]">
+                          {fr ? 'Stock bas' : 'Low stock'}{variantsOf(product).length ? ` : ${variantsOf(product).filter((v) => v.stock <= product.lowStockAlert).map((v) => v.name).join(', ')}` : ''}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <div>
@@ -470,7 +596,7 @@ export function ProductsPage() {
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.sellingPrice')}</p>
-                      <p className="text-xs sm:text-sm font-bold text-blue-600">{formatCurrency(product.sellingPrice)}</p>
+                      <p className="text-xs sm:text-sm font-bold text-blue-600">{hasPriceRange(product) ? (fr ? 'dès ' : 'from ') : ''}{formatCurrency(fromPrice(product))}</p>
                     </div>
                   </div>
 

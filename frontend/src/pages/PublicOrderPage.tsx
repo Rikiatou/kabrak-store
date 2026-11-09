@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { itemLabel } from '@/lib/variants';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, Clock, XCircle, Share2, MessageCircle } from 'lucide-react';
 import { formatCurrency, formatDateTime } from '@/lib/utils';
@@ -14,6 +15,7 @@ interface OrderItem {
   unitPrice: number;
   totalPrice: number;
   variant?: string;
+  packSize?: number | null;
   product: { id: string; name: string; image?: string };
 }
 
@@ -150,7 +152,7 @@ export function PublicOrderPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="font-medium text-gray-900">{item.product.name}</h3>
-                    {item.variant && <p className="text-sm text-gray-500">{item.variant}</p>}
+                    {(item.variant || item.packSize) && <p className="text-sm text-gray-500">{itemLabel(item.variant, item.packSize, fr)}</p>}
                     <p className="text-sm text-gray-500">{fr ? 'Qté' : 'Qty'}: {item.quantity} × {formatCurrency(item.unitPrice)}</p>
                   </div>
                   <p className="font-semibold text-gray-900">{formatCurrency(item.totalPrice)}</p>

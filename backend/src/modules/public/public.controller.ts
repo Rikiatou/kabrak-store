@@ -3,7 +3,8 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma';
 import { generateInvoiceNumber } from '../../utils/invoiceNumber';
-import { adjustSizes, generatePublicToken, generateReference } from '../orders/orders.controller';
+import { generatePublicToken, generateReference } from '../orders/orders.controller';
+import { StockError, STOCK_SELECT, itemCost, itemPrice, moveStock, notifyLowStock, readVariants } from '../../utils/stock';
 
 /** Storefront is a BUSINESS feature; every plan gets it during the free trial. */
 async function isStorefrontOpen(tenantId: string): Promise<boolean> {
@@ -61,9 +62,14 @@ export const getPublicProducts = async (req: Request, res: Response): Promise<vo
       where,
       take: parseInt(limit as string),
       orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, description: true, image: true, images: true, sellingPrice: true, totalStock: true, businessType: true, adaptiveFields: true },
+      select: { id: true, name: true, description: true, image: true, images: true, sellingPrice: true, totalStock: true, businessType: true, adaptiveFields: true, variants: true },
     });
-    res.json({ success: true, data: products });
+    // Never expose purchase prices on the public storefront
+    const data = products.map((p) => ({
+      ...p,
+      variants: readVariants(p.variants).map(({ name, sellingPrice, stock }) => ({ name, sellingPrice, stock })),
+    }));
+    res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
   }
@@ -113,7 +119,7 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
     const order = await prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({
         where: { id: { in: data.items.map((i) => i.productId) }, tenantId: tenant.id, isActive: true },
-        select: { id: true, name: true, sellingPrice: true, costPrice: true, totalStock: true, isService: true, adaptiveFields: true },
+        select: STOCK_SELECT,
       });
       const byId = new Map(products.map((p) => [p.id, p]));
 
@@ -125,21 +131,14 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
 
       for (const { item, p } of lines) {
         if (p.isService) continue;
-        const fresh = await tx.product.findUnique({ where: { id: p.id }, select: { totalStock: true, adaptiveFields: true } });
-        if (!fresh || fresh.totalStock < item.quantity) {
-          throw new StorefrontError('INSUFFICIENT_STOCK', `Stock insuffisant pour "${p.name}"`);
+        const fresh = await tx.product.findUnique({ where: { id: p.id }, select: STOCK_SELECT });
+        if (!fresh) throw new StorefrontError('PRODUCT_UNAVAILABLE', 'Un produit n’est plus disponible');
+        try {
+          await moveStock(tx, fresh, item.variant, -item.quantity, true);
+        } catch (e) {
+          if (e instanceof StockError) throw new StorefrontError('INSUFFICIENT_STOCK', e.message);
+          throw e;
         }
-        const sized = item.variant ? adjustSizes(fresh.adaptiveFields, item.variant, -item.quantity) : null;
-        if (item.variant && (!sized || sized.remaining < 0)) {
-          throw new StorefrontError('INSUFFICIENT_STOCK', `Stock insuffisant pour "${p.name} · ${item.variant}"`);
-        }
-        await tx.product.update({
-          where: { id: p.id },
-          data: {
-            totalStock: { decrement: item.quantity },
-            ...(sized ? { adaptiveFields: sized.fields as Prisma.InputJsonValue } : {}),
-          },
-        });
       }
 
       const phoneKey = (v: string) => v.replace(/[^\d]/g, '').slice(-9);
@@ -151,7 +150,7 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
         select: { id: true },
       })).id;
 
-      const total = lines.reduce((sum, { item, p }) => sum + p.sellingPrice * item.quantity, 0);
+      const total = lines.reduce((sum, { item, p }) => sum + itemPrice(p, item.variant) * item.quantity, 0);
       const options = lines.filter(({ item }) => item.option).map(({ item, p }) => `${p.name}: ${item.option}`);
       const notes = [
         `Commande en ligne (vitrine) · ${data.customerName} · ${data.customerPhone}`,
@@ -174,9 +173,9 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
             create: lines.map(({ item, p }) => ({
               productId: p.id,
               quantity: item.quantity,
-              unitPrice: p.sellingPrice,
-              totalPrice: p.sellingPrice * item.quantity,
-              unitCost: p.costPrice,
+              unitPrice: itemPrice(p, item.variant),
+              totalPrice: itemPrice(p, item.variant) * item.quantity,
+              unitCost: itemCost(p, item.variant),
               variant: item.variant,
             })),
           },
@@ -211,6 +210,7 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
       return created;
     });
 
+    await notifyLowStock(tenant.id, data.items.map((i) => i.productId)).catch((e) => console.error('low stock alert', e));
     res.status(201).json({ success: true, data: order });
   } catch (error) {
     if (error instanceof StorefrontError) {

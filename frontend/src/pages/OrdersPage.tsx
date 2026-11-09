@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { type Sellable, hasPack, packLabel, priceOf, variantsOf } from '@/lib/variants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +44,7 @@ interface Order {
   };
 }
 
-interface Product {
+interface Product extends Sellable {
   id: string;
   name: string;
   sellingPrice: number;
@@ -69,6 +70,7 @@ interface CartItem {
   quantity: number;
   unitPrice: number;
   variant?: string;
+  pack?: boolean;
 }
 
 const ORDER_BASED_CATS = new Set([
@@ -154,14 +156,22 @@ export function OrdersPage() {
   };
 
   const addToCart = (product: Product) => {
+    const variant = variantsOf(product).find((v) => v.stock > 0)?.name ?? variantsOf(product)[0]?.name;
     setCart((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
+      const existing = prev.find((i) => i.productId === product.id && !variant);
       if (existing) {
-        return prev.map((i) => i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+        return prev.map((i) => i === existing ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { productId: product.id, name: product.name, quantity: 1, unitPrice: product.sellingPrice }];
+      return [...prev, { productId: product.id, name: product.name, quantity: 1, variant, unitPrice: priceOf(product, variant) }];
     });
   };
+  const productOf = (id: string) => products.find((p) => p.id === id);
+  const updateLine = (i: number, patch: Partial<CartItem>) => setCart((prev) => prev.map((ci, j) => {
+    if (j !== i) return ci;
+    const next = { ...ci, ...patch };
+    const p = productOf(ci.productId);
+    return p ? { ...next, unitPrice: priceOf(p, next.variant, next.pack) } : next;
+  }));
 
   const cartTotal = cart.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0);
   const finalTotal = cartTotal - (Number(discount) || 0);
@@ -172,7 +182,7 @@ export function OrdersPage() {
     try {
       await api.post('/orders', {
         clientId: selectedClient || undefined,
-        items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice, variant: i.variant })),
+        items: cart.map((i) => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.unitPrice, variant: i.variant, pack: i.pack || undefined })),
         discount: Number(discount) || 0,
         paymentMethod: initialPaymentMethod,
         amountPaid: Number(initialAmountPaid) || 0,
@@ -321,7 +331,28 @@ export function OrdersPage() {
                 <div className="border rounded-lg p-3 space-y-2">
                   {cart.map((item, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{item.name}</span>
+                      <div className="min-w-0 flex-1 mr-2">
+                        <span className="font-medium">{item.name}</span>
+                        {(() => {
+                          const p = productOf(item.productId);
+                          if (!p) return null;
+                          return (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {variantsOf(p).length > 0 && (
+                                <select className="h-7 rounded border border-input bg-background px-1 text-xs" value={item.variant || ''} onChange={(e) => updateLine(i, { variant: e.target.value })}>
+                                  {variantsOf(p).map((v) => <option key={v.name} value={v.name}>{v.name} ({v.stock})</option>)}
+                                </select>
+                              )}
+                              {hasPack(p) && (
+                                <select className="h-7 rounded border border-input bg-background px-1 text-xs" value={item.pack ? 'pack' : 'unit'} onChange={(e) => updateLine(i, { pack: e.target.value === 'pack' })}>
+                                  <option value="unit">{language === 'fr' ? "À l'unité" : 'Single'}</option>
+                                  <option value="pack">{packLabel(p, language === 'fr')}</option>
+                                </select>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
                       <div className="flex items-center gap-2">
                         <Input type="number" className="w-16 h-8 text-center" min={1} value={item.quantity}
                           onChange={(e) => setCart((prev) => prev.map((ci, ci2) => ci2 === i ? { ...ci, quantity: Math.max(1, +e.target.value || 1) } : ci))} />
