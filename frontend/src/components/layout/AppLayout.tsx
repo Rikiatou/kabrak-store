@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Sidebar } from './Sidebar';
-import { navItems, navItemsFor } from '@/lib/navItems';
+import { homePathFor, navItems } from '@/lib/navItems';
 import { useAuthStore } from '@/stores/authStore';
 import { ALWAYS_ALLOWED, canAccess, hasFullAccess } from '@/lib/modules';
 import { Header } from './Header';
@@ -15,8 +15,7 @@ function ModuleGate({ children }: { children: React.ReactNode }) {
   if (hasFullAccess(user)) return <>{children}</>;
   const item = navItems.find((i) => pathname === i.path || pathname.startsWith(`${i.path}/`));
   if (!item || ALWAYS_ALLOWED.has(item.key) || canAccess(user, item.key)) return <>{children}</>;
-  const first = navItemsFor(tenant).find((i) => !ALWAYS_ALLOWED.has(i.key) && canAccess(user, i.key));
-  return <Navigate to={first?.path || '/guide'} replace />;
+  return <Navigate to={homePathFor(user, tenant)} replace />;
 }
 
 export function AppLayout() {

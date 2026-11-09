@@ -4,6 +4,8 @@ import {
   UserCog, Truck, BarChart3, CreditCard, Tags,
   Heart, Store, FolderKanban, RefreshCw, Monitor, Settings, TrendingDown, Building2, Sparkles, Briefcase, BookOpen, ClipboardCheck, CalendarDays, HandCoins } from 'lucide-react';
 
+import { ALWAYS_ALLOWED, canAccess } from './modules';
+
 export type BusinessMode = 'PRODUCT' | 'SERVICE';
 
 // Businesses that take orders in advance — no walk-in counter sales
@@ -71,3 +73,16 @@ export function navItemsFor(tenant: NavTenant): NavItem[] {
   });
 }
 
+
+type HomeUser = { role?: string; modules?: string[] } | null | undefined;
+
+// Where a user lands after login or when sent away from a module: owners/managers on the dashboard, sellers on the POS.
+export function homePathFor(user: HomeUser, tenant: NavTenant): string {
+  const allowed = navItemsFor(tenant).filter((i) => !ALWAYS_ALLOWED.has(i.key) && canAccess(user, i.key));
+  const order = user?.role === 'EMPLOYEE' ? ['pos', 'orders', 'dashboard'] : ['dashboard', 'pos', 'orders'];
+  for (const key of order) {
+    const item = allowed.find((i) => i.key === key);
+    if (item) return item.path;
+  }
+  return allowed[0]?.path || '/guide';
+}
