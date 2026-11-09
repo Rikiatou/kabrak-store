@@ -127,6 +127,39 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
   const whatsappItemsLabel = isEvent || isService ? (fr ? 'Prestations' : 'Services') : isFood ? (fr ? 'Commande' : 'Order') : (fr ? 'Articles' : 'Items');
 
+  // Prints only the receipt, from a hidden iframe: window.print() on the whole app page prints a blank or cut page.
+  const printReceipt = () => {
+    const el = printRef.current;
+    if (!el) return;
+    const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((n) => n.outerHTML)
+      .join('');
+    const page = isThermal ? `@page { size: ${paperWidth} auto; margin: 0; } body { width: ${paperWidth}; }` : '@page { margin: 10mm; }';
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument;
+    const win = iframe.contentWindow;
+    if (!doc || !win) { iframe.remove(); return; }
+    doc.open();
+    doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>${invoice.invoiceNumber}</title>${styles}<style>${page} html, body { margin: 0; padding: 0; background: #fff; }</style></head><body>${el.outerHTML}</body></html>`);
+    doc.close();
+    const cleanup = () => setTimeout(() => iframe.remove(), 1000);
+    const run = () => {
+      const imgs = Array.from(doc.images).filter((img) => !img.complete);
+      Promise.all(imgs.map((img) => new Promise((res) => { img.onload = img.onerror = res; })))
+        .then(() => {
+          win.addEventListener('afterprint', cleanup);
+          win.focus();
+          win.print();
+          setTimeout(cleanup, 60_000);
+        });
+    };
+    if (doc.readyState === 'complete') setTimeout(run, 250);
+    else iframe.onload = () => setTimeout(run, 250);
+  };
+
   const shareAsImage = async () => {
     setSharing(true);
     const el = printRef.current;
@@ -229,33 +262,13 @@ export function InvoiceModal({ invoice, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/60 overflow-y-auto">
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          .print-area-wrapper, .print-area-wrapper * { visibility: visible !important; }
-          .print-area-wrapper {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: ${isThermal ? paperWidth : '100%'} !important;
-            padding: ${isThermal ? '0 !important' : '15px !important'};
-            margin: 0 !important;
-            background: #fff !important;
-            box-shadow: none !important;
-          }
-          @page {
-            size: ${isThermal ? `${paperWidth} auto` : 'auto'};
-            margin: ${isThermal ? '0mm' : '10mm'};
-          }
-        }
-      `}</style>
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm my-auto flex flex-col">
         {/* Action bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
           <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{fr ? 'Aperçu facture' : 'Invoice preview'}</span>
           <div className="flex gap-1.5">
-            <Button variant="ghost" size="icon" onClick={() => window.print()} title={fr ? 'Imprimer' : 'Print'}>
+            <Button variant="ghost" size="icon" onClick={printReceipt} title={fr ? 'Imprimer' : 'Print'}>
               <Printer className="w-4 h-4" />
             </Button>
             <Button variant="ghost" size="icon" onClick={onClose}>
