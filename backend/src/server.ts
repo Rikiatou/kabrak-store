@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { requireActiveSubscription } from './middleware/subscriptionGate';
-import { authenticate } from './middleware/auth';
+import { authenticate, requireModule } from './middleware/auth';
 
 import authRoutes from './modules/auth/auth.routes';
 import productRoutes from './modules/products/products.routes';
@@ -140,20 +140,20 @@ app.use('/api/products', authenticate, requireActiveSubscription, productRoutes)
 app.use('/api/orders', authenticate, requireActiveSubscription, orderRoutes);
 app.use('/api/clients', authenticate, requireActiveSubscription, clientRoutes);
 app.use('/api/invoices', authenticate, requireActiveSubscription, invoiceRoutes);
-app.use('/api/employees', authenticate, requireActiveSubscription, employeeRoutes);
-app.use('/api/deliveries', authenticate, requireActiveSubscription, deliveryRoutes);
-app.use('/api/categories', authenticate, requireActiveSubscription, categoryRoutes);
+app.use('/api/employees', authenticate, requireActiveSubscription, requireModule('employees'), employeeRoutes);
+app.use('/api/deliveries', authenticate, requireActiveSubscription, requireModule('delivery'), deliveryRoutes);
+app.use('/api/categories', authenticate, requireActiveSubscription, requireModule('categories', 'products'), categoryRoutes);
 app.use('/api/reports', authenticate, requireActiveSubscription, reportRoutes);
-app.use('/api/cash-sessions', authenticate, requireActiveSubscription, cashRoutes);
-app.use('/api/loyalty', authenticate, requireActiveSubscription, loyaltyRoutes);
-app.use('/api/stores', authenticate, requireActiveSubscription, storeRoutes);
+app.use('/api/cash-sessions', authenticate, requireActiveSubscription, requireModule('pos', 'closing'), cashRoutes);
+app.use('/api/loyalty', authenticate, requireActiveSubscription, requireModule('loyalty'), loyaltyRoutes);
+app.use('/api/stores', authenticate, requireActiveSubscription, requireModule('stores'), storeRoutes);
 app.use('/api/notifications', authenticate, requireActiveSubscription, notificationRoutes);
 app.use('/api/exports', authenticate, requireActiveSubscription, exportRoutes);
-app.use('/api/projects', authenticate, requireActiveSubscription, projectRoutes);
-app.use('/api/recurring', authenticate, requireActiveSubscription, recurringRoutes);
-app.use('/api/expenses', authenticate, requireActiveSubscription, expenseRoutes);
-app.use('/api/suppliers', authenticate, requireActiveSubscription, supplierRoutes);
-app.use('/api/ai', authenticate, requireActiveSubscription, aiRoutes);
+app.use('/api/projects', authenticate, requireActiveSubscription, requireModule('projects', 'dashboard', 'reports'), projectRoutes);
+app.use('/api/recurring', authenticate, requireActiveSubscription, requireModule('recurring'), recurringRoutes);
+app.use('/api/expenses', authenticate, requireActiveSubscription, requireModule('expenses', 'dashboard', 'reports'), expenseRoutes);
+app.use('/api/suppliers', authenticate, requireActiveSubscription, requireModule('suppliers', 'products', 'expenses'), supplierRoutes);
+app.use('/api/ai', authenticate, requireActiveSubscription, requireModule('ai-reports'), aiRoutes);
 
 // 404
 app.use((_req, res) => {

@@ -113,6 +113,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
           firstName: result.user.firstName,
           lastName: result.user.lastName,
           role: result.user.role,
+          modules: result.user.modules,
         },
         tenant: {
           id: result.tenant.id,
@@ -168,6 +169,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          modules: user.modules,
         },
         tenant: {
           id: user.tenant.id,
@@ -436,6 +438,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
           lastName: user.lastName,
           phone: user.phone,
           role: user.role,
+          modules: user.modules,
         },
         tenant: {
           id: user.tenant.id,
