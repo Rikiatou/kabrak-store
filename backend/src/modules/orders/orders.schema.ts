@@ -1,3 +1,4 @@
+import { PaymentMethod } from '@prisma/client';
 import { z } from 'zod';
 
 export const createOrderSchema = z.object({
@@ -26,4 +27,11 @@ export const updateOrderStatusSchema = z.object({
   status: z.enum(['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DELIVERING', 'DELIVERED', 'CANCELLED']),
 });
 
+export const returnItemsSchema = z.object({
+  items: z.array(z.object({ itemId: z.string().uuid(), quantity: z.number().int().min(1) })).min(1).max(50),
+  method: z.nativeEnum(PaymentMethod).default('CASH'),
+  note: z.string().trim().max(200).optional(),
+});
+
+export type ReturnItemsInput = z.infer<typeof returnItemsSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;

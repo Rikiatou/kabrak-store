@@ -363,6 +363,8 @@ model OrderItem {
   unitCost    Float?
   variant     String?
   packSize    Int?
+  // Units of this line brought back (refunded); `quantity` is what the client kept
+  returnedQty Int     @default(0)
   orderId     String
   productId   String
 

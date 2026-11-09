@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { randomBytes } from 'crypto';
 import { prisma } from '../../config/prisma';
 import { generateInvoiceNumber } from '../../utils/invoiceNumber';
-import { CreateOrderInput } from './orders.schema';
+import { CreateOrderInput, ReturnItemsInput } from './orders.schema';
 import { StockError, STOCK_SELECT, itemCost, moveStock, notifyLowStock, unitsPerItem } from '../../utils/stock';
 
 export function generateReference(): string {
@@ -352,6 +352,91 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
     }
     const message = error instanceof Error ? error.message : 'Failed to update order';
     res.status(500).json({ success: false, message });
+  }
+};
+
+class ReturnError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
+/**
+ * Client brings items back: each line goes back to its own stock (variant, unit or pack), the order and invoice
+ * totals shrink, and money already paid above the new total is refunded as a negative payment (counted today in the cash closing).
+ */
+export const returnItems = async (req: Request, res: Response): Promise<void> => {
+  const id = req.params.id as string;
+  const { items, method, note } = req.body as ReturnItemsInput;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: { id, tenantId: req.user!.tenantId },
+        include: { items: { include: { product: { select: { name: true, isService: true } } } }, invoice: true },
+      });
+      if (!order) throw new ReturnError(404, 'Commande non trouvée');
+      if (order.status === 'CANCELLED') throw new ReturnError(400, 'Cette vente est annulée');
+
+      let value = 0;
+      const lines: string[] = [];
+      const returned = new Map<string, number>();
+      for (const r of items) {
+        const it = order.items.find((i) => i.id === r.itemId);
+        if (!it) throw new ReturnError(400, 'Article introuvable dans cette vente');
+        const claimed = await tx.orderItem.updateMany({
+          where: { id: it.id, quantity: { gte: r.quantity } },
+          data: { quantity: { decrement: r.quantity }, returnedQty: { increment: r.quantity }, totalPrice: { decrement: it.unitPrice * r.quantity } },
+        });
+        if (claimed.count === 0) throw new ReturnError(400, `Au plus ${it.quantity - (returned.get(it.id) ?? 0)} × ${it.product.name} peuvent être rendus`);
+        if (!it.product.isService) {
+          const current = await tx.product.findUnique({ where: { id: it.productId }, select: STOCK_SELECT });
+          if (current) await moveStock(tx, current, it.variant, r.quantity * (it.packSize || 1), false);
+        }
+        returned.set(it.id, (returned.get(it.id) ?? 0) + r.quantity);
+        value += it.unitPrice * r.quantity;
+        lines.push(`${r.quantity} × ${[it.product.name, it.variant].filter(Boolean).join(' · ')}`);
+      }
+
+      // The order discount is shared out over the returned lines
+      const ratio = order.totalAmount > 0 ? order.finalAmount / order.totalAmount : 1;
+      const lost = Math.round(value * ratio);
+      const allReturned = order.items.every((i) => i.quantity - (returned.get(i.id) ?? 0) <= 0);
+      const stamp = new Date().toLocaleDateString('fr-FR');
+      await tx.order.update({
+        where: { id },
+        data: {
+          totalAmount: Math.max(0, order.totalAmount - value),
+          finalAmount: Math.max(0, order.finalAmount - lost),
+          notes: [order.notes, `Retour ${stamp} : ${lines.join(', ')} (−${lost} F)${note ? ` · ${note}` : ''}`].filter(Boolean).join('\n'),
+        },
+      });
+
+      let refund = 0;
+      if (order.invoice) {
+        const inv = order.invoice;
+        const total = Math.max(0, inv.totalAmount - lost);
+        refund = Math.max(0, Math.round((inv.amountPaid - total) * 100) / 100);
+        const paid = inv.amountPaid - refund;
+        if (refund > 0) {
+          await tx.payment.create({ data: { invoiceId: inv.id, amount: -refund, method, notes: `Remboursement retour${note ? ` · ${note}` : ''}` } });
+        }
+        await tx.invoice.update({
+          where: { id: inv.id },
+          data: {
+            totalAmount: total,
+            amountPaid: paid,
+            amountDue: Math.max(0, total - paid),
+            paymentStatus: allReturned ? 'REFUNDED' : paid >= total ? 'PAID' : paid > 0 ? 'PARTIAL' : 'PENDING',
+          },
+        });
+      }
+      return { value: lost, refund };
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof ReturnError) {
+      res.status(error.status).json({ success: false, message: error.message });
+      return;
+    }
+    res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to return items' });
   }
 };
 

@@ -35,6 +35,7 @@ interface InvoiceItem {
   product: { name: string };
   variant?: string | null;
   packSize?: number | null;
+  returnedQty?: number;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
@@ -105,7 +106,7 @@ export function InvoiceModal({ invoice, onClose }: Props) {
   const isStandalone = orderItems.length === 0 && lineItems.length > 0;
   const displayItems = isStandalone
     ? lineItems.map((li) => ({ name: li.description, quantity: li.quantity, unitPrice: li.unitPrice, totalPrice: li.totalPrice }))
-    : orderItems.map((oi) => ({ name: [oi.product.name, itemLabel(oi.variant, oi.packSize, fr)].filter(Boolean).join(' · '), quantity: oi.quantity, unitPrice: oi.unitPrice, totalPrice: oi.totalPrice }));
+    : orderItems.map((oi) => ({ name: [oi.product.name, itemLabel(oi.variant, oi.packSize, fr), oi.returnedQty ? `${fr ? 'rendu' : 'returned'} ×${oi.returnedQty}` : ''].filter(Boolean).join(' · '), quantity: oi.quantity, unitPrice: oi.unitPrice, totalPrice: oi.totalPrice }));
   const total = invoice.totalAmount;
   const paid = invoice.amountPaid;
   const due = invoice.amountDue;
