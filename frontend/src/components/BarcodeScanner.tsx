@@ -9,37 +9,46 @@ interface Props {
   onClose: () => void;
 }
 
+const isTouchDevice = () => typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+
 export function BarcodeScanner({ onScan, onClose }: Props) {
   const { t, language } = useTranslation();
   const fr = language === 'fr';
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [mode, setMode] = useState<'camera' | 'manual'>('manual');
+  const [mode, setMode] = useState<'camera' | 'manual'>(isTouchDevice() ? 'camera' : 'manual');
   const [manualCode, setManualCode] = useState('');
   const [cameraError, setCameraError] = useState('');
-  const streamRef = useRef<MediaStream | null>(null);
+  const onScanRef = useRef(onScan);
+  useEffect(() => { onScanRef.current = onScan; }, [onScan]);
 
   useEffect(() => {
     if (mode !== 'camera') return;
-
     let cancelled = false;
+    let controls: { stop: () => void } | null = null;
+    let lastCode = '';
 
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } },
-        });
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
+        const { BrowserMultiFormatReader } = await import('@zxing/browser');
+        if (cancelled || !videoRef.current) return;
+        const reader = new BrowserMultiFormatReader();
+        controls = await reader.decodeFromConstraints(
+          { video: { facingMode: 'environment' } },
+          videoRef.current,
+          (result) => {
+            if (!result || cancelled) return;
+            const code = result.getText().trim();
+            if (!code || code === lastCode) return;
+            lastCode = code;
+            navigator.vibrate?.(80);
+            onScanRef.current(code);
+            setTimeout(() => { lastCode = ''; }, 2000);
+          },
+        );
+        if (cancelled) controls.stop();
       } catch {
-        setCameraError(fr ? 'Impossible d\'accéder à la caméra' : 'Cannot access camera');
+        if (cancelled) return;
+        setCameraError(fr ? 'Impossible d\'accéder à la caméra. Autorisez la caméra ou tapez le code.' : 'Cannot access the camera. Allow the camera or type the code.');
         setMode('manual');
       }
     };
@@ -48,25 +57,15 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
 
     return () => {
       cancelled = true;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
-      }
+      controls?.stop();
     };
-  }, [mode]);
-
-  useEffect(() => {
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, []);
+  }, [mode, fr]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualCode.trim()) {
       onScan(manualCode.trim());
+      setManualCode('');
     }
   };
 
@@ -107,27 +106,25 @@ export function BarcodeScanner({ onScan, onClose }: Props) {
 
           {mode === 'camera' ? (
             <div className="relative">
-              {cameraError ? (
-                <div className="text-center py-8 text-sm text-red-500">{cameraError}</div>
-              ) : (
-                <>
+              <>
                   <video
                     ref={videoRef}
+                    muted
+                    playsInline
                     className="w-full rounded-lg bg-black"
                     style={{ maxHeight: '300px', objectFit: 'cover' }}
                   />
-                  <canvas ref={canvasRef} className="hidden" />
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-48 h-32 border-2 border-kabrak-500 rounded-lg opacity-50" />
                   </div>
                   <p className="text-xs text-center text-muted-foreground mt-2">
                     {fr ? 'Placez le code-barres dans le cadre' : 'Place the barcode in the frame'}
                   </p>
-                </>
-              )}
+              </>
             </div>
           ) : (
             <form onSubmit={handleManualSubmit} className="space-y-3">
+              {cameraError && <p className="text-xs text-red-500">{cameraError}</p>}
               <div>
                 <label className="text-sm font-medium mb-1 block">{fr ? 'Code-barres / SKU' : 'Barcode / SKU'}</label>
                 <Input

@@ -22,7 +22,11 @@ interface Product {
   image?: string;
   businessType: string;
   adaptiveFields?: Record<string, unknown>;
+  barcode?: string | null;
+  sku?: string | null;
 }
+
+const matchesCode = (p: Product, code: string) => !!code && (p.barcode === code || p.sku === code);
 
 interface CartItem {
   product: Product;
@@ -118,7 +122,7 @@ export function POSPage() {
       const cached = isNetworkError(err) ? cacheGet<Product[]>('pos_products') : null;
       if (cached) {
         const q = debouncedSearch.toLowerCase();
-        setProducts(q ? cached.filter((p) => p.name.toLowerCase().includes(q)) : cached);
+        setProducts(q ? cached.filter((p) => p.name.toLowerCase().includes(q) || matchesCode(p, debouncedSearch.trim())) : cached);
         return;
       }
       console.error(err); toast.error(getApiErrorMessage(err));
@@ -189,15 +193,30 @@ export function POSPage() {
   const change = (Number(amountPaid) || 0) > total ? (Number(amountPaid) || 0) - total : 0;
   const paymentStatus = (Number(amountPaid) || 0) >= total ? 'PAID' : (Number(amountPaid) || 0) > 0 ? 'PARTIAL' : 'PENDING';
 
-  const handleBarcodeScan = async (code: string) => {
+  const addScanned = (p: Product) => {
+    if (p.totalStock <= 0) {
+      toast.error(language === 'fr' ? `${p.name} : rupture de stock` : `${p.name}: out of stock`);
+      return;
+    }
+    const sizes = p.adaptiveFields?.sizes;
+    if (typeof sizes === 'string' && sizes.includes(':')) setShowScanner(false);
+    addToCart(p);
+    toast.success(`+1 ${p.name}`);
+  };
+
+  // Looks in the products already on the device first, so scanning also works offline.
+  const handleBarcodeScan = async (raw: string) => {
+    const code = raw.trim();
+    if (!code) return;
+    const local = products.find((p) => matchesCode(p, code)) || (cacheGet<Product[]>('pos_products') || []).find((p) => matchesCode(p, code));
+    if (local) { addScanned(local); return; }
     try {
-      const { data } = await api.get(`/products/barcode/${code}`);
-      if (data.data) {
-        addToCart(data.data);
-        setShowScanner(false);
-      }
-    } catch {
-      toast.error(language === 'fr' ? 'Produit non trouvé' : 'Product not found');
+      const { data } = await api.get(`/products/barcode/${encodeURIComponent(code)}`);
+      if (data.data) addScanned(data.data);
+    } catch (err) {
+      toast.error(isNetworkError(err)
+        ? (language === 'fr' ? `Code ${code} introuvable sur cet appareil (hors ligne)` : `Code ${code} not found on this device (offline)`)
+        : (language === 'fr' ? `Aucun produit avec le code ${code}` : `No product with code ${code}`));
     }
   };
 
@@ -338,9 +357,18 @@ export function POSPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               className="pl-9"
-              placeholder={language === 'fr' ? 'Chercher un produit...' : 'Search product...'}
+              placeholder={language === 'fr' ? 'Chercher un produit ou un code-barres...' : 'Search product or barcode...'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                // USB / Bluetooth scanners type the code then press Enter
+                if (e.key !== 'Enter' || !search.trim()) return;
+                e.preventDefault();
+                const code = search.trim();
+                if (!/^[\w-]{4,}$/.test(code)) return;
+                setSearch('');
+                handleBarcodeScan(code);
+              }}
             />
           </div>
           {canScan ? (
