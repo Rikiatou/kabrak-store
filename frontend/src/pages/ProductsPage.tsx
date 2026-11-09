@@ -126,7 +126,10 @@ export function ProductsPage() {
   const [form, setForm] = useState(defaultForm);
   const [formImages, setFormImages] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-  const [gen, setGen] = useState({ sizes: '', colors: '' });
+  // Quick fill: one line per size (its prices), colours shared by all sizes unless a size lists its own.
+  const emptySize = () => ({ name: '', costPrice: '', sellingPrice: '', unitPrice: '', colors: '' });
+  const [gen, setGen] = useState({ colors: '', sizes: [emptySize()] });
+  const [bulkStock, setBulkStock] = useState('');
   const fr = language === 'fr';
 
   // New rows start with the last variant's prices (or the product prices), so only what differs needs typing.
@@ -136,17 +139,62 @@ export function ProductsPage() {
   };
   const setRow = (i: number, patch: Partial<VariantRow>) => setForm((prev) => ({ ...prev, variants: prev.variants.map((r, j) => (j === i ? { ...r, ...patch } : r)) }));
   const generateVariants = () => {
-    const split = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
-    const sizes = split(gen.sizes);
-    const colors = split(gen.colors);
-    const names = sizes.length && colors.length ? sizes.flatMap((s) => colors.map((c) => `${s} · ${c}`)) : [...sizes, ...colors];
+    const split = (x: string) => x.split(',').map((c) => c.trim()).filter(Boolean);
+    const common = split(gen.colors);
+    const sizes = gen.sizes.filter((z) => z.name.trim());
+    const base = newRow();
+    const rows: VariantRow[] = sizes.length
+      ? sizes.flatMap((z) => {
+          const colors = split(z.colors).length ? split(z.colors) : common;
+          const names = colors.length ? colors.map((c) => `${z.name.trim()} · ${c}`) : [z.name.trim()];
+          return names.map((name) => ({ ...base, name, costPrice: z.costPrice || base.costPrice, sellingPrice: z.sellingPrice || base.sellingPrice, unitPrice: z.unitPrice || base.unitPrice }));
+        })
+      : common.map((name) => ({ ...base, name }));
     const existing = new Set(form.variants.map((r) => r.name.toLowerCase()));
-    const added = names.filter((n) => !existing.has(n.toLowerCase())).map((n) => newRow(n));
-    if (!added.length) { toast.error(fr ? 'Écrivez des tailles et/ou des couleurs séparées par des virgules' : 'Type sizes and/or colours separated by commas'); return; }
+    const added = rows.filter((r) => !existing.has(r.name.toLowerCase()));
+    if (!added.length) { toast.error(fr ? 'Écrivez au moins une taille ou des couleurs séparées par des virgules' : 'Type at least one size or colours separated by commas'); return; }
     setForm((prev) => ({ ...prev, variants: [...prev.variants, ...added] }));
-    setGen({ sizes: '', colors: '' });
+    setGen({ colors: '', sizes: [emptySize()] });
   };
-  const filledRows = form.variants.filter((r) => r.name.trim());
+  const setSize = (i: number, patch: Partial<ReturnType<typeof emptySize>>) => setGen((g) => ({ ...g, sizes: g.sizes.map((z, j) => (j === i ? { ...z, ...patch } : z)) }));
+  const removeRow = (i: number) => setForm((prev) => ({ ...prev, variants: prev.variants.filter((_, j) => j !== i) }));
+  const setRows = (idx: number[], patch: Partial<VariantRow>) => setForm((prev) => ({ ...prev, variants: prev.variants.map((r, j) => (idx.includes(j) ? { ...r, ...patch } : r)) }));
+  // "Large · Rouge", "Large · Vert"… are shown together under "Large" with one price when they share it.
+  const groupKey = (name: string) => (name.includes(' · ') ? name.split(' · ')[0] : '');
+  const variantGroups: Array<{ key: string; idx: number[] }> = [];
+  form.variants.forEach((r, i) => {
+    const key = groupKey(r.name);
+    const g = key ? variantGroups.find((x) => x.key === key) : undefined;
+    if (g) g.idx.push(i); else variantGroups.push({ key, idx: [i] });
+  });
+  const variantCard = (r: VariantRow, i: number) => (
+                    <div key={i} className="rounded-md bg-muted/40 p-2 space-y-1.5">
+                      <div className="flex gap-2">
+                        <Input className="h-8" placeholder={fr ? 'Nom de la variante' : 'Variant name'} value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} />
+                        <Button type="button" variant="ghost" size="sm" className="h-8 text-destructive" onClick={() => removeRow(i)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        <label className="text-[10px] text-muted-foreground">{fr ? `Achat (1 ${mainWord})` : `Cost (1 ${mainWord})`}<Input className="h-8" type="number" min={0} value={r.costPrice} onChange={(e) => setRow(i, { costPrice: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? `Vente (1 ${mainWord})` : `Price (1 ${mainWord})`}<Input className="h-8" type="number" min={0} value={r.sellingPrice} onChange={(e) => setRow(i, { sellingPrice: e.target.value })} /></label>
+                        {!ORDER_BASED_TYPES.has(form.businessType) && (
+                          <label className="text-[10px] text-muted-foreground">{`Stock (${mainWord}s)`}<Input className="h-8" type="number" value={r.stock} onChange={(e) => setRow(i, { stock: e.target.value })} /></label>
+                        )}
+                      </div>
+                      {form.unitSale && (
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <label className="text-[10px] text-muted-foreground">{fr ? "Prix d'1 unité" : 'Price of 1 unit'}<Input className="h-8" type="number" min={0} value={r.unitPrice} onChange={(e) => setRow(i, { unitPrice: e.target.value })} /></label>
+                          {!ORDER_BASED_TYPES.has(form.businessType) && (
+                            <label className="text-[10px] text-muted-foreground">{fr ? '+ unités en stock' : '+ loose units'}<Input className="h-8" type="number" min={0} value={r.extra} onChange={(e) => setRow(i, { extra: e.target.value })} /></label>
+                          )}
+                        </div>
+                      )}
+                      <Input className="h-8" placeholder={fr ? 'Code-barres (facultatif)' : 'Barcode (optional)'} value={r.barcode} onChange={(e) => setRow(i, { barcode: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
+                    </div>
+  );
+  const samePrices = (idx: number[]) => idx.every((i) => (['costPrice', 'sellingPrice', 'unitPrice'] as const).every((k) => form.variants[i][k] === form.variants[idx[0]][k]));
+  const filledRows = form.variants.filter((r) => r.name.trim() && !r.name.trim().endsWith('·'));
   // Stock is stored in units; the form counts packs (+ loose units) when the product is also sold by unit.
   const packN = form.unitSale ? Math.max(1, parseInt(String(form.packSize)) || 1) : 1;
   const toUnits = (stock: string | number, extra: string | number) => (parseInt(String(stock)) || 0) * packN + (form.unitSale ? parseInt(String(extra)) || 0 : 0);
@@ -504,41 +552,90 @@ export function ProductsPage() {
                   <p className="text-xs text-muted-foreground">
                     {fr ? 'Facultatif. Chaque variante a son prix et son stock. Ex : « Grand · Doré ».' : 'Optional. Each variant has its own price and stock. E.g. "Large · Gold".'}
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input placeholder={fr ? 'Tailles : Petit, Grand' : 'Sizes: Small, Large'} value={gen.sizes} onChange={(e) => setGen({ ...gen, sizes: e.target.value })} />
-                    <Input placeholder={fr ? 'Couleurs : Rouge, Doré' : 'Colours: Red, Gold'} value={gen.colors} onChange={(e) => setGen({ ...gen, colors: e.target.value })} />
-                  </div>
-                  {(gen.sizes.trim() || gen.colors.trim()) && (
-                    <Button type="button" size="sm" variant="secondary" className="w-full" onClick={generateVariants}>
-                      {fr ? 'Créer les variantes' : 'Create variants'}
-                    </Button>
-                  )}
-                  {form.variants.map((r, i) => (
-                    <div key={i} className="rounded-md bg-muted/40 p-2 space-y-1.5">
-                      <div className="flex gap-2">
-                        <Input className="h-8" placeholder={fr ? 'Nom de la variante' : 'Variant name'} value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} />
-                        <Button type="button" variant="ghost" size="sm" className="h-8 text-destructive" onClick={() => setForm((prev) => ({ ...prev, variants: prev.variants.filter((_, j) => j !== i) }))}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        <label className="text-[10px] text-muted-foreground">{fr ? `Achat (1 ${mainWord})` : `Cost (1 ${mainWord})`}<Input className="h-8" type="number" min={0} value={r.costPrice} onChange={(e) => setRow(i, { costPrice: e.target.value })} /></label>
-                        <label className="text-[10px] text-muted-foreground">{fr ? `Vente (1 ${mainWord})` : `Price (1 ${mainWord})`}<Input className="h-8" type="number" min={0} value={r.sellingPrice} onChange={(e) => setRow(i, { sellingPrice: e.target.value })} /></label>
-                        {!ORDER_BASED_TYPES.has(form.businessType) && (
-                          <label className="text-[10px] text-muted-foreground">{`Stock (${mainWord}s)`}<Input className="h-8" type="number" value={r.stock} onChange={(e) => setRow(i, { stock: e.target.value })} /></label>
-                        )}
-                      </div>
-                      {form.unitSale && (
-                        <div className="grid grid-cols-2 gap-1.5">
-                          <label className="text-[10px] text-muted-foreground">{fr ? "Prix d'1 unité" : 'Price of 1 unit'}<Input className="h-8" type="number" min={0} value={r.unitPrice} onChange={(e) => setRow(i, { unitPrice: e.target.value })} /></label>
-                          {!ORDER_BASED_TYPES.has(form.businessType) && (
-                            <label className="text-[10px] text-muted-foreground">{fr ? '+ unités en stock' : '+ loose units'}<Input className="h-8" type="number" min={0} value={r.extra} onChange={(e) => setRow(i, { extra: e.target.value })} /></label>
+                  <div className="rounded-md border border-dashed border-border p-2 space-y-1.5">
+                    <p className="text-xs font-medium">{fr ? 'Remplir vite : une ligne par taille, avec son prix' : 'Quick fill: one line per size, with its price'}</p>
+                    <Input className="h-8" placeholder={fr ? 'Couleurs pour toutes les tailles : Rouge, Vert, Jaune' : 'Colours for all sizes: Red, Green, Yellow'} value={gen.colors} onChange={(e) => setGen({ ...gen, colors: e.target.value })} />
+                    {gen.sizes.map((z, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="flex gap-1.5">
+                          <Input className="h-8 flex-1 min-w-0" placeholder={fr ? 'Taille : Large' : 'Size: Large'} value={z.name} onChange={(e) => setSize(i, { name: e.target.value })} />
+                          <Input className="h-8 w-20" type="number" min={0} placeholder={fr ? 'Achat' : 'Cost'} value={z.costPrice} onChange={(e) => setSize(i, { costPrice: e.target.value })} />
+                          <Input className="h-8 w-20" type="number" min={0} placeholder={fr ? 'Vente' : 'Price'} value={z.sellingPrice} onChange={(e) => setSize(i, { sellingPrice: e.target.value })} />
+                          {form.unitSale && (
+                            <Input className="h-8 w-20" type="number" min={0} placeholder={fr ? '1 unité' : '1 unit'} value={z.unitPrice} onChange={(e) => setSize(i, { unitPrice: e.target.value })} />
+                          )}
+                          {gen.sizes.length > 1 && (
+                            <Button type="button" variant="ghost" size="sm" className="h-8 px-2" onClick={() => setGen((g) => ({ ...g, sizes: g.sizes.filter((_, j) => j !== i) }))}>
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           )}
                         </div>
-                      )}
-                      <Input className="h-8" placeholder={fr ? 'Code-barres (facultatif)' : 'Barcode (optional)'} value={r.barcode} onChange={(e) => setRow(i, { barcode: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
+                        {z.name.trim() && (
+                          <Input className="h-7 text-xs" placeholder={fr ? `Autres couleurs pour ${z.name.trim()} (sinon les mêmes)` : `Other colours for ${z.name.trim()} (else the same)`} value={z.colors} onChange={(e) => setSize(i, { colors: e.target.value })} />
+                        )}
+                      </div>
+                    ))}
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => setGen((g) => ({ ...g, sizes: [...g.sizes, emptySize()] }))}>
+                        <Plus className="w-3 h-3 mr-1" /> {fr ? 'Taille' : 'Size'}
+                      </Button>
+                      <Button type="button" size="sm" variant="secondary" className="flex-1" disabled={!gen.colors.trim() && !gen.sizes.some((z) => z.name.trim())} onClick={generateVariants}>
+                        {fr ? 'Créer les variantes' : 'Create variants'}
+                      </Button>
                     </div>
-                  ))}
+                  </div>
+                  {form.variants.length > 1 && !ORDER_BASED_TYPES.has(form.businessType) && (
+                    <div className="flex gap-2">
+                      <Input className="h-8 w-24" type="number" min={0} placeholder="20" value={bulkStock} onChange={(e) => setBulkStock(e.target.value)} />
+                      <Button type="button" size="sm" variant="outline" className="h-8" disabled={bulkStock === ''} onClick={() => setForm((prev) => ({ ...prev, variants: prev.variants.map((r) => ({ ...r, stock: bulkStock })) }))}>
+                        {fr ? 'Même stock partout' : 'Same stock for all'}
+                      </Button>
+                    </div>
+                  )}
+                  {variantGroups.map((g) => {
+                    if (!g.key || g.idx.length < 2 || !samePrices(g.idx)) return g.idx.map((i) => variantCard(form.variants[i], i));
+                    const first = form.variants[g.idx[0]];
+                    const last = g.idx[g.idx.length - 1];
+                    return (
+                      <div key={`g-${g.idx[0]}`} className="rounded-md bg-muted/40 p-2 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold">{g.key}</p>
+                          <span className="text-[10px] text-muted-foreground">{g.idx.length} {fr ? 'variantes · même prix' : 'variants · same price'}</span>
+                        </div>
+                        <div className={`grid gap-1.5 ${form.unitSale ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                          <label className="text-[10px] text-muted-foreground">{fr ? `Achat (1 ${mainWord})` : `Cost (1 ${mainWord})`}<Input className="h-8" type="number" min={0} value={first.costPrice} onChange={(e) => setRows(g.idx, { costPrice: e.target.value })} /></label>
+                          <label className="text-[10px] text-muted-foreground">{fr ? `Vente (1 ${mainWord})` : `Price (1 ${mainWord})`}<Input className="h-8" type="number" min={0} value={first.sellingPrice} onChange={(e) => setRows(g.idx, { sellingPrice: e.target.value })} /></label>
+                          {form.unitSale && (
+                            <label className="text-[10px] text-muted-foreground">{fr ? "Prix d'1 unité" : 'Price of 1 unit'}<Input className="h-8" type="number" min={0} value={first.unitPrice} onChange={(e) => setRows(g.idx, { unitPrice: e.target.value })} /></label>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">
+                          {[fr ? 'Couleur / modèle' : 'Colour / model', !ORDER_BASED_TYPES.has(form.businessType) ? `Stock (${mainWord}s)` : '', fr ? 'Code-barres' : 'Barcode'].filter(Boolean).join(' · ')}
+                        </p>
+                        {g.idx.map((i) => {
+                          const r = form.variants[i];
+                          return (
+                            <div key={i} className="flex gap-1.5">
+                              <Input className="h-8 flex-1 min-w-0" placeholder={fr ? 'Couleur' : 'Colour'} value={r.name.slice(g.key.length + 3)} onChange={(e) => setRow(i, { name: `${g.key} · ${e.target.value}` })} />
+                              {!ORDER_BASED_TYPES.has(form.businessType) && (
+                                <Input className="h-8 w-16" type="number" placeholder="0" value={r.stock} onChange={(e) => setRow(i, { stock: e.target.value })} />
+                              )}
+                              {form.unitSale && !ORDER_BASED_TYPES.has(form.businessType) && (
+                                <Input className="h-8 w-14" type="number" min={0} placeholder={fr ? '+ u.' : '+ u.'} title={fr ? '+ unités en stock' : '+ loose units'} value={r.extra} onChange={(e) => setRow(i, { extra: e.target.value })} />
+                              )}
+                              <Input className="h-8 w-24" placeholder={fr ? 'Code' : 'Code'} value={r.barcode} onChange={(e) => setRow(i, { barcode: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
+                              <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-destructive" onClick={() => removeRow(i)}>
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                        <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setForm((prev) => ({ ...prev, variants: [...prev.variants.slice(0, last + 1), { ...prev.variants[g.idx[0]], name: `${g.key} · `, stock: '', extra: '', barcode: '' }, ...prev.variants.slice(last + 1)] }))}>
+                          <Plus className="w-3 h-3 mr-1" /> {fr ? `Couleur en ${g.key}` : `Colour in ${g.key}`}
+                        </Button>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Normally sold by pack; optionally also by single unit */}
