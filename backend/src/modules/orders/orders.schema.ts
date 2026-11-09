@@ -7,6 +7,7 @@ export const createOrderSchema = z.object({
     quantity: z.number().int().min(1),
     unitPrice: z.number().min(0),
     variant: z.string().optional(),
+    pack: z.boolean().optional(),
   })).min(1, 'Au moins un article requis'),
   discount: z.number().min(0).default(0),
   // Initial payment for invoice (optional)

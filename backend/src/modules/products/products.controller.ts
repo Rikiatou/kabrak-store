@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { CreateProductInput, UpdateProductInput } from './products.schema';
-import { adjustSizes } from '../orders/orders.controller';
+import { StockError, STOCK_SELECT, lowStockLines, moveStock, notifyLowStock, readVariants } from '../../utils/stock';
 
 const PAYMENT_METHODS = ['CASH', 'MOBILE_MONEY', 'ORANGE_MONEY', 'MTN_MOMO', 'BANK_TRANSFER', 'OTHER'];
 
@@ -78,20 +78,54 @@ const normalizeBarcode = (value: unknown): string | null | undefined => {
   return code || null;
 };
 
-// A barcode must point to a single product of the shop, otherwise scanning would add the wrong item.
+// A barcode must point to a single product (or variant) of the shop, otherwise scanning would add the wrong item.
 const barcodeTakenBy = async (tenantId: string, barcode: string | null | undefined, excludeId?: string) => {
   if (!barcode) return null;
   return prisma.product.findFirst({
-    where: { tenantId, isActive: true, barcode, ...(excludeId ? { id: { not: excludeId } } : {}) },
+    where: {
+      tenantId, isActive: true, ...(excludeId ? { id: { not: excludeId } } : {}),
+      OR: [{ barcode }, { variants: { array_contains: [{ barcode }] } }],
+    },
     select: { name: true },
   });
+};
+
+type VariantInput = { variants?: unknown; totalStock?: number; packSize?: number | null; packPrice?: number | null };
+
+/** Cleans variants (unique names, stock as integers) and keeps totalStock = sum of variant stock. Returns an error message or null. */
+const prepareVariants = (data: VariantInput): string | null => {
+  if (data.variants === undefined) return null;
+  const variants = readVariants(data.variants);
+  const names = new Set<string>();
+  for (const v of variants) {
+    const key = v.name.toLowerCase();
+    if (names.has(key)) return `La variante « ${v.name} » existe deux fois`;
+    names.add(key);
+  }
+  const codes = variants.map((v) => v.barcode).filter(Boolean);
+  if (new Set(codes).size !== codes.length) return 'Deux variantes ont le même code-barres';
+  data.variants = variants.length ? variants : Prisma.DbNull;
+  if (variants.length) data.totalStock = variants.reduce((sum, v) => sum + v.stock, 0);
+  if (!data.packSize) { data.packSize = null; data.packPrice = null; }
+  return null;
+};
+
+const variantBarcodeTaken = async (tenantId: string, variants: unknown, excludeId?: string) => {
+  for (const v of readVariants(variants)) {
+    if (!v.barcode) continue;
+    const taken = await barcodeTakenBy(tenantId, v.barcode, excludeId);
+    if (taken) return { code: v.barcode, name: taken.name };
+  }
+  return null;
 };
 
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const data = req.body as CreateProductInput;
     data.barcode = normalizeBarcode(data.barcode);
-    const taken = await barcodeTakenBy(req.user!.tenantId, data.barcode);
+    const invalid = prepareVariants(data);
+    if (invalid) { res.status(400).json({ success: false, code: 'INVALID_VARIANTS', message: invalid }); return; }
+    const taken = await barcodeTakenBy(req.user!.tenantId, data.barcode) || await variantBarcodeTaken(req.user!.tenantId, data.variants);
     if (taken) {
       res.status(409).json({ success: false, message: `Ce code-barres est déjà utilisé par « ${taken.name} »` });
       return;
@@ -100,6 +134,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     const product = await prisma.product.create({
       data: {
         ...data,
+        variants: data.variants as Prisma.InputJsonValue | typeof Prisma.DbNull | undefined,
         tenantId: req.user!.tenantId,
       },
       include: { category: true },
@@ -127,7 +162,9 @@ export const update = async (req: Request, res: Response): Promise<void> => {
     }
 
     data.barcode = normalizeBarcode(data.barcode);
-    const taken = await barcodeTakenBy(req.user!.tenantId, data.barcode, id);
+    const invalid = prepareVariants(data);
+    if (invalid) { res.status(400).json({ success: false, code: 'INVALID_VARIANTS', message: invalid }); return; }
+    const taken = await barcodeTakenBy(req.user!.tenantId, data.barcode, id) || await variantBarcodeTaken(req.user!.tenantId, data.variants, id);
     if (taken) {
       res.status(409).json({ success: false, message: `Ce code-barres est déjà utilisé par « ${taken.name} »` });
       return;
@@ -135,7 +172,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
 
     const product = await prisma.product.update({
       where: { id },
-      data,
+      data: { ...data, variants: data.variants as Prisma.InputJsonValue | typeof Prisma.DbNull | undefined },
       include: { category: true },
     });
 
@@ -180,7 +217,7 @@ export const findByBarcode = async (req: Request, res: Response): Promise<void> 
       where: {
         tenantId: req.user!.tenantId,
         isActive: true,
-        OR: [{ barcode: code.trim() }, { sku: code.trim() }],
+        OR: [{ barcode: code.trim() }, { sku: code.trim() }, { variants: { array_contains: [{ barcode: code.trim() }] } }],
       },
       include: { category: true },
     });
@@ -190,7 +227,8 @@ export const findByBarcode = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    res.json({ success: true, data: product });
+    const variant = readVariants(product.variants).find((v) => v.barcode === code.trim());
+    res.json({ success: true, data: product, variant: variant?.name ?? null });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur recherche code-barres';
     res.status(500).json({ success: false, message });
@@ -199,26 +237,12 @@ export const findByBarcode = async (req: Request, res: Response): Promise<void> 
 
 export const getLowStock = async (req: Request, res: Response): Promise<void> => {
   try {
-    const products = await prisma.$queryRaw<
-      Array<{ id: string }>
-    >`
-      SELECT id FROM products
-      WHERE "tenantId" = ${req.user!.tenantId}
-        AND "isActive" = true
-        AND "totalStock" <= "lowStockAlert"
-      ORDER BY "totalStock" ASC
-    `;
-
-    const ids = products.map((p) => p.id);
-    const fullProducts = ids.length > 0
-      ? await prisma.product.findMany({
-          where: { id: { in: ids } },
-          include: { category: true },
-          orderBy: { totalStock: 'asc' },
-        })
-      : [];
-
-    res.json({ success: true, data: fullProducts });
+    const products = await prisma.product.findMany({
+      where: { tenantId: req.user!.tenantId, isActive: true, isService: false },
+      include: { category: true },
+      orderBy: { totalStock: 'asc' },
+    });
+    res.json({ success: true, data: products.filter((p) => lowStockLines(p).length > 0) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch low stock products';
     res.status(500).json({ success: false, message });
@@ -245,7 +269,7 @@ export const restock = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const product = await prisma.product.findFirst({ where: { id, tenantId } });
+    const product = await prisma.product.findFirst({ where: { id, tenantId }, select: STOCK_SELECT });
     if (!product) {
       res.status(404).json({ success: false, message: 'Produit introuvable' });
       return;
@@ -255,26 +279,20 @@ export const restock = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    let adaptiveFields: Record<string, unknown> | undefined;
-    if (variant) {
-      const adjusted = adjustSizes(product.adaptiveFields, variant, quantity);
-      if (!adjusted) {
-        res.status(400).json({ success: false, code: 'UNKNOWN_VARIANT', message: `Variante inconnue : ${variant}` });
-        return;
-      }
-      adaptiveFields = adjusted.fields;
+    const variants = readVariants(product.variants);
+    const v = variants.find((x) => x.name.toLowerCase() === (variant || '').toLowerCase());
+    if (variants.length > 0 && !v) {
+      res.status(400).json({ success: false, code: 'UNKNOWN_VARIANT', message: variant ? `Variante inconnue : ${variant}` : 'Choisissez la variante' });
+      return;
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const p = await tx.product.update({
-        where: { id },
-        data: {
-          totalStock: { increment: quantity },
-          ...(unitCost !== null ? { costPrice: unitCost } : {}),
-          ...(adaptiveFields ? { adaptiveFields: adaptiveFields as Prisma.InputJsonValue } : {}),
-        },
-      });
-      const cost = unitCost ?? product.costPrice ?? 0;
+      // With variants, the purchase price is the variant's own; otherwise the product's.
+      await moveStock(tx, product, variant, quantity, true, v && unitCost !== null ? { costPrice: unitCost } : undefined);
+      const p = unitCost !== null && !v
+        ? await tx.product.update({ where: { id }, data: { costPrice: unitCost } })
+        : await tx.product.findUniqueOrThrow({ where: { id } });
+      const cost = unitCost ?? v?.costPrice ?? product.costPrice ?? 0;
       if (recordExpense && cost > 0) {
         await tx.expense.create({
           data: {
@@ -291,8 +309,13 @@ export const restock = async (req: Request, res: Response): Promise<void> => {
       return p;
     });
 
+    await notifyLowStock(tenantId, [id]).catch((e) => console.error('low stock alert', e));
     res.json({ success: true, data: updated });
   } catch (error) {
+    if (error instanceof StockError) {
+      res.status(400).json({ success: false, code: 'UNKNOWN_VARIANT', message: error.message });
+      return;
+    }
     const message = error instanceof Error ? error.message : 'Failed to restock product';
     res.status(500).json({ success: false, message });
   }

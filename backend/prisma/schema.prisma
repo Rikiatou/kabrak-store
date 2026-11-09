@@ -256,6 +256,13 @@ model Product {
   sku             String?
   adaptiveFields  Json?
 
+  // [{ name, sellingPrice, costPrice, stock, barcode?, packPrice? }] — own price & stock per size/colour
+  variants        Json?
+  // Also sold as a pack of `packSize` units (stock is always counted in units)
+  packSize        Int?
+  packPrice       Float?
+  packName        String?
+
   // Service mode fields
   isService       Boolean          @default(false)
   duration        String?          // e.g. "1 month", "per session"
@@ -353,6 +360,7 @@ model OrderItem {
   totalPrice  Float
   unitCost    Float?
   variant     String?
+  packSize    Int?
   orderId     String
   productId   String
 

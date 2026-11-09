@@ -4,6 +4,7 @@ import { randomBytes } from 'crypto';
 import { prisma } from '../../config/prisma';
 import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 import { CreateOrderInput } from './orders.schema';
+import { StockError, STOCK_SELECT, itemCost, moveStock, notifyLowStock, unitsPerItem } from '../../utils/stock';
 
 export function generateReference(): string {
   const date = new Date();
@@ -105,23 +106,6 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
 };
 
 
-class StockError extends Error {}
-
-const parseSizes = (sizes: unknown): Array<[string, number]> =>
-  typeof sizes === 'string'
-    ? sizes.split(',').map((part) => part.split(':').map((x) => x.trim())).filter((kv) => kv.length === 2 && kv[0]).map(([k, v]) => [k, parseInt(v) || 0])
-    : [];
-
-/** Applies `delta` to the "S:5, M:10" size stock string; returns null when the size is unknown. */
-export const adjustSizes = (fields: unknown, variant: string, delta: number): { fields: Record<string, unknown>; remaining: number } | null => {
-  const obj = (fields && typeof fields === 'object' ? fields : {}) as Record<string, unknown>;
-  const entries = parseSizes(obj.sizes);
-  const idx = entries.findIndex(([k]) => k.toLowerCase() === variant.trim().toLowerCase());
-  if (idx < 0) return null;
-  entries[idx] = [entries[idx][0], entries[idx][1] + delta];
-  return { fields: { ...obj, sizes: entries.map(([k, v]) => `${k}:${v}`).join(', ') }, remaining: entries[idx][1] };
-};
-
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const data = req.body as CreateOrderInput;
@@ -150,9 +134,9 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     const order = await prisma.$transaction(async (tx) => {
       const catalog = await tx.product.findMany({
         where: { id: { in: data.items.map((i) => i.productId) }, tenantId: req.user!.tenantId },
-        select: { id: true, costPrice: true },
+        select: STOCK_SELECT,
       });
-      const costById = new Map(catalog.map((p) => [p.id, p.costPrice]));
+      const byId = new Map(catalog.map((p) => [p.id, p]));
 
       const newOrder = await tx.order.create({
         data: {
@@ -175,8 +159,9 @@ export const create = async (req: Request, res: Response): Promise<void> => {
               quantity: item.quantity,
               unitPrice: item.unitPrice,
               totalPrice: item.unitPrice * item.quantity,
-              unitCost: costById.get(item.productId) ?? null,
+              unitCost: byId.has(item.productId) ? itemCost(byId.get(item.productId)!, item.variant, item.pack) : null,
               variant: item.variant,
+              packSize: byId.has(item.productId) && unitsPerItem(byId.get(item.productId)!, item.pack) > 1 ? byId.get(item.productId)!.packSize : null,
             })),
           },
         },
@@ -191,7 +176,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       for (const item of data.items) {
         const product = await tx.product.findFirst({
           where: { id: item.productId, tenantId: req.user!.tenantId },
-          select: { id: true, totalStock: true, name: true, isService: true, adaptiveFields: true },
+          select: STOCK_SELECT,
         });
 
         if (!product) {
@@ -202,22 +187,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         if (product.isService) continue;
 
         // Offline replays record sales that already happened, so they are never blocked on stock.
-        if (!isReplay && product.totalStock < item.quantity) {
-          throw new StockError(`Stock insuffisant pour "${product.name}". Disponible: ${product.totalStock}, Demandé: ${item.quantity}`);
-        }
-
-        const sized = item.variant ? adjustSizes(product.adaptiveFields, item.variant, -item.quantity) : null;
-        if (sized && !isReplay && sized.remaining < 0) {
-          throw new StockError(`Stock insuffisant pour "${product.name} · ${item.variant}"`);
-        }
-
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            totalStock: { decrement: item.quantity },
-            ...(sized ? { adaptiveFields: sized.fields as Prisma.InputJsonValue } : {}),
-          },
-        });
+        await moveStock(tx, product, item.variant, -item.quantity * unitsPerItem(product, item.pack), !isReplay);
       }
 
       // Update client stats (orders count only, payment stats handled by invoice)
@@ -283,6 +253,8 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 
       return newOrder;
     });
+
+    await notifyLowStock(req.user!.tenantId, data.items.map((i) => i.productId)).catch((e) => console.error('low stock alert', e));
 
     const orderWithInvoice = await prisma.order.findUnique({
       where: { id: order.id },
@@ -358,17 +330,8 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
       if (status === 'CANCELLED') {
         for (const item of existing.items) {
           if (item.product?.isService) continue;
-          const current = item.variant
-            ? await tx.product.findUnique({ where: { id: item.productId }, select: { adaptiveFields: true } })
-            : null;
-          const sized = item.variant && current ? adjustSizes(current.adaptiveFields, item.variant, item.quantity) : null;
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              totalStock: { increment: item.quantity },
-              ...(sized ? { adaptiveFields: sized.fields as Prisma.InputJsonValue } : {}),
-            },
-          });
+          const current = await tx.product.findUnique({ where: { id: item.productId }, select: STOCK_SELECT });
+          if (current) await moveStock(tx, current, item.variant, item.quantity * (item.packSize || 1), false);
         }
       }
 

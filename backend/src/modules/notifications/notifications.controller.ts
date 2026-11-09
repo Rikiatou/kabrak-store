@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
+import { notifyLowStock } from '../../utils/stock';
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -51,48 +52,10 @@ export const markAllRead = async (req: Request, res: Response): Promise<void> =>
 
 export const checkStockAlerts = async (req: Request, res: Response): Promise<void> => {
   try {
-    const alertProducts = await prisma.$queryRaw<
-      Array<{ id: string; name: string; totalStock: number; lowStockAlert: number }>
-    >`
-      SELECT id, name, "totalStock", "lowStockAlert"
-      FROM products
-      WHERE "tenantId" = ${req.user!.tenantId}
-        AND "isActive" = true
-        AND "totalStock" <= "lowStockAlert"
-    `;
-
-    const created: string[] = [];
-    for (const product of alertProducts) {
-      const exists = await prisma.notification.findFirst({
-        where: {
-          tenantId: req.user!.tenantId,
-          type: 'STOCK_ALERT',
-          metadata: { path: ['productId'], equals: product.id },
-          isRead: false,
-        },
-      });
-
-      if (!exists) {
-        await prisma.notification.create({
-          data: {
-            type: 'STOCK_ALERT',
-            title: 'Stock faible',
-            message: `${product.name}: ${product.totalStock} en stock (seuil: ${product.lowStockAlert})`,
-            tenantId: req.user!.tenantId,
-            metadata: { productId: product.id, stock: product.totalStock },
-          },
-        });
-        created.push(product.name);
-      }
-    }
-
+    const { products, created } = await notifyLowStock(req.user!.tenantId);
     res.json({
       success: true,
-      data: {
-        lowStockCount: alertProducts.length,
-        newAlerts: created.length,
-        products: alertProducts,
-      },
+      data: { lowStockCount: products.length, newAlerts: created, products },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur';
