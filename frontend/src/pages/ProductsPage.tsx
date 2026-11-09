@@ -26,6 +26,7 @@ interface Product {
   isActive: boolean;
   image?: string;
   images?: string[];
+  barcode?: string | null;
   adaptiveFields?: Record<string, unknown>;
   category?: { id: string; name: string } | null;
 }
@@ -80,6 +81,7 @@ const defaultForm = {
   totalStock: '' as string | number, lowStockAlert: '' as string | number, categoryId: null as string | null,
   adaptiveFields: {} as Record<string, unknown>,
   image: '' as string,
+  barcode: '' as string,
 };
 
 export function ProductsPage() {
@@ -140,6 +142,7 @@ export function ProductsPage() {
         ...form,
         image: formImages[0] || '',
         images: formImages,
+        barcode: form.barcode.trim() || null,
         costPrice: form.costPrice === '' ? 0 : Number(form.costPrice),
         sellingPrice: form.sellingPrice === '' ? 0 : Number(form.sellingPrice),
         totalStock: form.totalStock === '' ? 0 : Number(form.totalStock),
@@ -175,6 +178,7 @@ export function ProductsPage() {
       categoryId: product.category?.id ?? null,
       adaptiveFields: (product.adaptiveFields || {}) as Record<string, unknown>,
       image: product.image || '',
+      barcode: product.barcode || '',
     });
     setFormImages(product.images?.length ? product.images : product.image ? [product.image] : []);
     setEditingId(product.id);
@@ -229,15 +233,26 @@ export function ProductsPage() {
     } finally { setDeleteTarget(null); }
   };
 
-  const handleBarcodeScan = async (code: string) => {
+  const [scanForForm, setScanForForm] = useState(false);
+
+  const handleBarcodeScan = async (raw: string) => {
+    const code = raw.trim();
+    if (!code) return;
+    setShowScanner(false);
+    if (scanForForm) {
+      setForm((prev) => ({ ...prev, barcode: code }));
+      return;
+    }
     try {
-      const { data } = await api.get(`/products/barcode/${code}`);
-      if (data.data) {
-        handleEdit(data.data);
-        setShowScanner(false);
-      }
+      const { data } = await api.get(`/products/barcode/${encodeURIComponent(code)}`);
+      if (data.data) handleEdit(data.data);
     } catch {
-      toast.error('Produit non trouvé pour ce code');
+      // Unknown code: start a new product with this barcode already filled in
+      setForm({ ...defaultForm, barcode: code });
+      setFormImages([]);
+      setEditingId(null);
+      setShowForm(true);
+      toast(language === 'fr' ? `Nouveau code ${code} : créez le produit` : `New code ${code}: create the product`);
     }
   };
 
@@ -268,7 +283,7 @@ export function ProductsPage() {
             <Download className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">CSV</span>
           </Button>
           {canScan && (
-            <Button variant="outline" size="sm" onClick={() => setShowScanner(true)}>
+            <Button variant="outline" size="sm" onClick={() => { setScanForForm(false); setShowScanner(true); }}>
               <ScanLine className="w-4 h-4 mr-1" /> <span className="hidden sm:inline">Scanner</span>
             </Button>
           )}
@@ -302,6 +317,24 @@ export function ProductsPage() {
                 <div>
                   <label className="text-sm font-medium mb-1 block">{t('products.name')}</label>
                   <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1 block">{language === 'fr' ? 'Code-barres (facultatif)' : 'Barcode (optional)'}</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.barcode}
+                      onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+                      placeholder={language === 'fr' ? 'Scannez ou tapez le code' : 'Scan or type the code'}
+                      inputMode="text"
+                    />
+                    {canScan && (
+                      <Button type="button" variant="outline" onClick={() => { setScanForForm(true); setShowScanner(true); }} title={language === 'fr' ? 'Scanner' : 'Scan'}>
+                        <ScanLine className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <ImageUpload

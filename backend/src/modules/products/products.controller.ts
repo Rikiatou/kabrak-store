@@ -13,7 +13,14 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
 
     const where: Record<string, unknown> = { tenantId: req.user!.tenantId };
     if (req.query.includeInactive !== 'true') where.isActive = true;
-    if (search) where.name = { contains: search as string, mode: 'insensitive' };
+    if (search) {
+      const q = (search as string).trim();
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { barcode: q },
+        { sku: q },
+      ];
+    }
     if (categoryId) where.categoryId = categoryId as string;
     if (businessType) where.businessType = businessType as string;
 
@@ -64,9 +71,31 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+const normalizeBarcode = (value: unknown): string | null | undefined => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const code = String(value).trim();
+  return code || null;
+};
+
+// A barcode must point to a single product of the shop, otherwise scanning would add the wrong item.
+const barcodeTakenBy = async (tenantId: string, barcode: string | null | undefined, excludeId?: string) => {
+  if (!barcode) return null;
+  return prisma.product.findFirst({
+    where: { tenantId, isActive: true, barcode, ...(excludeId ? { id: { not: excludeId } } : {}) },
+    select: { name: true },
+  });
+};
+
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
     const data = req.body as CreateProductInput;
+    data.barcode = normalizeBarcode(data.barcode);
+    const taken = await barcodeTakenBy(req.user!.tenantId, data.barcode);
+    if (taken) {
+      res.status(409).json({ success: false, message: `Ce code-barres est déjà utilisé par « ${taken.name} »` });
+      return;
+    }
 
     const product = await prisma.product.create({
       data: {
@@ -94,6 +123,13 @@ export const update = async (req: Request, res: Response): Promise<void> => {
 
     if (!existing) {
       res.status(404).json({ success: false, message: 'Produit non trouvé' });
+      return;
+    }
+
+    data.barcode = normalizeBarcode(data.barcode);
+    const taken = await barcodeTakenBy(req.user!.tenantId, data.barcode, id);
+    if (taken) {
+      res.status(409).json({ success: false, message: `Ce code-barres est déjà utilisé par « ${taken.name} »` });
       return;
     }
 
@@ -143,7 +179,8 @@ export const findByBarcode = async (req: Request, res: Response): Promise<void> 
     const product = await prisma.product.findFirst({
       where: {
         tenantId: req.user!.tenantId,
-        OR: [{ barcode: code }, { sku: code }],
+        isActive: true,
+        OR: [{ barcode: code.trim() }, { sku: code.trim() }],
       },
       include: { category: true },
     });
