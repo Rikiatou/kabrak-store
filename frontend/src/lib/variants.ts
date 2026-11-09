@@ -52,3 +52,22 @@ export const isLowStock = (p: Sellable) => {
   const vs = variantsOf(p);
   return vs.length ? vs.some((v) => v.stock <= limit) : p.totalStock <= limit;
 };
+
+/** Price of what is normally sold: the pack (wholesale) when the product is sold by pack, else the unit. */
+export const mainPrice = (p: Sellable) => {
+  if (!hasPack(p)) return fromPrice(p);
+  const vs = variantsOf(p);
+  return vs.length ? Math.min(...vs.map((v) => v.packPrice || p.packPrice || 0)) : p.packPrice || 0;
+};
+export const hasMainRange = (p: Sellable) =>
+  hasPack(p) ? new Set(variantsOf(p).map((v) => v.packPrice || p.packPrice)).size > 1 : hasPriceRange(p);
+
+/** Stock in units shown as "19 paquets + 7" for products sold by pack. */
+export const stockText = (p: Sellable, units: number, fr = true) => {
+  const n = p.packSize && p.packSize > 1 ? p.packSize : 1;
+  if (n === 1) return String(units);
+  const packs = Math.trunc(units / n);
+  const rest = units - packs * n;
+  const name = (p.packName || (fr ? 'paquet' : 'pack')).toLowerCase();
+  return `${packs} ${name}${Math.abs(packs) > 1 ? 's' : ''}${rest ? ` + ${rest}` : ''}`;
+};

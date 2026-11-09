@@ -162,7 +162,8 @@ export function OrdersPage() {
       if (existing) {
         return prev.map((i) => i === existing ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { productId: product.id, name: product.name, quantity: 1, variant, unitPrice: priceOf(product, variant) }];
+      const pack = hasPack(product);
+      return [...prev, { productId: product.id, name: product.name, quantity: 1, variant, pack: pack || undefined, unitPrice: priceOf(product, variant, pack) }];
     });
   };
   const productOf = (id: string) => products.find((p) => p.id === id);

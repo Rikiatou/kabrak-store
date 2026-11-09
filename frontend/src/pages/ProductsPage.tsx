@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { type Variant, fromPrice, hasPriceRange, isLowStock, variantsOf } from '@/lib/variants';
+import { type Variant, hasMainRange, isLowStock, mainPrice, stockText, variantsOf } from '@/lib/variants';
 
 interface Product {
   id: string;
@@ -36,7 +36,8 @@ interface Product {
   packName?: string | null;
 }
 
-interface VariantRow { name: string; sellingPrice: string; costPrice: string; stock: string; barcode: string; packPrice: string }
+// Prices/stock in a row are for what is normally sold (the pack when "also sold by unit" is on); `extra` = loose units.
+interface VariantRow { name: string; sellingPrice: string; costPrice: string; stock: string; extra: string; unitPrice: string; barcode: string }
 
 const legacySizes = (p: Product): Array<[string, number]> => {
   const raw = p.adaptiveFields?.sizes;
@@ -96,10 +97,11 @@ const defaultForm = {
   image: '' as string,
   barcode: '' as string,
   variants: [] as VariantRow[],
-  packEnabled: false,
+  unitSale: false,
   packName: '' as string,
   packSize: '' as string | number,
-  packPrice: '' as string | number,
+  unitPrice: '' as string | number,
+  extraUnits: '' as string | number,
 };
 
 export function ProductsPage() {
@@ -128,7 +130,7 @@ export function ProductsPage() {
   // New rows start with the last variant's prices (or the product prices), so only what differs needs typing.
   const newRow = (name = ''): VariantRow => {
     const last = form.variants[form.variants.length - 1];
-    return { name, sellingPrice: last?.sellingPrice ?? String(form.sellingPrice ?? ''), costPrice: last?.costPrice ?? String(form.costPrice ?? ''), stock: '', barcode: '', packPrice: last?.packPrice ?? '' };
+    return { name, sellingPrice: last?.sellingPrice ?? String(form.sellingPrice ?? ''), costPrice: last?.costPrice ?? String(form.costPrice ?? ''), stock: '', extra: '', unitPrice: last?.unitPrice ?? String(form.unitPrice ?? ''), barcode: '' };
   };
   const setRow = (i: number, patch: Partial<VariantRow>) => setForm((prev) => ({ ...prev, variants: prev.variants.map((r, j) => (j === i ? { ...r, ...patch } : r)) }));
   const generateVariants = () => {
@@ -143,7 +145,11 @@ export function ProductsPage() {
     setGen({ sizes: '', colors: '' });
   };
   const filledRows = form.variants.filter((r) => r.name.trim());
-  const variantStock = filledRows.reduce((sum, r) => sum + (parseInt(r.stock) || 0), 0);
+  // Stock is stored in units; the form counts packs (+ loose units) when the product is also sold by unit.
+  const packN = form.unitSale ? Math.max(1, parseInt(String(form.packSize)) || 1) : 1;
+  const toUnits = (stock: string | number, extra: string | number) => (parseInt(String(stock)) || 0) * packN + (form.unitSale ? parseInt(String(extra)) || 0 : 0);
+  const variantStock = filledRows.reduce((sum, r) => sum + toUnits(r.stock, r.extra), 0);
+  const mainWord = form.unitSale ? (form.packName.trim() || (fr ? 'paquet' : 'pack')).toLowerCase() : (fr ? 'pièce' : 'item');
 
   const debouncedSearch = useDebounce(search);
 
@@ -164,41 +170,48 @@ export function ProductsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
-    const { packEnabled, ...base } = form;
-    const variants = filledRows.map((r) => ({
-      name: r.name.trim(),
-      sellingPrice: Number(r.sellingPrice) || 0,
-      costPrice: Number(r.costPrice) || 0,
-      stock: parseInt(r.stock) || 0,
-      barcode: r.barcode.trim() || null,
-      packPrice: packEnabled && r.packPrice !== '' ? Number(r.packPrice) : null,
-    }));
-    if (packEnabled && !(Number(form.packSize) >= 2)) {
+    const r2 = (x: number) => Math.round(x * 100) / 100;
+    const { unitSale } = form;
+    const variants = filledRows.map((r) => {
+      const main = Number(r.sellingPrice) || 0;
+      return {
+        name: r.name.trim(),
+        sellingPrice: unitSale ? Number(r.unitPrice || form.unitPrice) || 0 : main,
+        costPrice: r2((Number(r.costPrice) || 0) / packN),
+        stock: toUnits(r.stock, r.extra),
+        barcode: r.barcode.trim() || null,
+        packPrice: unitSale ? main : null,
+      };
+    });
+    if (unitSale && packN < 2) {
       toast.error(fr ? 'Indiquez combien d’unités il y a dans un paquet (2 ou plus)' : 'Enter how many units are in a pack (2 or more)');
       return;
     }
-    if (packEnabled && !(Number(form.packPrice) > 0) && !variants.some((v) => (v.packPrice ?? 0) > 0)) {
-      toast.error(fr ? 'Indiquez le prix du paquet' : 'Enter the pack price');
+    if (unitSale && (variants.length ? variants.some((v) => !(v.sellingPrice > 0)) : !(Number(form.unitPrice) > 0))) {
+      toast.error(fr ? "Indiquez le prix d'une unité" : 'Enter the price of one unit');
       return;
     }
     const adaptiveFields = { ...form.adaptiveFields };
     if (variants.length) delete adaptiveFields.sizes;
+    const mainPriceIn = Number(form.sellingPrice) || 0;
     setSubmitting(true);
     try {
       const payload = {
-        ...base,
+        name: form.name,
+        businessType: form.businessType,
+        categoryId: form.categoryId,
         adaptiveFields,
         variants,
-        packSize: packEnabled ? Number(form.packSize) : null,
-        packPrice: packEnabled ? Number(form.packPrice) || 0 : null,
-        packName: packEnabled ? form.packName.trim() || null : null,
+        packSize: unitSale ? packN : null,
+        packPrice: unitSale ? (variants.length ? Math.min(...variants.map((v) => v.packPrice ?? 0)) : mainPriceIn) : null,
+        packName: unitSale ? form.packName.trim() || null : null,
         image: formImages[0] || '',
         images: formImages,
         barcode: form.barcode.trim() || null,
-        costPrice: form.costPrice === '' ? 0 : Number(form.costPrice),
-        sellingPrice: variants.length ? Math.min(...variants.map((v) => v.sellingPrice)) : form.sellingPrice === '' ? 0 : Number(form.sellingPrice),
-        totalStock: variants.length ? variantStock : form.totalStock === '' ? 0 : Number(form.totalStock),
-        lowStockAlert: form.lowStockAlert === '' ? 5 : Number(form.lowStockAlert),
+        costPrice: r2((Number(form.costPrice) || 0) / packN),
+        sellingPrice: variants.length ? Math.min(...variants.map((v) => v.sellingPrice)) : unitSale ? Number(form.unitPrice) || 0 : mainPriceIn,
+        totalStock: variants.length ? variantStock : toUnits(form.totalStock, form.extraUnits),
+        lowStockAlert: (form.lowStockAlert === '' ? 5 : Number(form.lowStockAlert)) * packN,
       };
       if (editingId) {
         await api.put(`/products/${editingId}`, payload);
@@ -220,24 +233,37 @@ export function ProductsPage() {
   };
 
   const handleEdit = (product: Product) => {
+    const n = product.packSize && product.packSize > 1 ? product.packSize : 1;
+    const r2 = (x: number) => Math.round(x * 100) / 100;
+    const packs = (units: number) => Math.trunc(units / n);
+    const loose = (units: number) => (n > 1 && units - packs(units) * n ? String(units - packs(units) * n) : '');
     setForm({
       name: product.name,
       businessType: product.businessType,
-      costPrice: product.costPrice,
-      sellingPrice: product.sellingPrice,
-      totalStock: product.totalStock,
-      lowStockAlert: product.lowStockAlert,
+      costPrice: r2(product.costPrice * n),
+      sellingPrice: n > 1 ? product.packPrice ?? product.sellingPrice * n : product.sellingPrice,
+      totalStock: packs(product.totalStock),
+      extraUnits: loose(product.totalStock),
+      lowStockAlert: n > 1 ? Math.round(product.lowStockAlert / n) : product.lowStockAlert,
       categoryId: product.category?.id ?? null,
       adaptiveFields: (product.adaptiveFields || {}) as Record<string, unknown>,
       image: product.image || '',
       barcode: product.barcode || '',
       variants: variantsOf(product).length
-        ? variantsOf(product).map((v) => ({ name: v.name, sellingPrice: String(v.sellingPrice), costPrice: String(v.costPrice ?? ''), stock: String(v.stock), barcode: v.barcode || '', packPrice: v.packPrice != null ? String(v.packPrice) : '' }))
-        : legacySizes(product).map(([k, q]) => ({ name: k, sellingPrice: String(product.sellingPrice), costPrice: String(product.costPrice), stock: String(q), barcode: '', packPrice: '' })),
-      packEnabled: !!product.packSize,
+        ? variantsOf(product).map((v) => ({
+            name: v.name,
+            costPrice: String(r2((v.costPrice ?? 0) * n)),
+            sellingPrice: String(n > 1 ? v.packPrice || product.packPrice || v.sellingPrice * n : v.sellingPrice),
+            stock: String(packs(v.stock)),
+            extra: loose(v.stock),
+            unitPrice: n > 1 ? String(v.sellingPrice) : '',
+            barcode: v.barcode || '',
+          }))
+        : legacySizes(product).map(([k, q]) => ({ name: k, sellingPrice: String(product.sellingPrice), costPrice: String(product.costPrice), stock: String(q), extra: '', unitPrice: '', barcode: '' })),
+      unitSale: n > 1,
       packName: product.packName || '',
-      packSize: product.packSize ?? '',
-      packPrice: product.packPrice ?? '',
+      packSize: n > 1 ? n : '',
+      unitPrice: n > 1 ? product.sellingPrice : '',
     });
     setFormImages(product.images?.length ? product.images : product.image ? [product.image] : []);
     setEditingId(product.id);
@@ -257,14 +283,15 @@ export function ProductsPage() {
   };
   const submitRestock = async () => {
     if (!restockTarget) return;
-    const quantity = parseInt(restockForm.quantity);
+    const restockN = restockTarget?.packSize && restockTarget.packSize > 1 ? restockTarget.packSize : 1;
+    const quantity = parseInt(restockForm.quantity) * restockN;
     if (!quantity || quantity <= 0) { toast.error(language === 'fr' ? 'Indiquez une quantité' : 'Enter a quantity'); return; }
     if (restockVariants.length > 0 && !restockForm.variant) { toast.error(language === 'fr' ? 'Choisissez la taille / variante' : 'Choose the size / variant'); return; }
     setSubmitting(true);
     try {
       await api.post(`/products/${restockTarget.id}/restock`, {
         quantity,
-        unitCost: restockForm.unitCost === '' ? undefined : Number(restockForm.unitCost),
+        unitCost: restockForm.unitCost === '' ? undefined : Number(restockForm.unitCost) / restockN,
         variant: restockForm.variant || undefined,
         supplierId: restockForm.supplierId || undefined,
         recordExpense: restockForm.recordExpense,
@@ -424,12 +451,11 @@ export function ProductsPage() {
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-1 block">{fr ? "Prix d'achat (1 pièce)" : 'Purchase price (1 item)'}</label>
+                      <label className="text-sm font-medium mb-1 block">{fr ? `Prix d'achat (1 ${mainWord})` : `Purchase price (1 ${mainWord})`}</label>
                       <Input type="number" min={0} placeholder="0" value={form.costPrice ?? ''} onChange={(e) => setForm({ ...form, costPrice: e.target.value })} />
-                      <p className="text-[10px] text-muted-foreground mt-1">{fr ? 'Ex : carton de 50 acheté 5 000 → 100' : 'E.g. box of 50 bought 5,000 → 100'}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">{fr ? 'Prix de vente au détail (1 pièce)' : 'Retail price (1 item)'}</label>
+                      <label className="text-sm font-medium mb-1 block">{fr ? `Prix de vente (1 ${mainWord})` : `Selling price (1 ${mainWord})`}</label>
                       <Input type="number" min={0} placeholder="0" value={form.sellingPrice ?? ''} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })} />
                     </div>
                   </div>
@@ -444,15 +470,20 @@ export function ProductsPage() {
                 ) : (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium mb-1 block">{filledRows.length > 0 ? (fr ? 'Stock total (calculé)' : 'Total stock (calculated)') : t('products.stock')}</label>
+                      <label className="text-sm font-medium mb-1 block">{filledRows.length > 0 ? (fr ? 'Stock total (calculé)' : 'Total stock (calculated)') : `${t('products.stock')} (${mainWord}s)`}</label>
                       {filledRows.length > 0 ? (
-                        <Input type="number" value={variantStock} readOnly className="bg-gray-50" title={t('products.autoCalculated')} />
+                        <Input value={stockText({ sellingPrice: 0, totalStock: 0, packSize: packN, packName: form.packName }, variantStock, fr)} readOnly className="bg-gray-50" title={t('products.autoCalculated')} />
                       ) : (
-                        <Input type="number" min={0} placeholder="0" value={form.totalStock ?? ''} onChange={(e) => setForm({ ...form, totalStock: e.target.value })} />
+                        <div className="flex gap-2">
+                          <Input type="number" min={0} placeholder="0" value={form.totalStock ?? ''} onChange={(e) => setForm({ ...form, totalStock: e.target.value })} />
+                          {form.unitSale && (
+                            <Input type="number" min={0} className="w-24" placeholder={fr ? '+ unités' : '+ units'} value={form.extraUnits ?? ''} onChange={(e) => setForm({ ...form, extraUnits: e.target.value })} />
+                          )}
+                        </div>
                       )}
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">{t('products.lowStock')}</label>
+                      <label className="text-sm font-medium mb-1 block">{t('products.lowStock')}{form.unitSale ? ` (${mainWord}s)` : ''}</label>
                       <Input type="number" min={0} placeholder="5" value={form.lowStockAlert ?? ''} onChange={(e) => setForm({ ...form, lowStockAlert: e.target.value })} />
                     </div>
                   </div>
@@ -487,40 +518,42 @@ export function ProductsPage() {
                         </Button>
                       </div>
                       <div className="grid grid-cols-3 gap-1.5">
-                        <label className="text-[10px] text-muted-foreground">{fr ? 'Achat (1 pièce)' : 'Cost (1 item)'}<Input className="h-8" type="number" min={0} value={r.costPrice} onChange={(e) => setRow(i, { costPrice: e.target.value })} /></label>
-                        <label className="text-[10px] text-muted-foreground">{fr ? 'Détail (1 pièce)' : 'Retail (1 item)'}<Input className="h-8" type="number" min={0} value={r.sellingPrice} onChange={(e) => setRow(i, { sellingPrice: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? `Achat (1 ${mainWord})` : `Cost (1 ${mainWord})`}<Input className="h-8" type="number" min={0} value={r.costPrice} onChange={(e) => setRow(i, { costPrice: e.target.value })} /></label>
+                        <label className="text-[10px] text-muted-foreground">{fr ? `Vente (1 ${mainWord})` : `Price (1 ${mainWord})`}<Input className="h-8" type="number" min={0} value={r.sellingPrice} onChange={(e) => setRow(i, { sellingPrice: e.target.value })} /></label>
                         {!ORDER_BASED_TYPES.has(form.businessType) && (
-                          <label className="text-[10px] text-muted-foreground">{fr ? 'Stock (unités)' : 'Stock (units)'}<Input className="h-8" type="number" value={r.stock} onChange={(e) => setRow(i, { stock: e.target.value })} /></label>
+                          <label className="text-[10px] text-muted-foreground">{`Stock (${mainWord}s)`}<Input className="h-8" type="number" value={r.stock} onChange={(e) => setRow(i, { stock: e.target.value })} /></label>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <Input className="h-8" placeholder={fr ? 'Code-barres (facultatif)' : 'Barcode (optional)'} value={r.barcode} onChange={(e) => setRow(i, { barcode: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
-                        {form.packEnabled && (
-                          <Input className="h-8" type="number" min={0} placeholder={fr ? 'Prix du paquet (gros)' : 'Pack price (wholesale)'} value={r.packPrice} onChange={(e) => setRow(i, { packPrice: e.target.value })} />
-                        )}
-                      </div>
+                      {form.unitSale && (
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <label className="text-[10px] text-muted-foreground">{fr ? "Prix d'1 unité" : 'Price of 1 unit'}<Input className="h-8" type="number" min={0} value={r.unitPrice} onChange={(e) => setRow(i, { unitPrice: e.target.value })} /></label>
+                          {!ORDER_BASED_TYPES.has(form.businessType) && (
+                            <label className="text-[10px] text-muted-foreground">{fr ? '+ unités en stock' : '+ loose units'}<Input className="h-8" type="number" min={0} value={r.extra} onChange={(e) => setRow(i, { extra: e.target.value })} /></label>
+                          )}
+                        </div>
+                      )}
+                      <Input className="h-8" placeholder={fr ? 'Code-barres (facultatif)' : 'Barcode (optional)'} value={r.barcode} onChange={(e) => setRow(i, { barcode: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
                     </div>
                   ))}
                 </div>
 
-                {/* Pack / box sale */}
+                {/* Normally sold by pack; optionally also by single unit */}
                 <div className="rounded-lg border border-border p-3 space-y-2">
                   <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                    <input type="checkbox" className="w-4 h-4 accent-blue-600" checked={form.packEnabled} onChange={(e) => setForm({ ...form, packEnabled: e.target.checked })} />
-                    {fr ? 'Vendu aussi en paquet / carton' : 'Also sold as a pack / box'}
+                    <input type="checkbox" className="w-4 h-4 accent-blue-600" checked={form.unitSale} onChange={(e) => setForm({ ...form, unitSale: e.target.checked })} />
+                    {fr ? "Vendu aussi à l'unité (au détail)" : 'Also sold by single unit (retail)'}
                   </label>
-                  {form.packEnabled && (
-                    <>
-                      <div className="grid grid-cols-3 gap-2">
-                        <label className="text-[10px] text-muted-foreground">{fr ? 'Nom' : 'Name'}<Input className="h-8" placeholder={fr ? 'Paquet' : 'Pack'} value={form.packName} onChange={(e) => setForm({ ...form, packName: e.target.value })} /></label>
-                        <label className="text-[10px] text-muted-foreground">{fr ? 'Unités dedans' : 'Units inside'}<Input className="h-8" type="number" min={2} placeholder="10" value={form.packSize} onChange={(e) => setForm({ ...form, packSize: e.target.value })} /></label>
-                        <label className="text-[10px] text-muted-foreground">{fr ? 'Prix du paquet (gros)' : 'Pack price (wholesale)'}<Input className="h-8" type="number" min={0} value={form.packPrice} onChange={(e) => setForm({ ...form, packPrice: e.target.value })} /></label>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {fr ? `Le stock est compté à l'unité : vendre 1 paquet retire ${Number(form.packSize) || 'N'} unités. Avec des variantes, vous pouvez mettre un prix de paquet par variante.`
-                          : `Stock is counted in units: selling 1 pack removes ${Number(form.packSize) || 'N'} units. With variants you can set a pack price per variant.`}
-                      </p>
-                    </>
+                  <p className="text-xs text-muted-foreground">
+                    {form.unitSale
+                      ? (fr ? "Les prix ci-dessus sont ceux du paquet (gros). La caisse vend le paquet par défaut, avec un bouton « Unité »." : 'Prices above are for the pack (wholesale). The register sells the pack by default, with a "Unit" button.')
+                      : (fr ? "Décoché : la caisse vend directement au prix ci-dessus. Cochez si vous vendez aussi la pièce seule d'un paquet." : 'Unchecked: the register sells at the price above. Tick it if you also sell single pieces from a pack.')}
+                  </p>
+                  {form.unitSale && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <label className="text-[10px] text-muted-foreground">{fr ? 'Nom (paquet, carton…)' : 'Name (pack, box…)'}<Input className="h-8" placeholder={fr ? 'Paquet' : 'Pack'} value={form.packName} onChange={(e) => setForm({ ...form, packName: e.target.value })} /></label>
+                      <label className="text-[10px] text-muted-foreground">{fr ? `Unités dans 1 ${mainWord}` : `Units in 1 ${mainWord}`}<Input className="h-8" type="number" min={2} placeholder="10" value={form.packSize} onChange={(e) => setForm({ ...form, packSize: e.target.value })} /></label>
+                      <label className="text-[10px] text-muted-foreground">{fr ? "Prix d'1 unité" : 'Price of 1 unit'}<Input className="h-8" type="number" min={0} value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value, variants: form.variants.map((r) => (r.unitPrice ? r : { ...r, unitPrice: e.target.value })) })} /></label>
+                    </div>
                   )}
                 </div>
 
@@ -585,7 +618,7 @@ export function ProductsPage() {
                       <p className="text-xs text-muted-foreground">{ADAPTIVE_FIELDS[product.businessType]?.label || product.businessType}</p>
                     </div>
                     <Badge variant={isLowStock(product) ? 'warning' : 'secondary'} className="shrink-0 text-xs">
-                      {product.totalStock}
+                      {stockText(product, product.totalStock, fr)}
                     </Badge>
                   </div>
                   {(variantsOf(product).length > 0 || product.packSize || isLowStock(product)) && (
@@ -603,11 +636,11 @@ export function ProductsPage() {
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
                     <div>
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.costPrice')}</p>
-                      <p className="text-xs sm:text-sm">{formatCurrency(product.costPrice)}</p>
+                      <p className="text-xs sm:text-sm">{formatCurrency(product.costPrice * (product.packSize && product.packSize > 1 ? product.packSize : 1))}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.sellingPrice')}</p>
-                      <p className="text-xs sm:text-sm font-bold text-blue-600">{hasPriceRange(product) ? (fr ? 'dès ' : 'from ') : ''}{formatCurrency(fromPrice(product))}</p>
+                      <p className="text-xs sm:text-sm font-bold text-blue-600">{hasMainRange(product) ? (fr ? 'dès ' : 'from ') : ''}{formatCurrency(mainPrice(product))}</p>
                     </div>
                   </div>
 
@@ -674,8 +707,8 @@ export function ProductsPage() {
                 {restockVariants.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
             )}
-            <Input type="number" min={1} placeholder={language === 'fr' ? 'Quantité reçue' : 'Quantity received'} value={restockForm.quantity} onChange={(e) => setRestockForm({ ...restockForm, quantity: e.target.value })} />
-            <Input type="number" min={0} placeholder={language === 'fr' ? "Prix d'achat unitaire" : 'Unit purchase price'} value={restockForm.unitCost} onChange={(e) => setRestockForm({ ...restockForm, unitCost: e.target.value })} />
+            <Input type="number" min={1} placeholder={restockTarget?.packSize ? (fr ? `Nombre de ${(restockTarget.packName || 'paquet').toLowerCase()}s reçus` : 'Packs received') : (language === 'fr' ? 'Quantité reçue' : 'Quantity received')} value={restockForm.quantity} onChange={(e) => setRestockForm({ ...restockForm, quantity: e.target.value })} />
+            <Input type="number" min={0} placeholder={restockTarget?.packSize ? (fr ? `Prix d'achat d'1 ${(restockTarget.packName || 'paquet').toLowerCase()}` : 'Purchase price of 1 pack') : (language === 'fr' ? "Prix d'achat unitaire" : 'Unit purchase price')} value={restockForm.unitCost} onChange={(e) => setRestockForm({ ...restockForm, unitCost: e.target.value })} />
             {suppliers.length > 0 && (
               <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm" value={restockForm.supplierId} onChange={(e) => setRestockForm({ ...restockForm, supplierId: e.target.value })}>
                 <option value="">{language === 'fr' ? 'Fournisseur (optionnel)' : 'Supplier (optional)'}</option>
