@@ -233,6 +233,11 @@ export function ProductsPage() {
         packPrice: unitSale ? main : null,
       };
     });
+    const unpriced = filledRows.find((r) => !(Number(r.sellingPrice) > 0));
+    if (unpriced) {
+      toast.error(fr ? `Mettez le prix de vente de « ${unpriced.name.trim()} »` : `Enter the selling price of "${unpriced.name.trim()}"`);
+      return;
+    }
     if (unitSale && packN < 2) {
       toast.error(fr ? 'Indiquez combien d’unités il y a dans un paquet (2 ou plus)' : 'Enter how many units are in a pack (2 or more)');
       return;
