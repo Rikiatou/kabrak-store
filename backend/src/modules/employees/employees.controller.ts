@@ -3,12 +3,13 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../../config/prisma';
 import { UserRole } from '@prisma/client';
+import { sanitizeModules } from '../../config/modules';
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
     const employees = await prisma.user.findMany({
       where: { tenantId: req.user!.tenantId },
-      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, isActive: true, createdAt: true },
+      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, modules: true, isActive: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -21,7 +22,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
 
 export const create = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, firstName, lastName, phone, role } = req.body;
+    const { email, password, firstName, lastName, phone, role, modules } = req.body;
 
     if (!email || !password || !firstName || !lastName) {
       res.status(400).json({ success: false, message: 'email, password, firstName, lastName requis' });
@@ -60,9 +61,11 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         lastName,
         phone,
         role: role || 'EMPLOYEE',
+        // Only the owner decides which modules a staff account sees
+        modules: req.user!.role === 'OWNER' ? sanitizeModules(modules) : [],
         tenantId: req.user!.tenantId,
       },
-      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, isActive: true },
+      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, modules: true, isActive: true },
     });
 
     res.status(201).json({ success: true, data: employee });
@@ -75,7 +78,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 export const update = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = req.params.id as string;
-    const { firstName, lastName, phone, role, isActive, password } = req.body;
+    const { firstName, lastName, phone, role, isActive, password, modules } = req.body;
 
     const existing = await prisma.user.findFirst({
       where: { id, tenantId: req.user!.tenantId },
@@ -101,9 +104,10 @@ export const update = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const updateData: { firstName?: string; lastName?: string; phone?: string; role?: UserRole; isActive?: boolean; password?: string } = {
+    const updateData: { firstName?: string; lastName?: string; phone?: string; role?: UserRole; isActive?: boolean; password?: string; modules?: string[] } = {
       firstName, lastName, phone, role: role as UserRole | undefined, isActive,
     };
+    if (modules !== undefined && req.user!.role === 'OWNER') updateData.modules = sanitizeModules(modules);
     if (password && password.length >= 6) {
       updateData.password = await bcrypt.hash(password, 12);
     }
@@ -111,7 +115,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
     const employee = await prisma.user.update({
       where: { id },
       data: updateData,
-      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, isActive: true },
+      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, modules: true, isActive: true },
     });
 
     res.json({ success: true, data: employee });

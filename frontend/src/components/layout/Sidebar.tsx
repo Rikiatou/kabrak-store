@@ -1,59 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard, Package, ShoppingCart, Users, FileText,
-  UserCog, Truck, BarChart3, CreditCard, Tags, X,
-  Heart, Store, FolderKanban, RefreshCw, Monitor, Settings, TrendingDown, Building2, Sparkles, Briefcase, BookOpen, ClipboardCheck, CalendarDays, HandCoins } from 'lucide-react';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
-
-type BusinessMode = 'PRODUCT' | 'SERVICE';
-
-// Businesses that take orders in advance — no walk-in counter sales
-const ORDER_BASED_CATEGORIES = new Set([
-  'CAKES', 'FOOD_BUSINESS',
-]);
-
-interface NavItem {
-  key: string;
-  icon: typeof LayoutDashboard;
-  path: string;
-  plans?: string[];
-  modes?: BusinessMode[];
-  hideWhenOrderBased?: boolean;  // hide for order-based businesses (e.g. POS)
-  showWhenOrderBased?: boolean;  // bypass plan gate for order-based businesses (e.g. Deliveries)
-}
-
-const navItems: NavItem[] = [
-  { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  // Product mode
-  { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'] },
-  { key: 'orders', icon: ShoppingCart, path: '/orders', modes: ['PRODUCT'] },
-  { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], hideWhenOrderBased: true },
-  { key: 'closing', icon: ClipboardCheck, path: '/closing', modes: ['PRODUCT'] },
-  { key: 'agenda', icon: CalendarDays, path: '/agenda', modes: ['PRODUCT'] },
-  // SHOP+ features — Deliveries also surfaced for order-based businesses
-  { key: 'categories', icon: Tags, path: '/categories', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
-  { key: 'delivery', icon: Truck, path: '/deliveries', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'], showWhenOrderBased: true },
-  { key: 'loyalty', icon: Heart, path: '/loyalty', modes: ['PRODUCT'], plans: ['SHOP', 'BUSINESS'] },
-  // Service mode
-  { key: 'projects', icon: FolderKanban, path: '/projects', modes: ['SERVICE'] },
-  { key: 'services', icon: Briefcase, path: '/services', modes: ['SERVICE'] },
-  { key: 'recurring', icon: RefreshCw, path: '/recurring', modes: ['SERVICE'] },
-  // All plans
-  { key: 'clients', icon: Users, path: '/clients' },
-  { key: 'invoices', icon: FileText, path: '/invoices' },
-  { key: 'debts', icon: HandCoins, path: '/debts' },
-  { key: 'expenses', icon: TrendingDown, path: '/expenses' },
-  { key: 'suppliers', icon: Building2, path: '/suppliers', plans: ['SHOP', 'BUSINESS'] },
-  { key: 'employees', icon: UserCog, path: '/employees', plans: ['SHOP', 'BUSINESS'] },
-  { key: 'stores', icon: Store, path: '/stores', plans: ['BUSINESS'] },
-  { key: 'reports', icon: BarChart3, path: '/reports', plans: ['SHOP', 'BUSINESS'] },
-  { key: 'ai-reports', icon: Sparkles, path: '/ai-reports', plans: ['BUSINESS'] },
-  { key: 'billing', icon: CreditCard, path: '/billing' },
-  { key: 'settings', icon: Settings, path: '/settings' },
-  { key: 'guide', icon: BookOpen, path: '/guide' },
-];
+import { canAccess } from '@/lib/modules';
+import { ORDER_BASED_CATEGORIES, navItemsFor } from '@/lib/navItems';
 
 interface SidebarProps {
   open: boolean;
@@ -65,24 +16,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const fr = language === 'fr';
   const location = useLocation();
   const tenant = useAuthStore((s) => s.tenant);
+  const user = useAuthStore((s) => s.user);
   const businessMode = tenant?.businessMode || 'PRODUCT';
-
-  // True if ALL tenant categories are order-based (no counter sales)
   const isOrderBased = !!(tenant?.businessCategories?.length &&
     tenant.businessCategories.every((cat) => ORDER_BASED_CATEGORIES.has(cat)));
-
-  const filteredItems = navItems.filter((item) => {
-    // Hide POS for order-based businesses
-    if (item.hideWhenOrderBased && isOrderBased) return false;
-    // Bypass plan gate for order-based businesses that need deliveries
-    if (item.showWhenOrderBased && isOrderBased) {
-      if (item.modes && !item.modes.includes(businessMode)) return false;
-      return true;
-    }
-    if (item.plans && !(tenant && item.plans.includes(tenant.plan))) return false;
-    if (item.modes && !item.modes.includes(businessMode)) return false;
-    return true;
-  });
+  const filteredItems = navItemsFor(tenant).filter((item) => item.key === 'guide' || canAccess(user, item.key));
 
   return (
     <>
