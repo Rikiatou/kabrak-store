@@ -13,7 +13,7 @@ import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { cacheGet, cacheSet, queueSale, isNetworkError, newOfflineId } from '@/lib/offline';
-import { type Sellable, fromPrice, hasPack, hasPriceRange, itemLabel, packLabel, packUnits, priceOf, variantsOf } from '@/lib/variants';
+import { type Sellable, hasMainRange, hasPack, itemLabel, mainPrice, packLabel, packUnits, priceOf, stockText, variantsOf } from '@/lib/variants';
 
 interface Product extends Sellable {
   id: string;
@@ -164,15 +164,16 @@ export function POSPage() {
     sizesStr.split(',').map(s => s.trim()).filter(s => s.includes(':'));
 
   const needsChoice = (p: Product) =>
-    variantsOf(p).length > 0 || hasPack(p) || (typeof p.adaptiveFields?.sizes === 'string' && p.adaptiveFields.sizes.includes(':'));
+    variantsOf(p).length > 0 || (typeof p.adaptiveFields?.sizes === 'string' && p.adaptiveFields.sizes.includes(':'));
 
   const addToCart = (product: Product, choice?: { variant?: string; pack?: boolean }) => {
     if (!choice && needsChoice(product)) {
-      setVariantPicker({ product, pack: false });
+      setVariantPicker({ product, pack: hasPack(product) });
       return;
     }
     const variant = choice?.variant;
-    const pack = !!choice?.pack;
+    // Products sold by pack go in as a pack; the cart line can switch to a single unit.
+    const pack = choice ? !!choice.pack : hasPack(product);
     setCart(prev => {
       const idx = prev.findIndex(item => item.product.id === product.id && (item.variant || '') === (variant || '') && !!item.pack === pack);
       if (idx >= 0) return prev.map((item, j) => j === idx ? { ...item, quantity: item.quantity + 1 } : item);
@@ -205,7 +206,7 @@ export function POSPage() {
       toast.error(language === 'fr' ? `${p.name} : rupture de stock` : `${p.name}: out of stock`);
       return;
     }
-    if (variant) { addToCart(p, { variant }); toast.success(`+1 ${p.name} · ${variant}`); return; }
+    if (variant) { addToCart(p, { variant, pack: hasPack(p) }); toast.success(`+1 ${p.name} · ${variant}`); return; }
     if (needsChoice(p)) setShowScanner(false);
     addToCart(p);
     if (!needsChoice(p)) toast.success(`+1 ${p.name}`);
@@ -413,9 +414,9 @@ export function POSPage() {
                   )}
                   <div className="p-2">
                     <p className="font-medium text-sm text-gray-900 dark:text-white truncate">{product.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{product.totalStock} {language === 'fr' ? 'en stock' : 'in stock'}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{stockText(product, product.totalStock, fr)} {fr ? 'en stock' : 'in stock'}</p>
                     <div className="flex items-center justify-between mt-1">
-                      <p className="font-bold text-sm text-blue-600">{hasPriceRange(product) ? (fr ? 'dès ' : 'from ') : ''}{formatCurrency(fromPrice(product))}</p>
+                      <p className="font-bold text-sm text-blue-600">{hasMainRange(product) ? (fr ? 'dès ' : 'from ') : ''}{formatCurrency(mainPrice(product))}</p>
                       {inCart ? (
                         <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-bold">
                           {inCart.quantity}
@@ -493,7 +494,14 @@ export function POSPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.product.name}</p>
                   {(item.variant || item.pack) && <span className="text-xs font-semibold text-blue-500 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded">{itemLabel(item.variant, item.pack ? item.product.packSize : null, fr)}</span>}
-                  <p className="text-xs text-gray-400">{formatCurrency(linePrice(item))}</p>
+                  <p className="text-xs text-gray-400">
+                    {formatCurrency(linePrice(item))}
+                    {hasPack(item.product) && (
+                      <button type="button" onClick={() => setCart((prev) => prev.map((it, j) => (j === idx ? { ...it, pack: !it.pack } : it)))} className="ml-2 text-blue-600 font-semibold underline">
+                        {item.pack ? (fr ? '→ unité' : '→ unit') : `→ ${(item.product.packName || (fr ? 'paquet' : 'pack')).toLowerCase()}`}
+                      </button>
+                    )}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1">
                   <button onClick={() => updateQuantity(idx, -1)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">
@@ -631,7 +639,7 @@ export function POSPage() {
                 </div>
                 {hasPack(p) && (
                   <div className="grid grid-cols-2 gap-2 mb-3">
-                    {[false, true].map((isPack) => (
+                    {[true, false].map((isPack) => (
                       <button
                         key={String(isPack)}
                         onClick={() => setVariantPicker({ product: p, pack: isPack })}

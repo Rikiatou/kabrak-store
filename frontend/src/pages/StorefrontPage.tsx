@@ -4,12 +4,13 @@ import { ShoppingCart, Phone, Mail, Search, Share2, Plus, Minus, X, Trash2, Lock
 import { formatCurrency } from '@/lib/utils';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { fromPrice, hasPriceRange, priceOf, variantsOf } from '@/lib/variants';
+import { hasMainRange, hasPack, mainPrice, packLabel, packUnits, priceOf, variantsOf } from '@/lib/variants';
 
 interface CartLine { key: string; product: Product; variant?: string; option?: string; quantity: number }
 
 const sizeStock = (p: Product): Array<[string, number]> => {
-  if (variantsOf(p).length) return variantsOf(p).map((v) => [v.name, v.stock] as [string, number]);
+  // Products sold by pack are ordered by pack on the storefront
+  if (variantsOf(p).length) return variantsOf(p).map((v) => [v.name, Math.floor(v.stock / packUnits(p, hasPack(p)))] as [string, number]);
   const raw = p.adaptiveFields?.sizes;
   if (typeof raw !== 'string' || !raw.includes(':')) return [];
   return raw.split(',').map((part) => part.split(':').map((x) => x.trim())).filter((kv) => kv.length === 2 && kv[0]).map(([k, v]) => [k, parseInt(v) || 0] as [string, number]);
@@ -47,7 +48,10 @@ interface Product {
   totalStock: number;
   businessType: string;
   adaptiveFields?: Record<string, unknown>;
-  variants?: Array<{ name: string; sellingPrice: number; stock: number }>;
+  variants?: Array<{ name: string; sellingPrice: number; stock: number; packPrice?: number | null }>;
+  packSize?: number | null;
+  packPrice?: number | null;
+  packName?: string | null;
 }
 
 export function StorefrontPage() {
@@ -153,14 +157,14 @@ export function StorefrontPage() {
 
   const apiClient = axios.create({ baseURL: (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '') });
   const cartCount = cart.reduce((n, l) => n + l.quantity, 0);
-  const linePrice = (l: CartLine) => priceOf(l.product, l.variant);
+  const linePrice = (l: CartLine) => priceOf(l.product, l.variant, hasPack(l.product));
   const cartTotal = cart.reduce((n, l) => n + l.quantity * linePrice(l), 0);
-  const shownPrice = (p: Product) => `${hasPriceRange(p) ? (fr ? 'dès ' : 'from ') : ''}${formatCurrency(fromPrice(p))}`;
+  const shownPrice = (p: Product) => `${hasMainRange(p) ? (fr ? 'dès ' : 'from ') : ''}${formatCurrency(mainPrice(p))}${hasPack(p) ? ` / ${packLabel(p, fr)}` : ''}`;
   const inCart = (productId: string, variant?: string) => cart.filter((l) => l.product.id === productId && (variant === undefined || l.variant === variant)).reduce((n, l) => n + l.quantity, 0);
   const maxFor = (p: Product, variant?: string) => {
     const sizes = sizeStock(p);
     const sized = variant ? sizes.find(([k]) => k === variant)?.[1] ?? 0 : Infinity;
-    return Math.max(0, Math.min(sized - (variant ? inCart(p.id, variant) : 0), p.totalStock - inCart(p.id)));
+    return Math.max(0, Math.min(sized - (variant ? inCart(p.id, variant) : 0), Math.floor(p.totalStock / packUnits(p, hasPack(p))) - inCart(p.id)));
   };
 
   const startAdd = (p: Product) => {
@@ -188,7 +192,7 @@ export function StorefrontPage() {
     }));
   };
 
-  const lineLabel = (l: CartLine) => [l.product.name, [l.variant, l.option].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
+  const lineLabel = (l: CartLine) => [l.product.name, [l.variant, l.option, hasPack(l.product) ? packLabel(l.product, fr) : ''].filter(Boolean).join(', ')].filter(Boolean).join(' · ');
 
   const submitOrder = async () => {
     if (customer.name.trim().length < 2 || customer.phone.replace(/[^\d]/g, '').length < 6) {
@@ -201,7 +205,7 @@ export function StorefrontPage() {
         customerName: customer.name.trim(),
         customerPhone: customer.phone.trim(),
         note: customer.note.trim() || undefined,
-        items: cart.map((l) => ({ productId: l.product.id, quantity: l.quantity, variant: l.variant || undefined, option: l.option || undefined })),
+        items: cart.map((l) => ({ productId: l.product.id, quantity: l.quantity, variant: l.variant || undefined, option: l.option || undefined, pack: hasPack(l.product) || undefined })),
       });
       const ref = res.data.data.reference as string;
       const message = [
@@ -459,7 +463,7 @@ export function StorefrontPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-bold text-gray-900">{picking.product.name}</h3>
-                <p className="text-sm font-bold" style={{ color: accentColor }}>{picking.variant ? formatCurrency(priceOf(picking.product, picking.variant)) : shownPrice(picking.product)}</p>
+                <p className="text-sm font-bold" style={{ color: accentColor }}>{picking.variant ? formatCurrency(priceOf(picking.product, picking.variant, hasPack(picking.product))) : shownPrice(picking.product)}</p>
               </div>
               <button onClick={() => setPicking(null)} className="p-1 text-gray-400"><X className="w-5 h-5" /></button>
             </div>
@@ -508,7 +512,7 @@ export function StorefrontPage() {
               className="w-full py-3 rounded-xl text-white font-semibold disabled:opacity-40"
               style={{ background: accentColor }}
             >
-              {fr ? 'Ajouter au panier' : 'Add to cart'} · {formatCurrency(picking.quantity * priceOf(picking.product, picking.variant))}
+              {fr ? 'Ajouter au panier' : 'Add to cart'} · {formatCurrency(picking.quantity * priceOf(picking.product, picking.variant, hasPack(picking.product)))}
             </button>
           </div>
         </div>

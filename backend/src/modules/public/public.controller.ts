@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../../config/prisma';
 import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 import { generatePublicToken, generateReference } from '../orders/orders.controller';
-import { StockError, STOCK_SELECT, itemCost, itemPrice, moveStock, notifyLowStock, readVariants } from '../../utils/stock';
+import { StockError, STOCK_SELECT, itemCost, itemPrice, moveStock, notifyLowStock, readVariants, unitsPerItem } from '../../utils/stock';
 
 /** Storefront is a BUSINESS feature; every plan gets it during the free trial. */
 async function isStorefrontOpen(tenantId: string): Promise<boolean> {
@@ -24,6 +24,7 @@ const storefrontOrderSchema = z.object({
     quantity: z.number().int().min(1).max(100),
     variant: z.string().trim().max(40).optional(),
     option: z.string().trim().max(60).optional(),
+    pack: z.boolean().optional(),
   })).min(1).max(30),
 });
 
@@ -62,12 +63,12 @@ export const getPublicProducts = async (req: Request, res: Response): Promise<vo
       where,
       take: parseInt(limit as string),
       orderBy: { createdAt: 'desc' },
-      select: { id: true, name: true, description: true, image: true, images: true, sellingPrice: true, totalStock: true, businessType: true, adaptiveFields: true, variants: true },
+      select: { id: true, name: true, description: true, image: true, images: true, sellingPrice: true, totalStock: true, businessType: true, adaptiveFields: true, variants: true, packSize: true, packPrice: true, packName: true },
     });
     // Never expose purchase prices on the public storefront
     const data = products.map((p) => ({
       ...p,
-      variants: readVariants(p.variants).map(({ name, sellingPrice, stock }) => ({ name, sellingPrice, stock })),
+      variants: readVariants(p.variants).map(({ name, sellingPrice, stock, packPrice }) => ({ name, sellingPrice, stock, packPrice })),
     }));
     res.json({ success: true, data });
   } catch (error) {
@@ -134,7 +135,7 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
         const fresh = await tx.product.findUnique({ where: { id: p.id }, select: STOCK_SELECT });
         if (!fresh) throw new StorefrontError('PRODUCT_UNAVAILABLE', 'Un produit n’est plus disponible');
         try {
-          await moveStock(tx, fresh, item.variant, -item.quantity, true);
+          await moveStock(tx, fresh, item.variant, -item.quantity * unitsPerItem(fresh, item.pack), true);
         } catch (e) {
           if (e instanceof StockError) throw new StorefrontError('INSUFFICIENT_STOCK', e.message);
           throw e;
@@ -150,7 +151,7 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
         select: { id: true },
       })).id;
 
-      const total = lines.reduce((sum, { item, p }) => sum + itemPrice(p, item.variant) * item.quantity, 0);
+      const total = lines.reduce((sum, { item, p }) => sum + itemPrice(p, item.variant, item.pack) * item.quantity, 0);
       const options = lines.filter(({ item }) => item.option).map(({ item, p }) => `${p.name}: ${item.option}`);
       const notes = [
         `Commande en ligne (vitrine) · ${data.customerName} · ${data.customerPhone}`,
@@ -173,10 +174,11 @@ export const createStorefrontOrder = async (req: Request, res: Response): Promis
             create: lines.map(({ item, p }) => ({
               productId: p.id,
               quantity: item.quantity,
-              unitPrice: itemPrice(p, item.variant),
-              totalPrice: itemPrice(p, item.variant) * item.quantity,
-              unitCost: itemCost(p, item.variant),
+              unitPrice: itemPrice(p, item.variant, item.pack),
+              totalPrice: itemPrice(p, item.variant, item.pack) * item.quantity,
+              unitCost: itemCost(p, item.variant, item.pack),
               variant: item.variant,
+              packSize: unitsPerItem(p, item.pack) > 1 ? p.packSize : null,
             })),
           },
         },

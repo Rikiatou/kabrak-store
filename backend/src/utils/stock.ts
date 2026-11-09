@@ -124,15 +124,25 @@ export async function moveStock(
 
 const ORDER_BASED_TYPES: BusinessCategory[] = ['CAKES', 'FOOD_BUSINESS'];
 
-type AlertProduct = { id: string; name: string; totalStock: number; lowStockAlert: number; variants: Prisma.JsonValue | null };
+type AlertProduct = { id: string; name: string; totalStock: number; lowStockAlert: number; variants: Prisma.JsonValue | null; packSize?: number | null; packName?: string | null };
+
+/** Units shown as "19 paquets + 7" for products sold by pack. */
+export const stockText = (p: Pick<AlertProduct, 'packSize' | 'packName'>, units: number) => {
+  const n = p.packSize && p.packSize > 1 ? p.packSize : 1;
+  if (n === 1) return String(units);
+  const packs = Math.trunc(units / n);
+  const rest = units - packs * n;
+  const name = (p.packName || 'paquet').toLowerCase();
+  return `${packs} ${name}${Math.abs(packs) > 1 ? 's' : ''}${rest ? ` + ${rest}` : ''}`;
+};
 
 /** "Robe · M : 1" lines for everything at or under the product's alert threshold. */
 export const lowStockLines = (p: AlertProduct): string[] => {
   const variants = readVariants(p.variants);
   if (variants.length > 0) {
-    return variants.filter((v) => v.stock <= p.lowStockAlert).map((v) => `${p.name} · ${v.name} : ${v.stock}`);
+    return variants.filter((v) => v.stock <= p.lowStockAlert).map((v) => `${p.name} · ${v.name} : ${stockText(p, v.stock)}`);
   }
-  return p.totalStock <= p.lowStockAlert ? [`${p.name} : ${p.totalStock}`] : [];
+  return p.totalStock <= p.lowStockAlert ? [`${p.name} : ${stockText(p, p.totalStock)}`] : [];
 };
 
 /** Creates (or refreshes) one unread "Stock faible" notification per product that is low. */
@@ -143,12 +153,12 @@ export async function notifyLowStock(tenantId: string, productIds?: string[]) {
       businessType: { notIn: ORDER_BASED_TYPES },
       ...(productIds ? { id: { in: productIds } } : {}),
     },
-    select: { id: true, name: true, totalStock: true, lowStockAlert: true, variants: true },
+    select: { id: true, name: true, totalStock: true, lowStockAlert: true, variants: true, packSize: true, packName: true },
   });
   const low = products.map((p) => ({ p, lines: lowStockLines(p) })).filter((x) => x.lines.length > 0);
   let created = 0;
   for (const { p, lines } of low) {
-    const message = `${lines.join(', ')} (seuil: ${p.lowStockAlert})`;
+    const message = `${lines.join(', ')} (seuil: ${stockText(p, p.lowStockAlert)})`;
     const exists = await prisma.notification.findFirst({
       where: { tenantId, type: 'STOCK_ALERT', isRead: false, metadata: { path: ['productId'], equals: p.id } },
       select: { id: true, message: true },
