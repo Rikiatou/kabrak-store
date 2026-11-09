@@ -6,11 +6,13 @@ import { User, Lock, Save, CheckCircle, AlertCircle, Store, Palette, Upload, X, 
 import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { storefrontAccess } from '@/lib/storefront';
+import { canAccess } from '@/lib/modules';
 
 
 export function SettingsPage() {
   const { language } = useTranslation();
   const { user, tenant, fetchMe, subscription } = useAuthStore();
+  const canEditShop = canAccess(user, 'settings');
   const storefront = storefrontAccess(subscription);
   const navigate = useNavigate();
 
@@ -222,6 +224,7 @@ export function SettingsPage() {
         </form>
       </div>
 
+      {canEditShop && (<>
       {/* Store / Boutique Section */}
       <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-5">
@@ -488,6 +491,7 @@ export function SettingsPage() {
             : 'These categories define your business type. To manage product categories (sub-categories), use the Categories module.'}
         </p>
       </div>
+      </>)}
 
       {/* Password Section */}
       <div className="bg-card rounded-xl border border-border p-6 shadow-sm">

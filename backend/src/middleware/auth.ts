@@ -9,6 +9,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   tenantId: string;
+  modules: string[];
 }
 
 declare global {
@@ -31,7 +32,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, role: true, tenantId: true, isActive: true },
+      select: { id: true, email: true, role: true, tenantId: true, isActive: true, modules: true },
     });
 
     if (!user || !user.isActive) {
@@ -44,6 +45,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       email: user.email,
       role: user.role,
       tenantId: user.tenantId,
+      modules: user.modules,
     };
 
     next();
@@ -65,6 +67,22 @@ export const authorize = (...roles: UserRole[]) => {
     }
 
     next();
+  };
+};
+
+// Staff accounts with a module list only reach the APIs of those modules. Owners and empty lists = full access.
+export const requireModule = (...keys: string[]) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Authentication required' });
+      return;
+    }
+    const { role, modules } = req.user;
+    if (role === 'OWNER' || !modules?.length || keys.some((k) => modules.includes(k))) {
+      next();
+      return;
+    }
+    res.status(403).json({ success: false, code: 'MODULE_FORBIDDEN', message: "Vous n'avez pas accès à ce module" });
   };
 };
 

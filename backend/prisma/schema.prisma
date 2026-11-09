@@ -191,6 +191,7 @@ model User {
   lastName      String
   phone         String?
   role          UserRole  @default(EMPLOYEE)
+  modules       String[]  @default([])
   isSuperAdmin  Boolean   @default(false)
   isActive      Boolean   @default(true)
   tenantId      String

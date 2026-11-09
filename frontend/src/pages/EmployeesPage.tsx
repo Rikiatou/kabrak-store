@@ -8,11 +8,17 @@ import { Plus, UserCog, Pencil, Trash2, X, KeyRound, Search } from 'lucide-react
 import api, { getApiErrorMessage } from '@/lib/api';
 import toast from 'react-hot-toast';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useAuthStore } from '@/stores/authStore';
+import { navItemsFor } from '@/lib/navItems';
+import { ALWAYS_ALLOWED } from '@/lib/modules';
 
 interface Employee {
   id: string; email: string; firstName: string; lastName: string;
-  phone?: string; role: string; isActive: boolean;
+  phone?: string; role: string; isActive: boolean; modules?: string[];
 }
+
+type EmployeeForm = { email: string; password: string; firstName: string; lastName: string; phone: string; role: string; modules: string[] };
+const EMPTY_FORM: EmployeeForm = { email: '', password: '', firstName: '', lastName: '', phone: '', role: 'EMPLOYEE', modules: [] };
 
 export function EmployeesPage() {
   const { t, language } = useTranslation();
@@ -20,7 +26,12 @@ export function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ email: '', password: '', firstName: '', lastName: '', phone: '', role: 'EMPLOYEE' });
+  const [form, setForm] = useState<EmployeeForm>(EMPTY_FORM);
+  const [limited, setLimited] = useState(false);
+  const { user, tenant } = useAuthStore();
+  const isOwner = user?.role === 'OWNER';
+  const fr = language === 'fr';
+  const grantable = navItemsFor(tenant).filter((item) => !ALWAYS_ALLOWED.has(item.key));
   const [resetId, setResetId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
@@ -54,13 +65,19 @@ export function EmployeesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    if (isOwner && limited && !form.modules.length) {
+      toast.error(fr ? 'Cochez au moins un module' : 'Select at least one module');
+      return;
+    }
+    const payload = { ...form, modules: limited ? form.modules : [] };
+    if (!isOwner) delete (payload as Partial<EmployeeForm>).modules;
     setSubmitting(true);
     try {
-      if (editingId) await api.put(`/employees/${editingId}`, form);
-      else await api.post('/employees', form);
+      if (editingId) await api.put(`/employees/${editingId}`, payload);
+      else await api.post('/employees', payload);
       toast.success(t('common.saved') || 'Saved');
       setShowForm(false); setEditingId(null);
-      setForm({ email: '', password: '', firstName: '', lastName: '', phone: '', role: 'EMPLOYEE' });
+      setForm(EMPTY_FORM);
       fetchEmployees();
     } catch (err) {
       console.error(err);
@@ -84,7 +101,7 @@ export function EmployeesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('employees.title')}</h1>
-        <Button onClick={() => { setForm({ email: '', password: '', firstName: '', lastName: '', phone: '', role: 'EMPLOYEE' }); setEditingId(null); setShowForm(true); }}>
+        <Button onClick={() => { setForm(EMPTY_FORM); setLimited(false); setEditingId(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-2" /> {t('employees.addEmployee')}
         </Button>
       </div>
@@ -130,6 +147,31 @@ export function EmployeesPage() {
                     <option value="MANAGER">{t('employees.manager')}</option>
                   </select>
                 </div>
+                {isOwner && (
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">{fr ? 'Accès aux modules' : 'Module access'}</label>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      {[false, true].map((lim) => (
+                        <button key={String(lim)} type="button" onClick={() => setLimited(lim)}
+                          className={`px-3 py-2 rounded-lg text-xs font-semibold border ${limited === lim ? 'bg-blue-600 text-white border-blue-600' : 'border-border'}`}>
+                          {lim ? (fr ? 'Choisir les modules' : 'Choose modules') : (fr ? 'Accès complet' : 'Full access')}
+                        </button>
+                      ))}
+                    </div>
+                    {limited && (
+                      <div className="grid grid-cols-2 gap-1.5 max-h-56 overflow-y-auto rounded-lg border border-border p-2">
+                        {grantable.map((item) => (
+                          <label key={item.key} className="flex items-center gap-2 text-sm py-1 cursor-pointer">
+                            <input type="checkbox" className="w-4 h-4 accent-blue-600" checked={form.modules.includes(item.key)}
+                              onChange={() => setForm({ ...form, modules: form.modules.includes(item.key) ? form.modules.filter((m) => m !== item.key) : [...form.modules, item.key] })} />
+                            {t(`nav.${item.key}`)}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    {limited && <p className="text-xs text-muted-foreground mt-1">{fr ? 'Le guide et son profil restent toujours accessibles.' : 'The guide and their own profile are always available.'}</p>}
+                  </div>
+                )}
                 <div className="flex gap-3">
                   <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1">{t('common.cancel')}</Button>
                   <Button type="submit" className="flex-1" disabled={submitting}>{submitting ? '...' : t('common.save')}</Button>
@@ -165,11 +207,18 @@ export function EmployeesPage() {
                 </div>
                 <Badge variant="outline" className="mb-3">{roleLabel(emp.role)}</Badge>
                 {emp.role !== 'OWNER' && (
+                  <p className="text-xs text-muted-foreground">
+                    {emp.modules?.length
+                      ? `${fr ? 'Accès' : 'Access'} : ${emp.modules.map((m) => t(`nav.${m}`)).join(', ')}`
+                      : (fr ? 'Accès complet' : 'Full access')}
+                  </p>
+                )}
+                {emp.role !== 'OWNER' && (
                   <div className="flex gap-2 mt-3">
                     <Button variant="outline" size="sm" onClick={() => { setNewPassword(''); setResetId(emp.id); }} title={language === 'fr' ? 'Réinitialiser mot de passe' : 'Reset password'}>
                       <KeyRound className="w-3 h-3" />
                     </Button>
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setForm({ ...form, firstName: emp.firstName, lastName: emp.lastName, phone: emp.phone || '', role: emp.role }); setEditingId(emp.id); setShowForm(true); }}>
+                    <Button variant="outline" size="sm" className="flex-1" onClick={() => { setForm({ ...EMPTY_FORM, firstName: emp.firstName, lastName: emp.lastName, phone: emp.phone || '', role: emp.role, modules: emp.modules || [] }); setLimited(!!emp.modules?.length); setEditingId(emp.id); setShowForm(true); }}>
                       <Pencil className="w-3 h-3 mr-1" /> {t('common.edit')}
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => handleDelete(emp.id)} className="text-destructive hover:text-destructive">
