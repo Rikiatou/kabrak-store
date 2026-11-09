@@ -34,6 +34,7 @@ interface Product {
   packSize?: number | null;
   packPrice?: number | null;
   packName?: string | null;
+  priceTiers?: Array<{ minQty: number; price: number }> | null;
 }
 
 // Prices/stock in a row are for what is normally sold (the pack when "also sold by unit" is on); `extra` = loose units.
@@ -102,6 +103,7 @@ const defaultForm = {
   packSize: '' as string | number,
   unitPrice: '' as string | number,
   extraUnits: '' as string | number,
+  priceTiers: [] as Array<{ minQty: string; price: string }>,
 };
 
 export function ProductsPage() {
@@ -205,6 +207,7 @@ export function ProductsPage() {
         packSize: unitSale ? packN : null,
         packPrice: unitSale ? (variants.length ? Math.min(...variants.map((v) => v.packPrice ?? 0)) : mainPriceIn) : null,
         packName: unitSale ? form.packName.trim() || null : null,
+        priceTiers: form.priceTiers.map((t) => ({ minQty: parseInt(t.minQty) || 0, price: Number(t.price) || 0 })).filter((t) => t.minQty >= 2 && t.price > 0),
         image: formImages[0] || '',
         images: formImages,
         barcode: form.barcode.trim() || null,
@@ -264,6 +267,7 @@ export function ProductsPage() {
       packName: product.packName || '',
       packSize: n > 1 ? n : '',
       unitPrice: n > 1 ? product.sellingPrice : '',
+      priceTiers: (product.priceTiers ?? []).map((t) => ({ minQty: String(t.minQty), price: String(t.price) })),
     });
     setFormImages(product.images?.length ? product.images : product.image ? [product.image] : []);
     setEditingId(product.id);
@@ -555,6 +559,33 @@ export function ProductsPage() {
                       <label className="text-[10px] text-muted-foreground">{fr ? "Prix d'1 unité" : 'Price of 1 unit'}<Input className="h-8" type="number" min={0} value={form.unitPrice} onChange={(e) => setForm({ ...form, unitPrice: e.target.value, variants: form.variants.map((r) => (r.unitPrice ? r : { ...r, unitPrice: e.target.value })) })} /></label>
                     </div>
                   )}
+                </div>
+
+                {/* Quantity prices */}
+                <div className="rounded-lg border border-border p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium">{fr ? 'Prix selon la quantité (facultatif)' : 'Quantity prices (optional)'}</p>
+                    {form.priceTiers.length < 5 && (
+                      <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, priceTiers: [...form.priceTiers, { minQty: '', price: '' }] })}>
+                        + {fr ? 'Ajouter' : 'Add'}
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {fr ? `Ex : à partir de 10 → 1 750 par ${mainWord}. La caisse met ce prix toute seule, toutes variantes ensemble.` : `E.g. from 10 → 1,750 per ${mainWord}. Applied automatically, all variants together.`}
+                  </p>
+                  {form.priceTiers.map((t, i) => {
+                    const setTier = (patch: Partial<typeof t>) => setForm({ ...form, priceTiers: form.priceTiers.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
+                    return (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground shrink-0">{fr ? 'À partir de' : 'From'}</span>
+                        <Input className="h-8 w-20" type="number" min={2} placeholder="10" value={t.minQty} onChange={(e) => setTier({ minQty: e.target.value })} />
+                        <span className="text-xs text-muted-foreground shrink-0">→</span>
+                        <Input className="h-8" type="number" min={0} placeholder={fr ? `Prix d'1 ${mainWord}` : `Price of 1 ${mainWord}`} value={t.price} onChange={(e) => setTier({ price: e.target.value })} />
+                        <Button type="button" variant="ghost" size="sm" onClick={() => setForm({ ...form, priceTiers: form.priceTiers.filter((_, j) => j !== i) })}>×</Button>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Adaptive Fields */}

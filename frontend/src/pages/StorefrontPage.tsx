@@ -4,7 +4,7 @@ import { ShoppingCart, Phone, Mail, Search, Share2, Plus, Minus, X, Trash2, Lock
 import { formatCurrency } from '@/lib/utils';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { hasMainRange, hasPack, mainPrice, packLabel, packUnits, priceOf, variantsOf } from '@/lib/variants';
+import { hasMainRange, hasPack, mainPrice, packLabel, packUnits, priceOf, tieredPrice, tiersText, variantsOf } from '@/lib/variants';
 
 interface CartLine { key: string; product: Product; variant?: string; option?: string; quantity: number }
 
@@ -52,6 +52,7 @@ interface Product {
   packSize?: number | null;
   packPrice?: number | null;
   packName?: string | null;
+  priceTiers?: Array<{ minQty: number; price: number }> | null;
 }
 
 export function StorefrontPage() {
@@ -157,7 +158,8 @@ export function StorefrontPage() {
 
   const apiClient = axios.create({ baseURL: (import.meta.env.VITE_API_URL || '/api').replace(/\/api$/, '') });
   const cartCount = cart.reduce((n, l) => n + l.quantity, 0);
-  const linePrice = (l: CartLine) => priceOf(l.product, l.variant, hasPack(l.product));
+  const linePrice = (l: CartLine) =>
+    tieredPrice(l.product, l.variant, hasPack(l.product), cart.filter((c) => c.product.id === l.product.id).reduce((n, c) => n + c.quantity, 0));
   const cartTotal = cart.reduce((n, l) => n + l.quantity * linePrice(l), 0);
   const shownPrice = (p: Product) => `${hasMainRange(p) ? (fr ? 'dès ' : 'from ') : ''}${formatCurrency(mainPrice(p))}${hasPack(p) ? ` / ${packLabel(p, fr)}` : ''}`;
   const inCart = (productId: string, variant?: string) => cart.filter((l) => l.product.id === productId && (variant === undefined || l.variant === variant)).reduce((n, l) => n + l.quantity, 0);
@@ -464,6 +466,7 @@ export function StorefrontPage() {
               <div>
                 <h3 className="font-bold text-gray-900">{picking.product.name}</h3>
                 <p className="text-sm font-bold" style={{ color: accentColor }}>{picking.variant ? formatCurrency(priceOf(picking.product, picking.variant, hasPack(picking.product))) : shownPrice(picking.product)}</p>
+                {tiersText(picking.product, formatCurrency, fr) && <p className="text-xs text-green-700">{tiersText(picking.product, formatCurrency, fr)}</p>}
               </div>
               <button onClick={() => setPicking(null)} className="p-1 text-gray-400"><X className="w-5 h-5" /></button>
             </div>
