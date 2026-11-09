@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import api from '@/lib/api';
+import { homePathFor } from '@/lib/navItems';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export function LoginPage() {
@@ -22,7 +23,7 @@ export function LoginPage() {
     try {
       const { data } = await api.post('/auth/login', form);
       setAuth(data.data);
-      navigate('/dashboard');
+      navigate(homePathFor(data.data.user, data.data.tenant));
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || (language === 'fr' ? 'Erreur de connexion' : 'Login error'));
