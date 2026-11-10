@@ -91,8 +91,12 @@ const ALL_MODULES: GuideModule[] = [
         'Renseigne le nom, prix de vente, prix de revient et stock initial.',
         'Définis un seuil d\'alerte stock (ex : 5 unités).',
         'Ajoute jusqu’à 5 photos (tu peux en choisir plusieurs d’un coup). La 1re est la photo principale ; touche l’étoile pour changer.',
-        'Vêtements, chaussures : écris les tailles avec leur stock, ex : « S:5, M:10, L:3 ». Le stock total se calcule seul et chaque vente retire la bonne taille.',
-        'Couleurs ou parfums : sépare-les par des virgules (ex : « Noir, Blanc ») ; le client choisit à la commande.',
+        'Tailles, couleurs, parfums : ouvre « Variantes ». Une variante = une version avec son prix d’achat, son prix de vente et son stock (ex : « Large · Rouge »).',
+        'Pour aller vite : écris les couleurs une seule fois, puis une ligne par taille avec son prix (Large 500, Medium 350…). Touche « Créer les variantes » : toutes les combinaisons sont créées avec le bon prix.',
+        '« Même stock partout » remplit tous les stocks d’un coup ; corrige ensuite ceux qui sont différents.',
+        'Vente en gros : mets le prix du paquet dans la variante. Coche « Vendu aussi à l’unité » seulement si tu vends aussi au détail (nombre d’unités dans 1 paquet + prix d’1 unité).',
+        'Prix selon la quantité (facultatif) : ex « À partir de 10 → 1 750 ». La caisse applique le prix toute seule.',
+        'Le prix de vente et le stock sont obligatoires (mets 0 si tu n’en as pas encore).',
         'Le prix de revient sert à calculer ton bénéfice dans les rapports.',
         'Ajoute un code-barres si nécessaire.',
         'Utilise le filtre pour chercher par nom ou catégorie.',
@@ -103,8 +107,12 @@ const ALL_MODULES: GuideModule[] = [
         'Enter name, selling price, cost price and initial stock.',
         'Set a low stock alert threshold (e.g. 5 units).',
         'Add up to 5 photos (you can pick several at once). The 1st is the main photo; tap the star to change it.',
-        'Clothes, shoes: write sizes with their stock, e.g. “S:5, M:10, L:3”. Total stock is computed and each sale removes the right size.',
-        'Colours or flavours: separate them with commas (e.g. “Black, White”); the customer picks one when ordering.',
+        'Sizes, colours, flavours: open “Variants”. A variant = one version with its own cost, selling price and stock (e.g. “Large · Red”).',
+        'To go fast: type the colours once, then one row per size with its price (Large 500, Medium 350…). Tap “Create variants”: every combination is created with the right price.',
+        '“Same stock everywhere” fills every stock at once; then fix the ones that differ.',
+        'Wholesale: put the pack price in the variant. Tick “Also sold by unit” only if you also sell single items (units per pack + price of 1 unit).',
+        'Quantity prices (optional): e.g. “From 10 → 1,750”. The register applies the price by itself.',
+        'Selling price and stock are required (enter 0 if you have none yet).',
         'The cost price is used to compute your profit in reports.',
         'Add a barcode if needed.',
         'Use the filter to search by name or category.',
@@ -164,17 +172,21 @@ const ALL_MODULES: GuideModule[] = [
         'Accède à la caisse POS depuis la sidebar.',
         'Scanne un code-barres ou cherche un produit par nom.',
         'Clique sur un produit pour l\'ajouter au panier.',
-        'Ajuste les quantités directement dans le panier.',
-        'Saisie le montant reçu pour calculer la monnaie rendue.',
+        'Produit avec variantes : choisis la variante (taille, couleur). Produit en paquet : il part en paquet ; touche « → unité » sur la ligne pour vendre au détail.',
+        'Ajuste les quantités directement dans le panier. Le prix de gros s’applique tout seul dès la quantité prévue.',
+        'Saisis le montant reçu pour calculer la monnaie rendue.',
         'Valide la vente — le stock se met à jour instantanément.',
+        'Imprime le ticket en 58 mm ou 80 mm ; choisis la taille du texte (M, L, XL, XXL). Le téléphone s’en souvient.',
       ],
       en: [
         'Access the POS from the sidebar.',
         'Scan a barcode or search a product by name.',
         'Click a product to add it to the cart.',
-        'Adjust quantities directly in the cart.',
+        'Product with variants: pick the variant (size, colour). Pack product: it goes in as a pack; tap “→ unit” on the line to sell single items.',
+        'Adjust quantities directly in the cart. The wholesale price applies by itself from the set quantity.',
         'Enter the amount received to calculate change.',
         'Confirm the sale — stock updates instantly.',
+        'Print the receipt on 58 mm or 80 mm; choose the text size (M, L, XL, XXL). The phone remembers it.',
       ],
     },
     link: '/pos',
@@ -415,6 +427,7 @@ const ALL_MODULES: GuideModule[] = [
         'Bouton 💬 WhatsApp texte : Envoie un résumé texte (numéro, montant, statut).',
         'Bouton 📤 Partager : Génère une image PDF professionnelle avec ton logo et l\'envoie sur WhatsApp.',
         'Bouton 📧 Email : Envoie la facture par email au client.',
+        'Retour d’un article : touche ↺ sur la vente, indique combien la cliente rapporte. L’article repart dans son stock (même variante, à l’unité ou en paquet comme vendu) et l’app affiche la somme à rendre.',
       ],
       en: [
         'MODE 1 — Automatic invoice: Generated when you create an order. Find it in the Invoices menu.',
@@ -424,6 +437,7 @@ const ALL_MODULES: GuideModule[] = [
         '💬 WhatsApp text button: Sends a text summary (number, amount, status).',
         '📤 Share button: Generates a professional PDF image with your logo and sends via WhatsApp.',
         '📧 Email button: Sends the invoice by email to the client.',
+        'Item returned: tap ↺ on the sale and enter how many the client brings back. It goes back to its own stock (same variant, unit or pack as sold) and the app shows the amount to give back.',
       ],
     },
     link: '/invoices',
@@ -550,20 +564,20 @@ const ALL_MODULES: GuideModule[] = [
     color: 'from-blue-500 to-indigo-600',
     title: { fr: 'Employés', en: 'Employees' },
     description: {
-      fr: 'Ajoute des membres d\'équipe avec différents rôles : Manager, Caissier, Employé.',
-      en: 'Add team members with different roles: Manager, Cashier, Employee.',
+      fr: 'Ajoute ton équipe et choisis les modules que chaque employé peut voir.',
+      en: 'Add your team and choose which modules each employee can see.',
     },
     steps: {
       fr: [
         'Crée un compte employé depuis la page Employés.',
-        'Assigne un rôle : Manager (accès complet), Caissier (POS seulement), Employé (lecture).',
-        'L\'employé reçoit un email avec ses identifiants de connexion.',
+        'Choisis « Accès complet » ou « Choisir les modules » et coche seulement ce qu’il doit voir (ex : Caisse, Clients).',
+        'Donne-lui son email et son mot de passe : à la connexion, il arrive directement sur la Caisse.',
         'Chaque vente est tracée par employé dans les rapports.',
       ],
       en: [
         'Create an employee account from the Employees page.',
-        'Assign a role: Manager (full access), Cashier (POS only), Employee (read-only).',
-        'The employee receives an email with their login credentials.',
+        'Choose “Full access” or “Choose modules” and tick only what they should see (e.g. POS, Clients).',
+        'Give them their email and password: after login they land straight on the POS.',
         'Each sale is tracked per employee in reports.',
       ],
     },
@@ -787,6 +801,44 @@ const ALL_MODULES: GuideModule[] = [
   },
 ];
 
+interface PathStep {
+  key: string;
+  title: { fr: string; en: string };
+  why: { fr: string; en: string };
+}
+
+const SHOP_PATH: PathStep[] = [
+  { key: 'settings', title: { fr: 'Régler ma boutique', en: 'Set up my shop' }, why: { fr: 'Nom, téléphone et logo : ils sortent sur chaque ticket et facture.', en: 'Name, phone and logo: they appear on every receipt and invoice.' } },
+  { key: 'products', title: { fr: 'Enregistrer mes produits', en: 'Add my products' }, why: { fr: 'Prix d’achat, prix de vente, tailles et stock. Sans produits, on ne peut rien vendre.', en: 'Cost, selling price, sizes and stock. Without products there is nothing to sell.' } },
+  { key: 'cash-drawer', title: { fr: 'Ouvrir la caisse le matin', en: 'Open the drawer in the morning' }, why: { fr: 'Tu notes la monnaie dans le tiroir. Le soir, l’app saura combien d’argent tu dois avoir.', en: 'You note the change in the drawer. At night the app knows how much money you should have.' } },
+  { key: 'pos', title: { fr: 'Vendre et imprimer le ticket', en: 'Sell and print the receipt' }, why: { fr: 'Chaque vente retire le stock, calcule le bénéfice et donne un ticket à la cliente.', en: 'Each sale removes stock, computes profit and gives the client a receipt.' } },
+  { key: 'clients', title: { fr: 'Enregistrer mes clientes', en: 'Save my clients' }, why: { fr: 'Pour suivre ce qu’elles achètent, leurs dettes et les relancer sur WhatsApp.', en: 'To follow what they buy, their debts and remind them on WhatsApp.' } },
+  { key: 'invoices', title: { fr: 'Factures et retours', en: 'Invoices and returns' }, why: { fr: 'Retrouver une vente, encaisser un reste à payer ou reprendre un article.', en: 'Find a sale, collect a balance or take an item back.' } },
+  { key: 'cash-drawer', title: { fr: 'Fermer la caisse le soir', en: 'Close the drawer at night' }, why: { fr: 'Tu comptes l’argent : l’app montre s’il manque ou s’il y a trop, et ce que chaque vendeur a vendu.', en: 'You count the money: the app shows any shortage or surplus, and what each seller sold.' } },
+  { key: 'reports', title: { fr: 'Voir mon bénéfice', en: 'See my profit' }, why: { fr: 'Ventes, dépenses et bénéfice net de la semaine ou du mois.', en: 'Sales, expenses and net profit for the week or month.' } },
+];
+
+const ORDER_PATH: PathStep[] = [
+  SHOP_PATH[0],
+  SHOP_PATH[1],
+  { key: 'orders', title: { fr: 'Prendre une commande', en: 'Take an order' }, why: { fr: 'Date de retrait, acompte et reste à payer : tout est noté.', en: 'Pickup date, deposit and balance: everything is recorded.' } },
+  { key: 'agenda', title: { fr: 'Voir l’agenda', en: 'Check the agenda' }, why: { fr: 'Les commandes à préparer jour par jour, pour ne rien oublier.', en: 'Orders to prepare day by day, so nothing is forgotten.' } },
+  { key: 'debts', title: { fr: 'Suivre les restes à payer', en: 'Follow balances due' }, why: { fr: 'Qui doit encore combien, avec un rappel WhatsApp.', en: 'Who still owes how much, with a WhatsApp reminder.' } },
+  SHOP_PATH[7],
+];
+
+const SERVICE_PATH: PathStep[] = [
+  SHOP_PATH[0],
+  { key: 'services', title: { fr: 'Enregistrer mes services', en: 'Add my services' }, why: { fr: 'Tes prestations et leurs prix.', en: 'Your services and their prices.' } },
+  SHOP_PATH[4],
+  { key: 'projects', title: { fr: 'Suivre un projet', en: 'Follow a project' }, why: { fr: 'Étapes, délais et paiements de chaque client.', en: 'Steps, deadlines and payments for each client.' } },
+  SHOP_PATH[5],
+  SHOP_PATH[7],
+];
+
+const ORDER_BASED_CATS = new Set(['CAKES', 'FOOD_BUSINESS']);
+const PATH_DONE_KEY = 'kabrak_guide_path_done';
+
 const DONE_KEY = 'kabrak_guide_done';
 
 function getStoredDone(): Record<string, boolean> {
@@ -814,6 +866,20 @@ export function GuidePage() {
   });
 
   const selectedModule = selected ? ALL_MODULES.find((m) => m.key === selected) : null;
+
+  const cats = (tenant?.businessCategories || []) as string[];
+  const orderBased = cats.length > 0 && cats.every((c) => ORDER_BASED_CATS.has(c));
+  const path = (mode === 'SERVICE' ? SERVICE_PATH : orderBased ? ORDER_PATH : SHOP_PATH)
+    .filter((st) => visibleModules.some((m) => m.key === st.key));
+  const [pathDone, setPathDone] = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem(PATH_DONE_KEY) || '[]'); } catch { return []; }
+  });
+  const togglePath = (i: number) => {
+    const next = pathDone.includes(i) ? pathDone.filter((x) => x !== i) : [...pathDone, i];
+    setPathDone(next);
+    localStorage.setItem(PATH_DONE_KEY, JSON.stringify(next));
+  };
+  const nextStep = path.findIndex((_, i) => !pathDone.includes(i));
   const completedCount = visibleModules.filter((m) => done[m.key]).length;
 
   const handleDone = (key: string) => {
@@ -869,6 +935,52 @@ export function GuidePage() {
           </div>
         </div>
       </div>
+
+      {/* Start path */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm">
+        <h2 className="font-bold text-gray-900 dark:text-white text-lg">
+          {fr ? 'Bienvenue dans le guide KABRAK Store' : 'Welcome to the KABRAK Store guide'}
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {fr
+            ? 'Suivez ces étapes dans l’ordre. Touchez une étape pour voir comment faire, puis cochez-la quand c’est fait.'
+            : 'Follow these steps in order. Tap a step to see how, then tick it when done.'}
+        </p>
+        <ol className="mt-4 space-y-2">
+          {path.map((st, i) => {
+            const isDone = pathDone.includes(i);
+            const isNext = i === nextStep;
+            return (
+              <li
+                key={`${st.key}-${i}`}
+                className={`flex items-start gap-3 rounded-xl border p-3 ${isNext ? 'border-blue-300 bg-blue-50/60 dark:border-blue-700 dark:bg-blue-900/20' : 'border-gray-100 dark:border-gray-700'}`}
+              >
+                <button
+                  onClick={() => togglePath(i)}
+                  aria-label={fr ? 'Marquer comme fait' : 'Mark as done'}
+                  className={`w-7 h-7 shrink-0 rounded-full border-2 flex items-center justify-center text-xs font-bold ${isDone ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 text-gray-500 dark:border-gray-600'}`}
+                >
+                  <span>{isDone ? '✓' : i + 1}</span>
+                </button>
+                <button onClick={() => setSelected(st.key)} className="flex-1 min-w-0 text-left">
+                  <p className={`text-sm font-semibold ${isDone ? 'text-gray-400 line-through' : 'text-gray-900 dark:text-white'}`}>
+                    {st.title[fr ? 'fr' : 'en']}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{st.why[fr ? 'fr' : 'en']}</p>
+                </button>
+                <ChevronRight className="w-4 h-4 text-gray-400 mt-1.5 shrink-0" />
+              </li>
+            );
+          })}
+        </ol>
+        {nextStep === -1 && path.length > 0 && (
+          <p className="mt-3 text-sm font-medium text-green-600">
+            {fr ? 'Bravo, votre boutique est prête. Les autres modules sont expliqués plus bas.' : 'Well done, your shop is ready. The other modules are explained below.'}
+          </p>
+        )}
+      </div>
+
+      <h2 className="font-bold text-gray-900 dark:text-white">{fr ? 'Tous les modules' : 'All modules'}</h2>
 
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
