@@ -197,6 +197,9 @@ model User {
   modules       String[]  @default([])
   isSuperAdmin  Boolean   @default(false)
   isActive      Boolean   @default(true)
+  // Sales still waiting on this person's device (reported by the app), so the owner can see them
+  offlineQueue      Json?
+  offlineReportedAt DateTime?
   tenantId      String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

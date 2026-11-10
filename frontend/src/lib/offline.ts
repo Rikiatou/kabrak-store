@@ -17,12 +17,14 @@ export interface OfflineSale {
   createdAt: string;
   total: number;
   payload: Record<string, unknown>;
+  error?: string;
 }
 
 interface OfflineSnapshot {
   online: boolean;
   pending: number;
   failed: number;
+  pendingTotal: number;
   syncing: boolean;
 }
 
@@ -46,7 +48,8 @@ let syncing = false;
 let snapshot: OfflineSnapshot = compute();
 
 function compute(): OfflineSnapshot {
-  return { online: navigator.onLine, pending: read(QUEUE_KEY).length, failed: read(FAILED_KEY).length, syncing };
+  const queue = read(QUEUE_KEY);
+  return { online: navigator.onLine, pending: queue.length, failed: read(FAILED_KEY).length, pendingTotal: queue.reduce((s, x) => s + (x.total || 0), 0), syncing };
 }
 
 function emit() {
@@ -92,7 +95,31 @@ export function queueSale(payload: Record<string, unknown>, total: number, offli
   return sale;
 }
 
+const brief = (list: OfflineSale[]) => list.map(({ offlineId, createdAt, total, error }) => ({ offlineId, createdAt, total, error }));
+const REPORTED_PREFIX = 'kabrak_offline_reported_';
+
+/** Tells the server what is still on this device so the owner sees it on her dashboard. Only sends when something changed. */
+export async function reportOfflineStatus(discarded: OfflineSale[] = []): Promise<void> {
+  const owner = currentOwner();
+  if (!owner || !navigator.onLine) return;
+  const pending = brief(read(QUEUE_KEY));
+  const failed = brief(read(FAILED_KEY));
+  const signature = JSON.stringify([pending.map((s) => s.offlineId), failed.map((s) => s.offlineId)]);
+  const key = REPORTED_PREFIX + owner;
+  if (!discarded.length && localStorage.getItem(key) === signature) return;
+  try {
+    await api.post('/offline/status', { pending, failed, discarded: brief(discarded) });
+    localStorage.setItem(key, signature);
+  } catch { /* next sync will retry */ }
+}
+
 export async function syncOfflineSales(): Promise<{ synced: number; failed: number }> {
+  const result = await syncQueue();
+  await reportOfflineStatus();
+  return result;
+}
+
+async function syncQueue(): Promise<{ synced: number; failed: number }> {
   const result = { synced: 0, failed: 0 };
   if (syncing || !navigator.onLine || read(QUEUE_KEY).length === 0) return result;
   syncing = true;
@@ -108,7 +135,8 @@ export async function syncOfflineSales(): Promise<{ synced: number; failed: numb
         // Retry later on connection, auth, expired-subscription or server errors; only park sales the server rejected as invalid.
         if (!status || status === 401 || status >= 500 || (status === 403 && code && /SUBSCRIPTION|TRIAL/.test(code))) break;
         result.failed++;
-        write(FAILED_KEY, [...readAll(FAILED_KEY), sale]);
+        const reason = axios.isAxiosError(err) ? (err.response?.data as { message?: string } | undefined)?.message : undefined;
+        write(FAILED_KEY, [...readAll(FAILED_KEY), { ...sale, error: reason || `Erreur ${status}` }]);
       }
       write(QUEUE_KEY, readAll(QUEUE_KEY).filter((s) => s.offlineId !== sale.offlineId));
     }
@@ -121,7 +149,13 @@ export async function syncOfflineSales(): Promise<{ synced: number; failed: numb
 
 export function discardFailedSales() {
   const owner = currentOwner();
+  const mine = read(FAILED_KEY);
   write(FAILED_KEY, readAll(FAILED_KEY).filter((s) => s.owner !== owner));
+  void reportOfflineStatus(mine);
+}
+
+export function failedSales(): OfflineSale[] {
+  return read(FAILED_KEY);
 }
 
 function cacheKey(key: string) {
