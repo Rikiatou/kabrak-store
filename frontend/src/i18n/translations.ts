@@ -55,6 +55,7 @@ export const translations = {
       pos: 'Caisse POS',
       debts: 'Dettes clients',
       closing: 'Clôture du jour',
+      activity: "Journal d'activité",
       agenda: 'Agenda commandes',
     },
     auth: {
@@ -318,6 +319,7 @@ export const translations = {
       pos: 'POS Register',
       debts: 'Client debts',
       closing: 'Daily closing',
+      activity: 'Activity log',
       agenda: 'Order agenda',
     },
     auth: {

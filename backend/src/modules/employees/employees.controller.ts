@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../../config/prisma';
 import { UserRole } from '@prisma/client';
 import { sanitizeModules } from '../../config/modules';
+import { logActivity } from '../../utils/activity';
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -68,6 +69,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, modules: true, isActive: true },
     });
 
+    logActivity(req, 'EMPLOYEE_CREATE', `Compte créé : ${employee.firstName} ${employee.lastName} (${employee.role})`, { type: 'user', id: employee.id });
     res.status(201).json({ success: true, data: employee });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create employee';
@@ -118,6 +120,12 @@ export const update = async (req: Request, res: Response): Promise<void> => {
       select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, modules: true, isActive: true },
     });
 
+    const changes: string[] = [];
+    if (existing.role !== employee.role) changes.push(`rôle ${existing.role} → ${employee.role}`);
+    if (existing.isActive !== employee.isActive) changes.push(employee.isActive ? 'réactivé' : 'désactivé');
+    if (JSON.stringify(existing.modules) !== JSON.stringify(employee.modules)) changes.push('accès aux modules modifiés');
+    if (updateData.password) changes.push('mot de passe changé');
+    if (changes.length) logActivity(req, 'EMPLOYEE_UPDATE', `${employee.firstName} ${employee.lastName} : ${changes.join(', ')}`, { type: 'user', id });
     res.json({ success: true, data: employee });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update employee';
@@ -138,6 +146,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     if (existing.role === 'OWNER') { res.status(403).json({ success: false, message: 'Impossible de modifier le propriétaire' }); return; }
     const hashedPassword = await bcrypt.hash(password, 12);
     await prisma.user.update({ where: { id }, data: { password: hashedPassword } });
+    logActivity(req, 'EMPLOYEE_UPDATE', `${existing.firstName} ${existing.lastName} : mot de passe changé`, { type: 'user', id });
     res.json({ success: true, message: 'Mot de passe mis à jour' });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
@@ -162,6 +171,7 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     }
 
     await prisma.user.delete({ where: { id } });
+    logActivity(req, 'EMPLOYEE_DELETE', `Compte supprimé : ${existing.firstName} ${existing.lastName}`, { type: 'user', id });
     res.json({ success: true, message: 'Employé supprimé' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete employee';

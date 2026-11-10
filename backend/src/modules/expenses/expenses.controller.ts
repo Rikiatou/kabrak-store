@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
+import { logActivity } from '../../utils/activity';
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -149,6 +150,7 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     const existing = await prisma.expense.findFirst({ where: { id: id as string, tenantId: req.user!.tenantId as string } });
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
     await prisma.expense.delete({ where: { id: id as string } });
+    logActivity(req, 'EXPENSE_DELETE', `Dépense supprimée : ${existing.description || existing.category} (${existing.amount} F)`, { type: 'expense', id: id as string });
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });

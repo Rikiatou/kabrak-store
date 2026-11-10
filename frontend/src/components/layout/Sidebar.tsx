@@ -20,7 +20,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const businessMode = tenant?.businessMode || 'PRODUCT';
   const isOrderBased = !!(tenant?.businessCategories?.length &&
     tenant.businessCategories.every((cat) => ORDER_BASED_CATEGORIES.has(cat)));
-  const filteredItems = navItemsFor(tenant).filter((item) => item.key === 'guide' || canAccess(user, item.key));
+  const filteredItems = navItemsFor(tenant).filter((item) => (!item.roles || item.roles.includes(user?.role ?? '')) && (item.key === 'guide' || canAccess(user, item.key)));
 
   return (
     <>

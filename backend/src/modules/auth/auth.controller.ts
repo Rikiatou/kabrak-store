@@ -5,6 +5,7 @@ import { prisma } from '../../config/prisma';
 import { config } from '../../config';
 import { RegisterInput, LoginInput } from './auth.schema';
 import { sendPasswordResetEmail } from '../../services/mailer';
+import { logActivity } from '../../utils/activity';
 
 function generateSlug(name: string): string {
   return name
@@ -245,6 +246,7 @@ export const updateStore = async (req: Request, res: Response): Promise<void> =>
       },
     });
 
+    logActivity(req, 'SETTINGS_UPDATE', 'Paramètres de la boutique modifiés', { type: 'tenant', id: tenantId });
     res.json({ success: true, data: updated });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Update failed';

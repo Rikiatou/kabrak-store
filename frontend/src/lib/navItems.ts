@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   UserCog, Truck, BarChart3, CreditCard, Tags,
-  Heart, Store, FolderKanban, RefreshCw, Monitor, Settings, TrendingDown, Building2, Sparkles, Briefcase, BookOpen, ClipboardCheck, CalendarDays, HandCoins } from 'lucide-react';
+  Heart, Store, FolderKanban, RefreshCw, Monitor, Settings, TrendingDown, Building2, Sparkles, Briefcase, BookOpen, ClipboardCheck, CalendarDays, HandCoins, History } from 'lucide-react';
 
 import { ALWAYS_ALLOWED, canAccess } from './modules';
 
@@ -21,6 +21,7 @@ export interface NavItem {
   modes?: BusinessMode[];
   hideWhenOrderBased?: boolean;  // hide for order-based businesses (e.g. POS)
   showWhenOrderBased?: boolean;  // bypass plan gate for order-based businesses (e.g. Deliveries)
+  roles?: string[];              // only these roles, whatever modules they were given
 }
 
 export const navItems: NavItem[] = [
@@ -48,6 +49,7 @@ export const navItems: NavItem[] = [
   { key: 'employees', icon: UserCog, path: '/employees', plans: ['SHOP', 'BUSINESS'] },
   { key: 'stores', icon: Store, path: '/stores', plans: ['BUSINESS'] },
   { key: 'reports', icon: BarChart3, path: '/reports', plans: ['SHOP', 'BUSINESS'] },
+  { key: 'activity', icon: History, path: '/activity', plans: ['SHOP', 'BUSINESS'], roles: ['OWNER', 'MANAGER'] },
   { key: 'ai-reports', icon: Sparkles, path: '/ai-reports', plans: ['BUSINESS'] },
   { key: 'billing', icon: CreditCard, path: '/billing' },
   { key: 'settings', icon: Settings, path: '/settings' },

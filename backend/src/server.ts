@@ -31,6 +31,7 @@ import cashRoutes from './modules/cash/cash.routes';
 import errorRoutes from './modules/errors/errors.routes';
 import { recordError, requestContext, patchConsoleError } from './modules/errors/errorLog.service';
 import { startRecurringBillingCron } from './cron/recurringBilling';
+import activityRoutes from './modules/activity/activity.routes';
 
 process.on('uncaughtException', (err) => {
   console.error('[FATAL] Uncaught exception:', err);
@@ -154,6 +155,7 @@ app.use('/api/recurring', authenticate, requireActiveSubscription, requireModule
 app.use('/api/expenses', authenticate, requireActiveSubscription, requireModule('expenses', 'dashboard', 'reports'), expenseRoutes);
 app.use('/api/suppliers', authenticate, requireActiveSubscription, requireModule('suppliers', 'products', 'expenses'), supplierRoutes);
 app.use('/api/ai', authenticate, requireActiveSubscription, requireModule('ai-reports'), aiRoutes);
+app.use('/api/activity', authenticate, requireActiveSubscription, activityRoutes);
 
 // 404
 app.use((_req, res) => {

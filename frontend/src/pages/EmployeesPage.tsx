@@ -31,7 +31,7 @@ export function EmployeesPage() {
   const { user, tenant } = useAuthStore();
   const isOwner = user?.role === 'OWNER';
   const fr = language === 'fr';
-  const grantable = navItemsFor(tenant).filter((item) => !ALWAYS_ALLOWED.has(item.key));
+  const grantable = navItemsFor(tenant).filter((item) => !ALWAYS_ALLOWED.has(item.key) && !item.roles);
   const [resetId, setResetId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
