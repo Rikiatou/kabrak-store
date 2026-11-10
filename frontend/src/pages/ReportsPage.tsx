@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { StatTile } from '@/components/StatTile';
+import { canSeeCosts } from '@/lib/modules';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/lib/utils';
@@ -256,6 +257,7 @@ function ProductReports() {
   const lang = (language === 'en' ? 'en' : 'fr') as Lang;
   const fr = lang === 'fr';
   const tenant = useAuthStore((s) => s.tenant);
+  const showCosts = canSeeCosts(useAuthStore((s) => s.user));
   const [preset, setPreset] = useState<Preset>('today');
   const [custom, setCustom] = useState({ from: localDate(shiftDays(-6)), to: localDate() });
   const [result, setResult] = useState<{ key: string; data: SalesReport | null } | null>(null);
@@ -297,9 +299,9 @@ function ProductReports() {
       ...Object.entries(data.byMethod).map(([m, v]) => `  - ${methodLabel(m)} : ${formatCurrency(v)}`),
       ...(s.discounts > 0 ? [`${fr ? 'Remises' : 'Discounts'} : ${formatCurrency(s.discounts)}`] : []),
       ...(s.returns > 0 ? [`${fr ? 'Retours' : 'Returns'} : ${formatCurrency(s.returns)}`] : []),
-      `${fr ? 'Bénéfice brut' : 'Gross profit'} : ${formatCurrency(s.grossProfit)}`,
+      ...(showCosts ? [`${fr ? 'Bénéfice brut' : 'Gross profit'} : ${formatCurrency(s.grossProfit)}`] : []),
       `${fr ? 'Dépenses' : 'Expenses'} : ${formatCurrency(s.expenses)}`,
-      `${fr ? 'Bénéfice net' : 'Net profit'} : ${formatCurrency(s.netProfit)}`,
+      ...(showCosts ? [`${fr ? 'Bénéfice net' : 'Net profit'} : ${formatCurrency(s.netProfit)}`] : []),
       ...(s.newDebts > 0 ? [`${fr ? 'Reste à payer sur ces ventes' : 'Still owed on these sales'} : ${formatCurrency(s.newDebts)}`] : []),
       ...(data.sellers.length ? [fr ? 'Par vendeur :' : 'By seller:'] : []),
       ...data.sellers.map((x) => `  · ${x.name} : ${x.orders} ${fr ? 'ventes' : 'sales'}, ${formatCurrency(x.sales)}${x.discounts ? ` (${fr ? 'remises' : 'discounts'} −${formatCurrency(x.discounts)})` : ''}`),
@@ -376,8 +378,8 @@ function ProductReports() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <StatTile label={fr ? 'Ventes' : 'Sales'} icon={ShoppingCart} value={formatCurrency(s.sales)} delta={pct(s.sales, p.sales)} sub={`${s.orders} ${fr ? 'ventes' : 'sales'} · ${s.itemsSold} ${fr ? 'articles' : 'items'}`} />
             <StatTile label={fr ? 'Encaissé' : 'Received'} icon={Wallet} value={formatCurrency(s.received)} delta={pct(s.received, p.received)} sub={s.refunds > 0 ? `${fr ? 'dont remboursé' : 'refunded'} −${formatCurrency(s.refunds)}` : undefined} />
-            <StatTile label={fr ? 'Bénéfice brut' : 'Gross profit'} icon={TrendingUp} value={formatCurrency(s.grossProfit)} delta={pct(s.grossProfit, p.grossProfit)} sub={fr ? 'ventes − prix d\'achat' : 'sales − cost'} />
-            <StatTile label={fr ? 'Bénéfice net' : 'Net profit'} icon={PiggyBank} value={formatCurrency(s.netProfit)} tone={s.netProfit < 0 ? 'text-red-600' : undefined} delta={pct(s.netProfit, p.netProfit)} sub={fr ? 'brut − dépenses' : 'gross − expenses'} />
+            {showCosts && <StatTile label={fr ? 'Bénéfice brut' : 'Gross profit'} icon={TrendingUp} value={formatCurrency(s.grossProfit)} delta={pct(s.grossProfit, p.grossProfit)} sub={fr ? 'ventes − prix d\'achat' : 'sales − cost'} />}
+            {showCosts && <StatTile label={fr ? 'Bénéfice net' : 'Net profit'} icon={PiggyBank} value={formatCurrency(s.netProfit)} tone={s.netProfit < 0 ? 'text-red-600' : undefined} delta={pct(s.netProfit, p.netProfit)} sub={fr ? 'brut − dépenses' : 'gross − expenses'} />}
             <StatTile label={fr ? 'Dépenses' : 'Expenses'} icon={Receipt} value={formatCurrency(s.expenses)} sub={fr ? 'hors achats de stock' : 'excl. stock purchases'} />
             <StatTile label={fr ? 'Remises accordées' : 'Discounts given'} icon={Percent} value={formatCurrency(s.discounts)} tone={s.discounts > 0 ? 'text-red-600' : undefined} />
             <StatTile label={fr ? 'Retours' : 'Returns'} icon={Undo2} value={formatCurrency(s.returns)} sub={s.returnedItems ? `${s.returnedItems} ${fr ? 'articles rendus' : 'items returned'}` : undefined} />
@@ -454,7 +456,7 @@ function ProductReports() {
             ) : <Empty text={noSales} />}
           </Section>
 
-          <Section title={fr ? 'Produits les plus vendus' : 'Best-selling products'} sub={fr ? 'Montant après remises · marge = montant − prix d\'achat' : 'Amount after discounts · margin = amount − cost'}>
+          <Section title={fr ? 'Produits les plus vendus' : 'Best-selling products'} sub={showCosts ? (fr ? 'Montant après remises · marge = montant − prix d\'achat' : 'Amount after discounts · margin = amount − cost') : (fr ? 'Montant après remises' : 'Amount after discounts')}>
             {data.topProducts.length ? (
               <div className="overflow-x-auto -mx-4 px-4">
                 <table className="w-full text-sm min-w-[480px]">
@@ -463,7 +465,7 @@ function ProductReports() {
                       <th className="py-2 font-medium">{fr ? 'Produit' : 'Product'}</th>
                       <th className="py-2 font-medium text-right">{fr ? 'Qté' : 'Qty'}</th>
                       <th className="py-2 font-medium text-right">{fr ? 'Montant' : 'Amount'}</th>
-                      <th className="py-2 font-medium text-right">{fr ? 'Marge' : 'Margin'}</th>
+                      {showCosts && <th className="py-2 font-medium text-right">{fr ? 'Marge' : 'Margin'}</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -472,7 +474,7 @@ function ProductReports() {
                         <td className="py-2 text-gray-900 dark:text-white">{x.name}</td>
                         <td className="py-2 text-right tabular-nums">{x.quantity}</td>
                         <td className="py-2 text-right tabular-nums">{formatCurrency(x.amount)}</td>
-                        <td className={`py-2 text-right tabular-nums ${x.profit < 0 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>{formatCurrency(x.profit)}</td>
+                        {showCosts && <td className={`py-2 text-right tabular-nums ${x.profit < 0 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>{formatCurrency(x.profit)}</td>}
                       </tr>
                     ))}
                   </tbody>
@@ -481,7 +483,7 @@ function ProductReports() {
             ) : <Empty text={noSales} />}
           </Section>
 
-          {data.belowCost.length > 0 && (
+          {showCosts && data.belowCost.length > 0 && (
             <Section title={fr ? 'Vendus en dessous du prix d\'achat' : 'Sold below cost'} sub={fr ? 'Vérifiez le prix de vente ou le prix d\'achat de ces produits' : 'Check the selling or purchase price of these products'}>
               <div className="space-y-1.5">
                 {data.belowCost.map((x) => (

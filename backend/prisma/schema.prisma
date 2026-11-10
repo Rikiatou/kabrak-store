@@ -157,6 +157,8 @@ model Tenant {
 
   invoiceColor       String?            @default("#2563eb")
   invoiceHeader      String?
+  // Highest discount (% of the ticket) a cashier/employee may give; null = no limit
+  maxStaffDiscount   Int?
 
   users              User[]
   products           Product[]

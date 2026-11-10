@@ -15,7 +15,7 @@ interface Summary {
   byMethod: Record<string, number>; sellers: Array<{ name: string; orders: number; sales: number; items?: Array<{ name: string; quantity: number; amount: number }> }>;
   topProducts: Array<{ name: string; quantity: number; amount: number }>;
   cancelled: { count: number; amount: number };
-  cost: number; grossProfit: number; expenses: number; cashExpenses: number; netProfit: number;
+  cost?: number; grossProfit?: number; expenses: number; cashExpenses: number; netProfit?: number;
   cashIn?: number;
 }
 interface Person { firstName: string; lastName: string }
@@ -77,9 +77,9 @@ function zLines(z: CashSession, shop: string, fr: boolean): Array<[string, strin
     ...(s.sellers.length ? ['---', `## ${fr ? 'Par vendeur' : 'By seller'}`, ...s.sellers.flatMap((x) => [[`${x.name} (${x.orders})`, formatCurrency(x.sales)] as [string, string], ...(x.items || []).map((it) => [`  ${it.quantity} x ${it.name}`, formatCurrency(it.amount)] as [string, string])])] : []),
     ...(s.topProducts?.length ? ['---', `## ${fr ? 'Articles vendus' : 'Items sold'}`, ...s.topProducts.map((p) => [`${p.quantity} x ${p.name}`, formatCurrency(p.amount)] as [string, string])] : []),
     '---',
-    [fr ? 'Bénéfice brut' : 'Gross profit', formatCurrency(s.grossProfit)],
+    ...(s.grossProfit !== undefined ? [[fr ? 'Bénéfice brut' : 'Gross profit', formatCurrency(s.grossProfit)] as [string, string]] : []),
     [fr ? 'Dépenses' : 'Expenses', formatCurrency(s.expenses)],
-    [fr ? 'Bénéfice net' : 'Net profit', formatCurrency(s.netProfit)],
+    ...(s.netProfit !== undefined ? [[fr ? 'Bénéfice net' : 'Net profit', formatCurrency(s.netProfit)] as [string, string]] : []),
     ...(z.closingNote ? ['---', `${fr ? 'Note' : 'Note'} : ${z.closingNote}`] : []),
   ];
 }

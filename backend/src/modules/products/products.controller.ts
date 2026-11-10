@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { CreateProductInput, UpdateProductInput } from './products.schema';
 import { StockError, STOCK_SELECT, lowStockLines, moveStock, notifyLowStock, readVariants, readTiers } from '../../utils/stock';
+import { canSeeCosts, hideProductCost } from '../../utils/costs';
 
 const PAYMENT_METHODS = ['CASH', 'MOBILE_MONEY', 'ORANGE_MONEY', 'MTN_MOMO', 'BANK_TRANSFER', 'OTHER'];
 
@@ -37,7 +38,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      data: products,
+      data: canSeeCosts(req.user!.role) ? products : products.map(hideProductCost),
       pagination: {
         total,
         page: parseInt(page as string),
@@ -64,7 +65,7 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    res.json({ success: true, data: product });
+    res.json({ success: true, data: canSeeCosts(req.user!.role) ? product : hideProductCost(product) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch product';
     res.status(500).json({ success: false, message });
@@ -232,7 +233,7 @@ export const findByBarcode = async (req: Request, res: Response): Promise<void> 
     }
 
     const variant = readVariants(product.variants).find((v) => v.barcode === code.trim());
-    res.json({ success: true, data: product, variant: variant?.name ?? null });
+    res.json({ success: true, data: canSeeCosts(req.user!.role) ? product : hideProductCost(product), variant: variant?.name ?? null });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erreur recherche code-barres';
     res.status(500).json({ success: false, message });
@@ -246,7 +247,8 @@ export const getLowStock = async (req: Request, res: Response): Promise<void> =>
       include: { category: true },
       orderBy: { totalStock: 'asc' },
     });
-    res.json({ success: true, data: products.filter((p) => lowStockLines(p).length > 0) });
+    const low = products.filter((p) => lowStockLines(p).length > 0);
+    res.json({ success: true, data: canSeeCosts(req.user!.role) ? low : low.map(hideProductCost) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch low stock products';
     res.status(500).json({ success: false, message });

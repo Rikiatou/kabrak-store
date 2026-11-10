@@ -778,10 +778,12 @@ export function ProductsPage() {
                   )}
 
                   <div className="flex items-center justify-between mb-2 sm:mb-3">
-                    <div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.costPrice')}</p>
-                      <p className="text-xs sm:text-sm">{formatCurrency(product.costPrice * (product.packSize && product.packSize > 1 ? product.packSize : 1))}</p>
-                    </div>
+                    {product.costPrice !== undefined && product.costPrice !== null ? (
+                      <div>
+                        <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.costPrice')}</p>
+                        <p className="text-xs sm:text-sm">{formatCurrency(product.costPrice * (product.packSize && product.packSize > 1 ? product.packSize : 1))}</p>
+                      </div>
+                    ) : <div />}
                     <div className="text-right">
                       <p className="text-[10px] sm:text-xs text-muted-foreground">{t('products.sellingPrice')}</p>
                       <p className="text-xs sm:text-sm font-bold text-blue-600">{hasMainRange(product) ? (fr ? 'dès ' : 'from ') : ''}{formatCurrency(mainPrice(product))}</p>

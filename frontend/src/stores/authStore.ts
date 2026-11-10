@@ -23,6 +23,7 @@ interface Tenant {
   phone?: string;
   address?: string;
   invoiceColor?: string;
+  maxStaffDiscount?: number | null;
 }
 
 interface Subscription {

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
+import { canSeeCosts, hideProductCost, hideSummaryProfit } from '../../utils/costs';
 
 export const getDashboard = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -92,21 +93,24 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
     });
 
 
+    const showCosts = canSeeCosts(req.user!.role);
     res.json({
       success: true,
       data: {
         todayOrders: summary.orders,
         todaySales: summary.sales,
         todayRevenue: summary.received,
-        grossProfit: summary.grossProfit,
+        grossProfit: showCosts ? summary.grossProfit : undefined,
         expenses: summary.expenses,
-        netProfit: summary.netProfit,
+        netProfit: showCosts ? summary.netProfit : undefined,
         totalProducts,
         totalClients,
         lowStockProducts,
         recentOrders,
-        topProducts: topProductsWithDetails,
-        totalGrossMargin: summary.grossProfit,
+        topProducts: showCosts
+          ? topProductsWithDetails
+          : topProductsWithDetails.map((p) => ({ ...p, product: hideProductCost(p.product), totalCost: undefined, grossMargin: undefined })),
+        totalGrossMargin: showCosts ? summary.grossProfit : undefined,
         upcomingDeliveries,
         unpaidInvoices: unpaidInvoices._count,
         unpaidAmount: unpaidInvoices._sum.amountDue || 0,
@@ -297,9 +301,7 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       .map((p) => ({ name: p.name, stock: p.totalStock, value: p.totalStock * (p.costPrice || 0) }))
       .sort((a, b) => b.value - a.value || b.stock - a.stock);
 
-    res.json({
-      success: true,
-      data: {
+    const report = {
         from: localDay(start),
         to: localDay(endDay),
         groupBy,
@@ -344,8 +346,22 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
         totalProfit: summary.grossProfit,
         totalOrders: summary.orders,
         topSellers: [...sellers.values()].map((s) => ({ name: s.name, revenue: s.sales, orders: s.orders, discounts: s.discounts })),
-      },
-    });
+    };
+    const data = canSeeCosts(req.user!.role)
+      ? report
+      : {
+        ...report,
+        summary: hideSummaryProfit(report.summary),
+        previous: hideSummaryProfit(report.previous),
+        salesByPeriod: report.salesByPeriod.map(({ profit: _p, ...x }) => x),
+        topProducts: report.topProducts.map(({ cost: _c, profit: _p, ...x }) => x),
+        bestMargins: [],
+        belowCost: [],
+        categories: report.categories.map(({ profit: _p, ...x }) => x),
+        unsold: report.unsold.map(({ value: _v, ...x }) => x),
+        totalProfit: undefined,
+      };
+    res.json({ success: true, data });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch sales report';
     res.status(500).json({ success: false, message });
@@ -507,7 +523,7 @@ export const getDailyClosing = async (req: Request, res: Response): Promise<void
     const day = req.query.date ? new Date(`${req.query.date as string}T00:00:00`) : new Date(new Date().setHours(0, 0, 0, 0));
     const next = new Date(day.getTime() + 24 * 3600 * 1000);
     const summary = await computeSummary(tenantId, day, next);
-    res.json({ success: true, data: { date: day.toISOString().slice(0, 10), ...summary } });
+    res.json({ success: true, data: { date: localDay(day), ...(canSeeCosts(req.user!.role) ? summary : hideSummaryProfit(summary)) } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to compute closing';
     res.status(500).json({ success: false, message });

@@ -2,8 +2,16 @@ import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { computeSummary } from '../reports/reports.controller';
+import { canSeeCosts, hideSummaryProfit } from '../../utils/costs';
 
 const userSelect = { select: { id: true, firstName: true, lastName: true } };
+
+// Cashiers count the drawer but never see purchase costs or profits
+function forRole<T>(role: string, session: T): T {
+  if (canSeeCosts(role) || !session || typeof session !== 'object') return session;
+  const s = session as Record<string, unknown>;
+  return { ...s, summary: hideSummaryProfit(s.summary as Record<string, unknown> | null) } as T;
+}
 
 const toAmount = (v: unknown): number | null => {
   const n = typeof v === 'string' ? Number(v.replace(/\s/g, '')) : Number(v);
@@ -29,7 +37,7 @@ export const getCurrent = async (req: Request, res: Response): Promise<void> => 
       return;
     }
     const live = await liveTotals(tenantId, session.openedAt, session.openingFloat);
-    res.json({ success: true, data: { ...session, ...live } });
+    res.json({ success: true, data: forRole(req.user!.role, { ...session, ...live }) });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
   }
@@ -112,7 +120,7 @@ export const close = async (req: Request, res: Response): Promise<void> => {
       where: { id: session.id },
       include: { openedBy: userSelect, closedBy: userSelect },
     });
-    res.json({ success: true, data: result });
+    res.json({ success: true, data: forRole(req.user!.role, result) });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
   }
@@ -126,7 +134,7 @@ export const list = async (req: Request, res: Response): Promise<void> => {
       take: Math.min(Number(req.query.limit) || 30, 100),
       include: { openedBy: userSelect, closedBy: userSelect },
     });
-    res.json({ success: true, data: sessions });
+    res.json({ success: true, data: sessions.map((x) => forRole(req.user!.role, x)) });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
   }
@@ -142,7 +150,7 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
       res.status(404).json({ success: false, message: 'Session introuvable' });
       return;
     }
-    res.json({ success: true, data: session });
+    res.json({ success: true, data: forRole(req.user!.role, session) });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
   }
