@@ -11,6 +11,7 @@ import {
   extendSubscription,
   setSubscriptionEnd,
   changeTenantPlan,
+  changeTenantMode,
   getPendingPayments,
   getAllPayments,
   approvePayment,
@@ -78,6 +79,7 @@ router.post('/tenants/:id/reactivate', reactivateTenant);
 router.post('/tenants/:id/extend', extendSubscription);
 router.post('/tenants/:id/set-end-date', setSubscriptionEnd);
 router.post('/tenants/:id/change-plan', changeTenantPlan);
+router.post('/tenants/:id/change-mode', changeTenantMode);
 router.delete('/tenants/:id', deleteTenant);
 router.post('/users/:userId/reset-password', resetUserPassword);
 
