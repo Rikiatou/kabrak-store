@@ -328,6 +328,40 @@ export const changeTenantPlan = async (req: Request, res: Response): Promise<voi
   }
 };
 
+const SERVICE_CATEGORIES = new Set([
+  'DIGITAL_MARKETING', 'FREELANCER', 'AGENCY', 'CONSULTANT', 'DESIGNER',
+  'DEVELOPER', 'SOCIAL_MEDIA', 'PRINTING', 'BUSINESS_SERVICES',
+]);
+
+// Fixes a shop that picked the wrong mode at signup. Data is kept; only the menu/modules change.
+export const changeTenantMode = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const tenantId = req.params.id as string;
+    const { mode } = req.body;
+    if (mode !== 'PRODUCT' && mode !== 'SERVICE') {
+      res.status(400).json({ success: false, message: 'Mode invalide' });
+      return;
+    }
+    const tenant = await prisma.tenant.findUnique({ where: { id: tenantId }, select: { businessCategories: true } });
+    if (!tenant) {
+      res.status(404).json({ success: false, message: 'Tenant introuvable' });
+      return;
+    }
+    const kept = tenant.businessCategories.filter((c) =>
+      c === 'OTHER' || (mode === 'SERVICE') === SERVICE_CATEGORIES.has(c));
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { businessMode: mode, businessCategories: kept.length ? kept : ['OTHER'] },
+    });
+
+    res.json({ success: true, message: mode === 'SERVICE' ? 'Passé en mode services' : 'Passé en mode produits' });
+  } catch (error) {
+    console.error('[ADMIN] change mode:', error);
+    res.status(500).json({ success: false, message: 'Erreur changement de mode' });
+  }
+};
+
 // Orange Money admin endpoints
 export const getPendingPayments = async (_req: Request, res: Response): Promise<void> => {
   try {
