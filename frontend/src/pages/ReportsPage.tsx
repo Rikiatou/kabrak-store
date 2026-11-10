@@ -13,7 +13,7 @@ interface SalesReport {
   totalProfit: number;
   totalOrders: number;
   salesByPeriod: Array<{ period: string; revenue: number; orders: number; profit: number }>;
-  topSellers: Array<{ name: string; revenue: number; orders: number }>;
+  topSellers: Array<{ name: string; revenue: number; orders: number; discounts?: number }>;
 }
 
 interface ServiceReport {
@@ -307,7 +307,8 @@ export function ReportsPage() {
                   </div>
                   <div className="text-right">
                     <p className="font-bold dark:text-white">{formatCurrency(seller.revenue)}</p>
-                    <p className="text-xs text-muted-foreground">{seller.orders} {language === 'fr' ? 'commandes' : 'orders'}</p>
+                    <p className="text-xs text-muted-foreground">{seller.orders} {language === 'fr' ? 'ventes' : 'sales'}</p>
+                    {seller.discounts ? <p className="text-xs text-red-600">{language === 'fr' ? 'remises' : 'discounts'} −{formatCurrency(seller.discounts)}</p> : null}
                   </div>
                 </div>
               ))}

@@ -16,10 +16,11 @@ interface DashboardData {
   totalClients: number;
   lowStockProducts: Array<{ id: string; name: string; totalStock: number; lowStockAlert: number }>;
   recentOrders: Array<{
-    id: string; reference: string; finalAmount: number; paymentStatus: string;
+    id: string; reference: string; finalAmount: number; discount?: number; paymentStatus: string;
     status: string; createdAt: string;
     client?: { name: string } | null;
     createdBy: { firstName: string; lastName: string };
+    seller?: { firstName: string; lastName: string } | null;
   }>;
   topProducts: Array<{
     product: { id: string; name: string; sellingPrice: number; totalStock?: number; costPrice?: number } | null;
@@ -84,7 +85,7 @@ const categoryDashboards: Record<string, {
   CLOTHING: {
     statCards: [
       { key: 'todayOrders', label: { fr: 'Ventes du jour', en: 'Today Sales' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
-      { key: 'todayRevenue', label: { fr: 'Revenus du jour', en: 'Today Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'todayRevenue', label: { fr: 'Encaissé du jour', en: 'Received today' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
       { key: 'totalProducts', label: { fr: 'Produits', en: 'Products' }, icon: Package, gradient: 'from-emerald-500 to-emerald-600' },
       { key: 'totalClients', label: { fr: 'Clientes', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
     ],
@@ -104,7 +105,7 @@ const categoryDashboards: Record<string, {
     statCards: [
       { key: 'todayOrders', label: { fr: 'Commandes du jour', en: 'Today Orders' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
       { key: 'upcomingDeliveries', label: { fr: 'Livraisons en attente', en: 'Pending Deliveries' }, icon: Truck, gradient: 'from-orange-500 to-orange-600' },
-      { key: 'todayRevenue', label: { fr: 'Revenus du jour', en: 'Today Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'todayRevenue', label: { fr: 'Encaissé du jour', en: 'Received today' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
       { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
     ],
     primaryAction: { label: { fr: 'Nouvelle commande', en: 'New Order' }, icon: Plus, href: '/orders', gradient: 'from-orange-500 to-orange-600' },
@@ -133,7 +134,7 @@ const categoryDashboards: Record<string, {
   MINI_MARKET: {
     statCards: [
       { key: 'todayOrders', label: { fr: 'Ventes du jour', en: 'Today Sales' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
-      { key: 'todayRevenue', label: { fr: 'Revenus du jour', en: 'Today Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'todayRevenue', label: { fr: 'Encaissé du jour', en: 'Received today' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
       { key: 'totalProducts', label: { fr: 'Stock faible', en: 'Low Stock' }, icon: Package, gradient: 'from-red-500 to-red-600' },
       { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
     ],
@@ -143,7 +144,7 @@ const categoryDashboards: Record<string, {
   WHOLESALE: {
     statCards: [
       { key: 'todayOrders', label: { fr: 'Ventes du jour', en: 'Today Sales' }, icon: ShoppingCart, gradient: 'from-blue-500 to-blue-600' },
-      { key: 'todayRevenue', label: { fr: 'Revenus du jour', en: 'Today Revenue' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
+      { key: 'todayRevenue', label: { fr: 'Encaissé du jour', en: 'Received today' }, icon: DollarSign, gradient: 'from-amber-500 to-amber-600', isCurrency: true },
       { key: 'totalProducts', label: { fr: 'Stock global', en: 'Total Stock' }, icon: Package, gradient: 'from-emerald-500 to-emerald-600' },
       { key: 'totalClients', label: { fr: 'Clients', en: 'Clients' }, icon: Users, gradient: 'from-violet-500 to-violet-600' },
     ],
@@ -523,6 +524,11 @@ export function DashboardPage() {
                       <p className="font-medium text-sm text-gray-900 dark:text-white">{order.reference}</p>
                       <p className="text-xs text-gray-400 truncate">
                         {order.client?.name || (language === 'fr' ? 'Client de passage' : 'Walk-in customer')} · {formatDateTime(order.createdAt)}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">
+                        {language === 'fr' ? 'Vendu par' : 'Sold by'} {`${(order.seller ?? order.createdBy).firstName} ${(order.seller ?? order.createdBy).lastName}`.trim()}
+                        {order.status === 'CANCELLED' ? (language === 'fr' ? ' · Annulée' : ' · Cancelled') : ''}
+                        {order.discount ? <span className="text-red-500"> · {language === 'fr' ? 'remise' : 'discount'} −{formatCurrency(order.discount)}</span> : null}
                       </p>
                     </div>
                     <p className="font-semibold text-sm text-gray-900 dark:text-white flex-shrink-0">{formatCurrency(order.finalAmount)}</p>

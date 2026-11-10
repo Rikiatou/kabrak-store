@@ -75,7 +75,7 @@ export const translations = {
     },
     dashboard: {
       todaySales: "Ventes aujourd'hui",
-      todayRevenue: "Revenus aujourd'hui",
+      todayRevenue: "Encaissé aujourd'hui",
       profit: 'Bénéfice net',
       totalProducts: 'Produits',
       totalClients: 'Clients',
@@ -338,7 +338,7 @@ export const translations = {
     },
     dashboard: {
       todaySales: "Today's Sales",
-      todayRevenue: "Today's Revenue",
+      todayRevenue: "Received today",
       profit: 'Net Profit',
       totalProducts: 'Products',
       totalClients: 'Clients',
