@@ -13,7 +13,7 @@ import { CashDrawer } from '@/components/CashDrawer';
 interface Closing {
   date: string; orders: number; itemsSold: number; sales: number; discounts: number; received: number;
   byMethod: Record<string, number>; sellers: Array<{ name: string; orders: number; sales: number; discounts?: number; items?: Array<{ name: string; quantity: number; amount: number }> }>;
-  cost: number; grossProfit: number; expenses: number; netProfit: number; lowStock: number;
+  cost?: number; grossProfit?: number; expenses: number; netProfit?: number; lowStock: number;
 }
 
 const METHOD_LABELS: Record<string, { fr: string; en: string }> = {
@@ -59,9 +59,9 @@ export function ClosingPage() {
       ...(data.discounts > 0 ? [`${fr ? 'Remises accordées' : 'Discounts given'} : ${formatCurrency(data.discounts)}`] : []),
       `${fr ? 'Encaissé' : 'Received'} : ${formatCurrency(data.received)}`,
       ...Object.entries(data.byMethod).map(([m, v]) => `  - ${(METHOD_LABELS[m] || METHOD_LABELS.OTHER)[lang]} : ${formatCurrency(v)}`),
-      `${fr ? 'Bénéfice brut' : 'Gross profit'} : ${formatCurrency(data.grossProfit)}`,
+      ...(data.grossProfit !== undefined ? [`${fr ? 'Bénéfice brut' : 'Gross profit'} : ${formatCurrency(data.grossProfit)}`] : []),
       `${fr ? 'Dépenses' : 'Expenses'} : ${formatCurrency(data.expenses)}`,
-      `${fr ? 'Bénéfice net' : 'Net profit'} : ${formatCurrency(data.netProfit)}`,
+      ...(data.netProfit !== undefined ? [`${fr ? 'Bénéfice net' : 'Net profit'} : ${formatCurrency(data.netProfit)}`] : []),
       ...data.sellers.flatMap((s) => [`  · ${s.name} : ${s.orders} ${fr ? 'ventes' : 'sales'}, ${formatCurrency(s.sales)}${s.discounts ? ` (${fr ? 'remises' : 'discounts'} −${formatCurrency(s.discounts)})` : ''}`, ...(s.items || []).map((it) => `      ${it.quantity} x ${it.name}`)]),
       ...(data.lowStock > 0 ? [`${fr ? 'Produits en stock faible' : 'Low-stock products'} : ${data.lowStock}`] : []),
     ];
@@ -102,7 +102,11 @@ export function ClosingPage() {
             <Stat label={fr ? 'Ventes' : 'Sales'} value={`${data.orders} · ${formatCurrency(data.sales)}`} />
             <Stat label={fr ? 'Encaissé' : 'Received'} value={formatCurrency(data.received)} />
             <Stat label={fr ? 'Dépenses' : 'Expenses'} value={formatCurrency(data.expenses)} />
-            <Stat label={fr ? 'Bénéfice net' : 'Net profit'} value={formatCurrency(data.netProfit)} tone={data.netProfit < 0 ? 'text-red-600' : 'text-green-600'} />
+            {data.netProfit !== undefined ? (
+              <Stat label={fr ? 'Bénéfice net' : 'Net profit'} value={formatCurrency(data.netProfit)} tone={data.netProfit < 0 ? 'text-red-600' : 'text-green-600'} />
+            ) : (
+              <Stat label={fr ? 'Articles vendus' : 'Items sold'} value={String(data.itemsSold)} />
+            )}
           </div>
           <div className="grid gap-3 lg:grid-cols-2">
             <Card><CardContent className="p-4 space-y-2">
@@ -111,7 +115,9 @@ export function ClosingPage() {
               {Object.entries(data.byMethod).map(([m, v]) => (
                 <div key={m} className="flex justify-between text-sm"><span>{(METHOD_LABELS[m] || METHOD_LABELS.OTHER)[lang]}</span><span className="font-medium">{formatCurrency(v)}</span></div>
               ))}
-              <div className="flex justify-between text-sm border-t pt-2"><span>{fr ? 'Bénéfice brut (ventes - achats)' : 'Gross profit (sales - cost)'}</span><span className="font-medium">{formatCurrency(data.grossProfit)}</span></div>
+              {data.grossProfit !== undefined && (
+                <div className="flex justify-between text-sm border-t pt-2"><span>{fr ? 'Bénéfice brut (ventes - achats)' : 'Gross profit (sales - cost)'}</span><span className="font-medium">{formatCurrency(data.grossProfit)}</span></div>
+              )}
             </CardContent></Card>
             <Card><CardContent className="p-4 space-y-2">
               <h3 className="font-semibold">{fr ? 'Par vendeur' : 'By seller'}</h3>

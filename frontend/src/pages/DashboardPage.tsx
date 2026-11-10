@@ -6,6 +6,7 @@ import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, Fo
 import { Link } from 'react-router-dom';
 import { DrawerStatusCard } from '@/components/CashDrawer';
 import { StatTile } from '@/components/StatTile';
+import { canSeeCosts } from '@/lib/modules';
 import { storefrontAccess } from '@/lib/storefront';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -190,6 +191,7 @@ export function DashboardPage() {
   const tenant = useAuthStore((s) => s.tenant);
   const storefront = storefrontAccess(useAuthStore((s) => s.subscription));
   const plan = tenant?.plan || 'STORE';
+  const showCosts = canSeeCosts(useAuthStore((s) => s.user));
   const businessMode = tenant?.businessMode || 'PRODUCT';
   const businessCategories = tenant?.businessCategories || [];
 
@@ -364,7 +366,7 @@ export function DashboardPage() {
             return <StatTile key={card.key} label={label} icon={Icon} sub={sub} value={card.isCurrency ? formatCurrency(value) : String(value)} />;
           })
         ) : (
-          (plan === 'SHOP' ? shopStatCards : plan === 'BUSINESS' ? businessStatCards : productStatCards).map((card) => {
+          (plan === 'SHOP' ? shopStatCards : plan === 'BUSINESS' ? businessStatCards : productStatCards).filter((card) => showCosts || !card.isProfit).map((card) => {
             const Icon = card.icon;
             let value: number;
             if (card.key === 'profit') {

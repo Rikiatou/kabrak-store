@@ -91,6 +91,7 @@ export function POSPage() {
   const [processing, setProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [discount, setDiscount] = useState<number | ''>('');
+  const staffMaxDiscount = useAuthStore((s) => (s.user?.role === 'OWNER' || s.user?.role === 'MANAGER' ? null : s.tenant?.maxStaffDiscount ?? null));
   const [notes, setNotes] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [showInvoice, setShowInvoice] = useState(false);
@@ -205,6 +206,8 @@ export function POSPage() {
   // A discount of half the ticket or more is usually the amount received typed in the wrong box
   const bigDiscount = subtotal > 0 && (Number(discount) || 0) >= subtotal / 2;
   const [discountCheck, setDiscountCheck] = useState(false);
+  const discountLimit = staffMaxDiscount === null ? null : Math.round((subtotal * staffMaxDiscount) / 100);
+  const overLimit = discountLimit !== null && (Number(discount) || 0) > discountLimit;
 
   const addScanned = (p: Product, variant?: string) => {
     const stock = variant ? (variantsOf(p).find((v) => v.name === variant)?.stock ?? 0) : p.totalStock;
@@ -235,6 +238,12 @@ export function POSPage() {
   };
 
   const startCheckout = () => {
+    if (overLimit) {
+      toast.error(language === 'fr'
+        ? `Remise maximale : ${staffMaxDiscount} % (${formatCurrency(discountLimit ?? 0)}). Demandez à la propriétaire.`
+        : `Maximum discount: ${staffMaxDiscount}% (${formatCurrency(discountLimit ?? 0)}). Ask the owner.`);
+      return;
+    }
     if (bigDiscount) setDiscountCheck(true);
     else handleCheckout();
   };
@@ -309,7 +318,7 @@ export function POSPage() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [cart, processing, bigDiscount]);
+  }, [cart, processing, bigDiscount, overLimit]);
 
   const renderClientPicker = () => {
     if (!showClientPicker) return null;
@@ -550,7 +559,14 @@ export function POSPage() {
                 value={discount ?? ''} onChange={(e) => setDiscount(e.target.value === '' ? '' : Math.max(0, +e.target.value))}
               />
             </div>
-            {bigDiscount && (
+            {overLimit && (
+              <p className="text-xs text-red-600 font-medium">
+                {language === 'fr'
+                  ? `Remise maximale autorisée : ${staffMaxDiscount} % (${formatCurrency(discountLimit ?? 0)}).`
+                  : `Maximum discount allowed: ${staffMaxDiscount}% (${formatCurrency(discountLimit ?? 0)}).`}
+              </p>
+            )}
+            {bigDiscount && !overLimit && (
               <p className="text-xs text-red-600 font-medium">
                 {language === 'fr'
                   ? `Remise de ${formatCurrency(Number(discount) || 0)} : la vente comptera ${formatCurrency(total)}. Le montant payé par le client se met dans « Montant reçu », pas ici.`

@@ -177,6 +177,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
           plan: user.tenant.plan,
           businessMode: user.tenant.businessMode,
           businessCategories: user.tenant.businessCategories,
+          maxStaffDiscount: user.tenant.maxStaffDiscount,
         },
       },
     });
@@ -219,8 +220,10 @@ export const updateProfile = async (req: Request, res: Response): Promise<void> 
 
 export const updateStore = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, phone, logo, invoiceColor, address, currency, language } = req.body;
+    const { name, phone, logo, invoiceColor, address, currency, language, maxStaffDiscount } = req.body;
     const tenantId = req.user!.tenantId;
+    const limit = maxStaffDiscount === null || maxStaffDiscount === '' ? null : Number(maxStaffDiscount);
+    const setLimit = maxStaffDiscount !== undefined && req.user!.role === 'OWNER' && (limit === null || Number.isFinite(limit));
 
     // Validate logo size (max 500KB base64)
     if (logo && logo.length > 500000) {
@@ -238,6 +241,7 @@ export const updateStore = async (req: Request, res: Response): Promise<void> =>
         ...(address !== undefined && { address }),
         ...(currency && { currency }),
         ...(language && { language }),
+        ...(setLimit && { maxStaffDiscount: limit === null ? null : Math.min(100, Math.max(0, Math.round(limit))) }),
       },
     });
 
@@ -452,6 +456,7 @@ export const me = async (req: Request, res: Response): Promise<void> => {
           logo: user.tenant.logo,
           phone: user.tenant.phone,
           invoiceColor: user.tenant.invoiceColor,
+          maxStaffDiscount: user.tenant.maxStaffDiscount,
         },
         subscription: user.tenant.subscription,
       },

@@ -12,3 +12,7 @@ export const hasFullAccess = (user: StaffUser | null | undefined) =>
 
 export const canAccess = (user: StaffUser | null | undefined, key: string) =>
   hasFullAccess(user) || !!user?.modules?.includes(key);
+
+// Purchase prices and profits: owner and managers only (the server doesn't send them to other roles either)
+export const canSeeCosts = (user: StaffUser | null | undefined) =>
+  user?.role === 'OWNER' || user?.role === 'MANAGER';

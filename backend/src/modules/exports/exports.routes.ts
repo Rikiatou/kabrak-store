@@ -13,6 +13,8 @@ const router = Router();
 
 // Explicit authentication on all export routes (defense in depth)
 router.use(authenticate);
+// Exports contain purchase prices and the whole customer list
+router.use(authorize('OWNER', 'MANAGER'));
 
 router.get('/history', getExportHistory);
 router.get('/products', exportProducts);

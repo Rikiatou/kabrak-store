@@ -32,6 +32,7 @@ export function SettingsPage() {
     invoiceColor: tenant?.invoiceColor || '#2563eb',
     currency: tenant?.currency || 'XAF',
     language: tenant?.language || 'fr',
+    maxStaffDiscount: (tenant?.maxStaffDiscount === null || tenant?.maxStaffDiscount === undefined ? '' : tenant.maxStaffDiscount) as number | '',
   });
 
   const [passwords, setPasswords] = useState({
@@ -449,6 +450,25 @@ export function SettingsPage() {
               {language === 'fr' ? '✓ Aperçu de la couleur sur facture' : '✓ Color preview on invoice'}
             </div>
           </div>
+
+          {user?.role === 'OWNER' && (
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
+                {language === 'fr' ? 'Remise maximale pour les employés (%)' : 'Maximum staff discount (%)'}
+              </label>
+              <input
+                type="number" min={0} max={100} placeholder={language === 'fr' ? 'Pas de limite' : 'No limit'}
+                value={store.maxStaffDiscount === null || store.maxStaffDiscount === undefined ? '' : store.maxStaffDiscount}
+                onChange={(e) => setStore({ ...store, maxStaffDiscount: e.target.value === '' ? '' : Math.min(100, Math.max(0, Number(e.target.value))) })}
+                className="w-40 px-3 py-2.5 border border-border rounded-lg bg-background text-sm"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                {language === 'fr'
+                  ? "Au-delà, la caisse refuse la vente d'une caissière ou d'une employée. Vous et vos managers n'avez pas de limite. Les prix d'achat et les bénéfices sont toujours cachés aux caissières et aux employées."
+                  : 'Above it, the POS refuses the sale for cashiers and employees. You and managers have no limit. Purchase prices and profits are always hidden from cashiers and employees.'}
+              </p>
+            </div>
+          )}
 
           <button
             type="submit"

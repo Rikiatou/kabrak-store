@@ -5,6 +5,7 @@ import { prisma } from '../../config/prisma';
 import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 import { CreateOrderInput, FixDiscountInput, ReturnItemsInput } from './orders.schema';
 import { StockError, STOCK_SELECT, itemCost, moveStock, notifyLowStock, unitsPerItem } from '../../utils/stock';
+import { canSeeCosts, hideOrderCosts } from '../../utils/costs';
 
 export function generateReference(): string {
   const date = new Date();
@@ -64,7 +65,7 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       success: true,
-      data: orders,
+      data: canSeeCosts(req.user!.role) ? orders : orders.map(hideOrderCosts),
       pagination: {
         total,
         page: parseInt(page as string),
@@ -98,7 +99,7 @@ export const getOne = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    res.json({ success: true, data: order });
+    res.json({ success: true, data: canSeeCosts(req.user!.role) ? order : hideOrderCosts(order) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch order';
     res.status(500).json({ success: false, message });
@@ -117,7 +118,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         include: { client: true, items: { include: { product: true } }, invoice: { include: { lineItems: true, payments: true } } },
       });
       if (replayed) {
-        res.status(200).json({ success: true, data: replayed });
+        res.status(200).json({ success: true, data: canSeeCosts(req.user!.role) ? replayed : hideOrderCosts(replayed) });
         return;
       }
     }
@@ -128,6 +129,19 @@ export const create = async (req: Request, res: Response): Promise<void> => {
     if (data.discount > totalAmount) {
       res.status(400).json({ success: false, code: 'DISCOUNT_TOO_HIGH', message: 'La remise dépasse le total' });
       return;
+    }
+    // Owner-set ceiling on staff discounts (replayed offline sales are already paid, so they go through)
+    if (data.discount > 0 && !isReplay && !canSeeCosts(req.user!.role)) {
+      const shop = await prisma.tenant.findUnique({ where: { id: req.user!.tenantId }, select: { maxStaffDiscount: true } });
+      const max = shop?.maxStaffDiscount;
+      if (max !== null && max !== undefined && data.discount > Math.round((totalAmount * max) / 100)) {
+        res.status(403).json({
+          success: false,
+          code: 'DISCOUNT_NOT_ALLOWED',
+          message: `Remise maximale autorisée : ${max} % (${Math.round((totalAmount * max) / 100)} F). Demandez à la propriétaire ou à un manager.`,
+        });
+        return;
+      }
     }
     const finalAmount = totalAmount - data.discount;
 
@@ -266,7 +280,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
-    res.status(201).json({ success: true, data: orderWithInvoice });
+    res.status(201).json({ success: true, data: canSeeCosts(req.user!.role) ? orderWithInvoice : hideOrderCosts(orderWithInvoice) });
   } catch (error) {
     if (error instanceof StockError) {
       res.status(400).json({ success: false, code: 'INSUFFICIENT_STOCK', message: error.message });
@@ -280,7 +294,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
         include: { client: true, items: { include: { product: true } }, invoice: { include: { lineItems: true, payments: true } } },
       });
       if (existing) {
-        res.status(200).json({ success: true, data: existing });
+        res.status(200).json({ success: true, data: canSeeCosts(req.user!.role) ? existing : hideOrderCosts(existing) });
         return;
       }
     }
