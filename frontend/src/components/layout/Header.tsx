@@ -81,7 +81,11 @@ export function Header({ onMenuClick }: HeaderProps) {
         )}
         {offline.failed > 0 && (
           <button
-            onClick={() => { discardFailedSales(); toast(fr ? 'Ventes refusées effacées' : 'Rejected sales cleared'); }}
+            onClick={() => {
+              if (!window.confirm(fr ? 'Effacer ces ventes refusées de ce téléphone ? La propriétaire le verra dans le journal.' : 'Clear these rejected sales from this device? The owner will see it in the activity log.')) return;
+              discardFailedSales();
+              toast(fr ? 'Ventes refusées effacées' : 'Rejected sales cleared');
+            }}
             className="flex items-center gap-1 rounded-full bg-red-100 px-2 py-1 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-200"
             title={fr ? 'Ventes hors ligne refusées par le serveur (cliquer pour effacer)' : 'Offline sales rejected by the server (click to clear)'}
           >

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { History } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -29,10 +29,11 @@ const ACTIONS: { key: string; fr: string; en: string }[] = [
   { key: 'EXPENSE_DELETE', fr: 'Dépenses supprimées', en: 'Deleted expenses' },
   { key: 'CLIENT_DELETE', fr: 'Clients supprimés', en: 'Deleted clients' },
   { key: 'EMPLOYEE_', fr: 'Employés', en: 'Employees' },
+  { key: 'OFFLINE_DISCARD', fr: 'Ventes hors ligne effacées', en: 'Cleared offline sales' },
   { key: 'SETTINGS_UPDATE', fr: 'Paramètres', en: 'Settings' },
 ];
 
-const RED = new Set(['ORDER_CANCEL', 'PRODUCT_DELETE', 'EXPENSE_DELETE', 'CLIENT_DELETE', 'EMPLOYEE_DELETE']);
+const RED = new Set(['ORDER_CANCEL', 'OFFLINE_DISCARD', 'PRODUCT_DELETE', 'EXPENSE_DELETE', 'CLIENT_DELETE', 'EMPLOYEE_DELETE']);
 const ROLE: Record<string, { fr: string; en: string }> = {
   OWNER: { fr: 'Propriétaire', en: 'Owner' },
   MANAGER: { fr: 'Manager', en: 'Manager' },
@@ -60,23 +61,18 @@ export function ActivityPage() {
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  const load = useCallback(async () => {
+  useEffect(() => {
     if (!allowed) return;
-    setLoading(true);
-    try {
-      const { data } = await api.get('/activity', { params: { from, to, userId: userId || undefined, action: action || undefined, page } });
-      if (!mountedRef.current) return;
-      setLogs(data.data || []);
-      setPeople(data.users || []);
-      setPages(data.pagination?.pages || 1);
-    } catch (err) {
-      toast.error(getApiErrorMessage(err));
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
+    api.get('/activity', { params: { from, to, userId: userId || undefined, action: action || undefined, page } })
+      .then(({ data }) => {
+        if (!mountedRef.current) return;
+        setLogs(data.data || []);
+        setPeople(data.users || []);
+        setPages(data.pagination?.pages || 1);
+      })
+      .catch((err) => toast.error(getApiErrorMessage(err)))
+      .finally(() => { if (mountedRef.current) setLoading(false); });
   }, [allowed, from, to, userId, action, page]);
-
-  useEffect(() => { load(); }, [load]);
 
   if (!allowed) {
     return <p className="text-sm text-muted-foreground">{fr ? 'Réservé à la propriétaire et aux managers.' : 'Owner and managers only.'}</p>;

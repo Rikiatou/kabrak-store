@@ -14,6 +14,7 @@ import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { cacheGet, cacheSet, queueSale, isNetworkError, newOfflineId } from '@/lib/offline';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { type Sellable, hasMainRange, hasPack, isMainMode, itemLabel, mainPrice, packLabel, packUnits, priceOf, stockText, tierPrice, tieredPrice, tiersText, variantsOf } from '@/lib/variants';
 
 interface Product extends Sellable {
@@ -374,6 +375,7 @@ export function POSPage() {
     <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:h-[calc(100vh-4rem)] lg:overflow-hidden">
       {/* Left: Products */}
       <div className="lg:flex-1 flex flex-col min-w-0 min-h-0">
+        <OfflineBanner />
         {drawerClosed && (
           <Link to="/closing" className="mb-3 flex items-center gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 px-3 py-2 text-sm">
             <Lock className="w-4 h-4 shrink-0" />

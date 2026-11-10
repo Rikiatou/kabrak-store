@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { DrawerStatusCard } from '@/components/CashDrawer';
 import { StatTile } from '@/components/StatTile';
 import { canSeeCosts } from '@/lib/modules';
+import { OfflineAlerts } from '@/components/OfflineBanner';
 import { storefrontAccess } from '@/lib/storefront';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -269,6 +270,7 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
+      {!isService && <OfflineAlerts />}
       {/* Welcome */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
         <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
