@@ -33,5 +33,12 @@ export const returnItemsSchema = z.object({
   note: z.string().trim().max(200).optional(),
 });
 
+export const fixDiscountSchema = z.object({
+  discount: z.number().min(0),
+  amountPaid: z.number().min(0).default(0),
+  method: z.nativeEnum(PaymentMethod).default('CASH'),
+});
+
+export type FixDiscountInput = z.infer<typeof fixDiscountSchema>;
 export type ReturnItemsInput = z.infer<typeof returnItemsSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;

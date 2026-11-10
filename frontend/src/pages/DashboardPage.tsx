@@ -12,6 +12,8 @@ import toast from 'react-hot-toast';
 interface DashboardData {
   todayOrders: number;
   todayRevenue: number;
+  todaySales?: number;
+  netProfit?: number;
   totalProducts: number;
   totalClients: number;
   lowStockProducts: Array<{ id: string; name: string; totalStock: number; lowStockAlert: number }>;
@@ -52,6 +54,19 @@ interface StatCard {
   gradient: string;
   isCurrency?: boolean;
   isProfit?: boolean;
+}
+
+function StatTile({ label, value, icon: Icon, sub, tone }: { label: string; value: string; icon: typeof ShoppingCart; sub?: string; tone?: string }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{label}</p>
+        <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+      </div>
+      <p className={`mt-2 text-xl sm:text-2xl font-semibold tabular-nums ${tone || 'text-gray-900 dark:text-white'}`}>{value}</p>
+      {sub ? <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 tabular-nums">{sub}</p> : null}
+    </div>
+  );
 }
 
 const statusColors: Record<string, string> = {
@@ -264,20 +279,19 @@ export function DashboardPage() {
   return (
     <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto">
       {/* Welcome */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
-        <div className={`h-1 w-full bg-gradient-to-r ${isService ? 'from-violet-500 to-violet-600' : 'from-blue-500 to-blue-600'}`} />
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
         <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             {tenant?.logo ? (
               <img src={tenant.logo} alt={tenant.name} className="h-10 w-10 rounded-lg object-contain border border-gray-100 dark:border-gray-700" />
             ) : (
-              <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-white font-bold text-base bg-gradient-to-br ${isService ? 'from-violet-500 to-violet-600' : 'from-blue-500 to-blue-600'}`}>
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-white font-semibold text-base ${isService ? 'bg-violet-600' : 'bg-blue-600'}`}>
                 {(tenant?.name || user?.firstName || '?')[0].toUpperCase()}
               </div>
             )}
             <div>
               <p className="font-bold text-gray-900 dark:text-white text-base">
-                {language === 'fr' ? 'Bonjour' : 'Hello'}, {user?.firstName} 👋
+                {language === 'fr' ? 'Bonjour' : 'Hello'}, {user?.firstName}
               </p>
               <p className="text-xs text-gray-400 mt-0.5">
                 {new Date().toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -312,7 +326,7 @@ export function DashboardPage() {
                   href={`/storefront/${tenant.slug}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90 bg-gradient-to-r ${isService ? 'from-violet-500 to-violet-600' : 'from-blue-500 to-blue-600'}`}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-colors ${isService ? 'bg-violet-600 hover:bg-violet-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                 >
                   <Globe className="w-3 h-3" />
                   {language === 'fr' ? 'Ma vitrine' : 'Storefront'}
@@ -350,59 +364,36 @@ export function DashboardPage() {
             const Icon = card.icon;
             const value = serviceData?.[card.key as keyof ServiceDashboardData] as number || 0;
             const label = card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] || '');
-            return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border-l-4 border border-gray-100 dark:border-gray-700" style={{ borderLeftColor: `var(--stat-accent)` }}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wide font-medium truncate">{label}</p>
-                  <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}>
-                    <Icon className="w-3.5 h-3.5 text-white" />
-                  </div>
-                </div>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {card.isCurrency ? formatCurrency(value) : value}
-                </p>
-              </div>
-            );
+            return <StatTile key={card.key} label={label} icon={Icon} value={card.isCurrency ? formatCurrency(value) : String(value)} />;
           })
         ) : useAdaptiveDashboard && categoryConfig ? (
           categoryConfig.statCards.map((card) => {
             const Icon = card.icon;
             const value = productData?.[card.key as keyof DashboardData] as number || 0;
             const label = card.label[language as 'fr' | 'en'];
-            return (
-              <div key={card.key} className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border-l-4 border border-gray-100 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wide font-medium truncate">{label}</p>
-                  <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}>
-                    <Icon className="w-3.5 h-3.5 text-white" />
-                  </div>
-                </div>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{card.isCurrency ? formatCurrency(value) : value}</p>
-              </div>
-            );
+            const sub = card.key === 'todayOrders' && productData ? `${formatCurrency(productData.todaySales ?? 0)} ${language === 'fr' ? 'de ventes' : 'in sales'}` : undefined;
+            return <StatTile key={card.key} label={label} icon={Icon} sub={sub} value={card.isCurrency ? formatCurrency(value) : String(value)} />;
           })
         ) : (
           (plan === 'SHOP' ? shopStatCards : plan === 'BUSINESS' ? businessStatCards : productStatCards).map((card) => {
             const Icon = card.icon;
             let value: number;
             if (card.key === 'profit') {
-              value = productData?.totalGrossMargin ?? 0;
+              value = productData?.netProfit ?? productData?.totalGrossMargin ?? 0;
             } else {
               value = productData?.[card.key as keyof DashboardData] as number || 0;
             }
             const isNegative = card.isProfit && value < 0;
+            const sub = card.key === 'todayOrders' && productData ? `${formatCurrency(productData.todaySales ?? 0)} ${language === 'fr' ? 'de ventes' : 'in sales'}` : undefined;
             return (
-              <div key={card.key} className={`bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 border-l-4 border border-gray-100 dark:border-gray-700 ${isNegative ? 'border-l-red-400' : ''}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wide font-medium truncate">{card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] ?? '')}</p>
-                  <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}>
-                    <Icon className="w-3.5 h-3.5 text-white" />
-                  </div>
-                </div>
-                <p className={`text-xl sm:text-2xl font-bold ${isNegative ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
-                  {card.isCurrency ? formatCurrency(value) : value}
-                </p>
-              </div>
+              <StatTile
+                key={card.key}
+                label={card.labelKey ? t(card.labelKey) : (card.label?.[language as 'fr' | 'en'] ?? '')}
+                icon={Icon}
+                sub={sub}
+                tone={isNegative ? 'text-red-600' : undefined}
+                value={card.isCurrency ? formatCurrency(value) : String(value)}
+              />
             );
           })
         )}
@@ -410,10 +401,10 @@ export function DashboardPage() {
 
       {/* Primary Action Button (Adaptive) */}
       {useAdaptiveDashboard && categoryConfig && (
-        <a href={categoryConfig.primaryAction.href} className={`block w-full bg-gradient-to-r ${categoryConfig.primaryAction.gradient} text-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-lg hover:opacity-90 transition-all`}>
-          <div className="flex items-center justify-center gap-3">
-            <categoryConfig.primaryAction.icon className="w-5 h-5 sm:w-6 sm:h-6" />
-            <span className="font-bold text-base sm:text-lg">{categoryConfig.primaryAction.label[language as 'fr' | 'en']}</span>
+        <a href={categoryConfig.primaryAction.href} className="block w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-3.5 sm:p-4 transition-colors">
+          <div className="flex items-center justify-center gap-2">
+            <categoryConfig.primaryAction.icon className="w-5 h-5" />
+            <span className="font-semibold text-base">{categoryConfig.primaryAction.label[language as 'fr' | 'en']}</span>
           </div>
         </a>
       )}
@@ -450,10 +441,10 @@ export function DashboardPage() {
       {isService ? (
         /* Service Dashboard */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div className="p-3 sm:p-5 pb-2 sm:pb-3 border-b border-gray-50 dark:border-gray-700">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="p-3 sm:p-5 pb-2 sm:pb-3 border-b border-gray-100 dark:border-gray-700">
               <h2 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center gap-2">
-                <FolderKanban className="w-4 h-4 text-violet-500" />
+                <FolderKanban className="w-4 h-4 text-gray-400" />
                 {language === 'fr' ? 'Projets récents' : 'Recent Projects'}
               </h2>
             </div>
@@ -482,9 +473,9 @@ export function DashboardPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-5">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm flex items-center gap-2 mb-4">
-                <RefreshCw className="w-4 h-4 text-violet-500" />
+                <RefreshCw className="w-4 h-4 text-gray-400" />
                 {language === 'fr' ? 'Actions rapides' : 'Quick Actions'}
               </h3>
               <div className="space-y-2">
@@ -505,8 +496,8 @@ export function DashboardPage() {
       ) : (
         /* Product Dashboard */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-            <div className="p-3 sm:p-5 pb-2 sm:pb-3 border-b border-gray-50 dark:border-gray-700">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <div className="p-3 sm:p-5 pb-2 sm:pb-3 border-b border-gray-100 dark:border-gray-700">
               <h2 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-gray-400" />
                 {t('dashboard.recentOrders')}
@@ -566,20 +557,20 @@ export function DashboardPage() {
                 )}
               </div>
             )}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-              <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+              <div className="p-5 pb-3 border-b border-gray-100 dark:border-gray-700">
                 <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
-                  <TrendingUp className="w-4 h-4 text-amber-500" />
+                  <TrendingUp className="w-4 h-4 text-gray-400" />
                   {language === 'fr' ? 'Ventes par produit' : 'Sales by Product'}
                 </h2>
               </div>
               <div className="p-5 pt-3">
                 <div className="space-y-3">
                   {productData?.topProducts?.length ? productData.topProducts.map((tp, i) => (
-                    <div key={tp.product?.id || i} className="p-3 rounded-xl bg-gray-50 dark:bg-gray-700/30">
+                    <div key={tp.product?.id || i} className="py-2.5 border-b last:border-0 border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2.5">
-                          <span className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center text-xs font-bold text-amber-600">
+                          <span className="w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-300">
                             {i + 1}
                           </span>
                           <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[140px]">{tp.product?.name || '—'}</span>
@@ -602,10 +593,10 @@ export function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-              <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+              <div className="p-5 pb-3 border-b border-gray-100 dark:border-gray-700">
                 <h2 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2 text-sm">
-                  <AlertTriangle className="w-4 h-4 text-amber-500" />
+                  <AlertTriangle className="w-4 h-4 text-gray-400" />
                   {t('dashboard.lowStock')}
                 </h2>
               </div>
