@@ -4,6 +4,7 @@ import { prisma } from '../../config/prisma';
 import { CreateProductInput, UpdateProductInput } from './products.schema';
 import { StockError, STOCK_SELECT, lowStockLines, moveStock, notifyLowStock, readVariants, readTiers } from '../../utils/stock';
 import { canSeeCosts, hideProductCost } from '../../utils/costs';
+import { logActivity } from '../../utils/activity';
 
 const PAYMENT_METHODS = ['CASH', 'MOBILE_MONEY', 'ORANGE_MONEY', 'MTN_MOMO', 'BANK_TRANSFER', 'OTHER'];
 
@@ -181,6 +182,13 @@ export const update = async (req: Request, res: Response): Promise<void> => {
       include: { category: true },
     });
 
+    const changes: string[] = [];
+    if (existing.sellingPrice !== product.sellingPrice) changes.push(`prix de vente ${existing.sellingPrice} → ${product.sellingPrice} F`);
+    if (existing.costPrice !== product.costPrice) changes.push(`prix d'achat ${existing.costPrice ?? 0} → ${product.costPrice ?? 0} F`);
+    if (existing.totalStock !== product.totalStock) changes.push(`stock ${existing.totalStock} → ${product.totalStock}`);
+    if (JSON.stringify(existing.variants ?? null) !== JSON.stringify(product.variants ?? null)) changes.push('variantes modifiées');
+    if (changes.length) logActivity(req, 'PRODUCT_UPDATE', `${product.name} : ${changes.join(', ')}`, { type: 'product', id });
+
     res.json({ success: true, data: product });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update product';
@@ -203,11 +211,13 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     const soldCount = await prisma.orderItem.count({ where: { productId: id } });
     if (soldCount > 0) {
       await prisma.product.update({ where: { id }, data: { isActive: false } });
+      logActivity(req, 'PRODUCT_DELETE', `${existing.name} retiré (archivé, déjà vendu)`, { type: 'product', id });
       res.json({ success: true, archived: true, message: 'Produit archivé (déjà vendu)' });
       return;
     }
 
     await prisma.product.delete({ where: { id } });
+    logActivity(req, 'PRODUCT_DELETE', `${existing.name} supprimé`, { type: 'product', id });
     res.json({ success: true, message: 'Produit supprimé' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete product';
@@ -316,6 +326,7 @@ export const restock = async (req: Request, res: Response): Promise<void> => {
     });
 
     await notifyLowStock(tenantId, [id]).catch((e) => console.error('low stock alert', e));
+    logActivity(req, 'PRODUCT_RESTOCK', `${product.name}${variant ? ` · ${variant}` : ''} : +${quantity} en stock${unitCost !== null ? ` (achat ${unitCost} F)` : ''}`, { type: 'product', id });
     res.json({ success: true, data: updated });
   } catch (error) {
     if (error instanceof StockError) {

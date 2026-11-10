@@ -6,6 +6,7 @@ import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 import { CreateOrderInput, FixDiscountInput, ReturnItemsInput } from './orders.schema';
 import { StockError, STOCK_SELECT, itemCost, moveStock, notifyLowStock, unitsPerItem } from '../../utils/stock';
 import { canSeeCosts, hideOrderCosts } from '../../utils/costs';
+import { logActivity } from '../../utils/activity';
 
 export function generateReference(): string {
   const date = new Date();
@@ -280,6 +281,9 @@ export const create = async (req: Request, res: Response): Promise<void> => {
       },
     });
 
+    if (data.discount > 0 && orderWithInvoice) {
+      logActivity(req, 'SALE_DISCOUNT', `Vente ${orderWithInvoice.reference} : remise ${data.discount} F sur ${totalAmount} F`, { type: 'order', id: orderWithInvoice.id }, { discount: data.discount, total: totalAmount });
+    }
     res.status(201).json({ success: true, data: canSeeCosts(req.user!.role) ? orderWithInvoice : hideOrderCosts(orderWithInvoice) });
   } catch (error) {
     if (error instanceof StockError) {
@@ -358,6 +362,9 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
       });
     });
 
+    if (status === 'CANCELLED') {
+      logActivity(req, 'ORDER_CANCEL', `Vente ${existing.reference} annulée (${existing.finalAmount} F)`, { type: 'order', id }, { amount: existing.finalAmount });
+    }
     res.json({ success: true, data: order });
   } catch (error) {
     if (error instanceof Error && error.message === 'STATUS_CONFLICT') {
@@ -417,9 +424,10 @@ export const fixDiscount = async (req: Request, res: Response): Promise<void> =>
           await tx.client.update({ where: { id: order.clientId }, data: { totalSpent: { increment: amountPaid } } });
         }
       }
-      return tx.order.findUniqueOrThrow({ where: { id }, include: { client: true, items: { include: { product: true } }, invoice: true } });
+      return { order: await tx.order.findUniqueOrThrow({ where: { id }, include: { client: true, items: { include: { product: true } }, invoice: true } }), before: order.discount };
     });
-    res.json({ success: true, data: result });
+    logActivity(req, 'DISCOUNT_FIX', `Vente ${result.order.reference} : remise corrigée ${result.before} F → ${discount} F${amountPaid > 0 ? `, +${amountPaid} F reçus` : ''}`, { type: 'order', id }, { before: result.before, after: discount, amountPaid });
+    res.json({ success: true, data: result.order });
   } catch (error) {
     if (error instanceof ReturnError) {
       res.status(error.status).json({ success: false, message: error.message });
@@ -503,9 +511,10 @@ export const returnItems = async (req: Request, res: Response): Promise<void> =>
           },
         });
       }
-      return { value: lost, refund };
+      return { value: lost, refund, reference: order.reference, lines };
     });
-    res.json({ success: true, data: result });
+    logActivity(req, 'ORDER_RETURN', `Retour sur ${result.reference} : ${result.lines.join(', ')} (−${result.value} F${result.refund > 0 ? `, ${result.refund} F remboursés` : ''})`, { type: 'order', id }, { value: result.value, refund: result.refund });
+    res.json({ success: true, data: { value: result.value, refund: result.refund } });
   } catch (error) {
     if (error instanceof ReturnError) {
       res.status(error.status).json({ success: false, message: error.message });

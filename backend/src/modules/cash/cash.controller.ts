@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { computeSummary } from '../reports/reports.controller';
 import { canSeeCosts, hideSummaryProfit } from '../../utils/costs';
+import { logActivity } from '../../utils/activity';
 
 const userSelect = { select: { id: true, firstName: true, lastName: true } };
 
@@ -116,6 +117,8 @@ export const close = async (req: Request, res: Response): Promise<void> => {
       res.status(409).json({ success: false, message: 'Cette caisse est déjà fermée', code: 'CASH_ALREADY_CLOSED' });
       return;
     }
+    const gap = countedCash - expectedCash;
+    logActivity(req, 'CASH_CLOSE', `Caisse fermée : ${countedCash} F comptés, ${expectedCash} F attendus${gap ? ` (écart ${gap > 0 ? '+' : ''}${gap} F)` : ''}`, { type: 'cash', id: session.id }, { countedCash, expectedCash, difference: gap });
     const result = await prisma.cashSession.findUnique({
       where: { id: session.id },
       include: { openedBy: userSelect, closedBy: userSelect },

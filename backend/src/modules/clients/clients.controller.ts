@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
+import { logActivity } from '../../utils/activity';
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -117,6 +118,7 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     }
 
     await prisma.client.delete({ where: { id } });
+    logActivity(req, 'CLIENT_DELETE', `Client supprimé : ${existing.name}`, { type: 'client', id });
     res.json({ success: true, message: 'Client supprimé' });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete client';

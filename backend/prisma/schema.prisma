@@ -161,6 +161,7 @@ model Tenant {
   maxStaffDiscount   Int?
 
   users              User[]
+  activityLogs       ActivityLog[]
   products           Product[]
   orders             Order[]
   clients            Client[]
@@ -830,4 +831,23 @@ model AdminAuditLog {
   @@index([createdAt])
   @@index([tenantId])
   @@map("admin_audit_logs")
+}
+
+// Who did what in a shop (cancellations, returns, price changes, deletions...), shown to the owner and managers
+model ActivityLog {
+  id         String   @id @default(uuid())
+  tenantId   String
+  userId     String?
+  userName   String
+  userRole   String
+  action     String
+  summary    String
+  targetType String?
+  targetId   String?
+  details    Json?
+  createdAt  DateTime @default(now())
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@map("activity_logs")
 }
