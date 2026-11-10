@@ -5,6 +5,7 @@ import { formatCurrency, formatDateTime } from '@/lib/utils';
 import { ShoppingCart, DollarSign, Package, Users, AlertTriangle, TrendingUp, FolderKanban, FileText, RefreshCw, Calendar, Truck, Plus, TrendingDown, Globe, Copy, Monitor, PackagePlus, UserPlus, Receipt, HandCoins, ClipboardCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DrawerStatusCard } from '@/components/CashDrawer';
+import { StatTile } from '@/components/StatTile';
 import { storefrontAccess } from '@/lib/storefront';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -56,18 +57,6 @@ interface StatCard {
   isProfit?: boolean;
 }
 
-function StatTile({ label, value, icon: Icon, sub, tone }: { label: string; value: string; icon: typeof ShoppingCart; sub?: string; tone?: string }) {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3 sm:p-4">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate">{label}</p>
-        <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-      </div>
-      <p className={`mt-2 text-xl sm:text-2xl font-semibold tabular-nums ${tone || 'text-gray-900 dark:text-white'}`}>{value}</p>
-      {sub ? <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 tabular-nums">{sub}</p> : null}
-    </div>
-  );
-}
 
 const statusColors: Record<string, string> = {
   PENDING: 'bg-amber-100 text-amber-700',

@@ -118,77 +118,232 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
   }
 };
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const localDay = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const parseDay = (s: string) => new Date(`${s}T00:00:00`);
+
+/**
+ * Detailed sales report for [from, to] (local days, `to` included).
+ * Totals come from computeSummary, the same function as the dashboard and the Z report.
+ */
 export const getSalesReport = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.user!.tenantId;
-    const { from, to, groupBy = 'day' } = req.query;
+    const { from, to } = req.query as { from?: string; to?: string };
 
-    const startDate = from ? new Date(from as string) : new Date(new Date().setDate(new Date().getDate() - 30));
-    const endDate = to ? new Date(to as string) : new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = from ? parseDay(from) : new Date(today.getTime() - 29 * 86400000);
+    const endDay = to ? parseDay(to) : today;
+    const end = new Date(endDay);
+    end.setDate(end.getDate() + 1);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+      res.status(400).json({ success: false, message: 'Période invalide' });
+      return;
+    }
+    const days = Math.round((end.getTime() - start.getTime()) / 86400000);
+    const prevStart = new Date(start);
+    prevStart.setDate(prevStart.getDate() - days);
+    const groupBy: 'day' | 'week' | 'month' =
+      req.query.groupBy === 'week' || req.query.groupBy === 'month' || req.query.groupBy === 'day'
+        ? (req.query.groupBy as 'day' | 'week' | 'month')
+        : days <= 31 ? 'day' : days <= 120 ? 'week' : 'month';
 
-    const orders = await prisma.order.findMany({
-      where: {
-        tenantId,
-        createdAt: { gte: startDate, lte: endDate },
-        status: { not: 'CANCELLED' },
-      },
-      include: {
-        items: { include: { product: true } },
-        seller: { select: { id: true, firstName: true, lastName: true } },
-        createdBy: { select: { id: true, firstName: true, lastName: true } },
-        invoice: true,
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+    const [summary, previous, orders, cancelledOrders, refunds, newDebts, stockedProducts] = await Promise.all([
+      computeSummary(tenantId, start, end),
+      computeSummary(tenantId, prevStart, start),
+      prisma.order.findMany({
+        where: { tenantId, createdAt: { gte: start, lt: end }, status: { not: 'CANCELLED' } },
+        include: {
+          items: {
+            include: {
+              product: { select: { id: true, name: true, costPrice: true, category: { select: { id: true, name: true } } } },
+            },
+          },
+          seller: { select: { id: true, firstName: true, lastName: true } },
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.order.findMany({
+        where: { tenantId, createdAt: { gte: start, lt: end }, status: 'CANCELLED' },
+        select: {
+          finalAmount: true,
+          seller: { select: { id: true, firstName: true, lastName: true } },
+          createdBy: { select: { id: true, firstName: true, lastName: true } },
+        },
+      }),
+      prisma.payment.aggregate({
+        where: { createdAt: { gte: start, lt: end }, amount: { lt: 0 }, invoice: { tenantId } },
+        _sum: { amount: true },
+      }),
+      prisma.invoice.aggregate({
+        where: { tenantId, order: { createdAt: { gte: start, lt: end }, status: { not: 'CANCELLED' } }, amountDue: { gt: 0 } },
+        _sum: { amountDue: true },
+        _count: true,
+      }),
+      prisma.product.findMany({
+        where: { tenantId, isActive: true, isService: false, totalStock: { gt: 0 } },
+        select: { id: true, name: true, totalStock: true, sellingPrice: true, costPrice: true },
+      }),
+    ]);
 
-    // Group sales data
-    const salesByPeriod: Record<string, { revenue: number; orders: number; profit: number }> = {};
-
-    for (const order of orders) {
-      let key: string;
-      const d = new Date(order.createdAt);
-      if (groupBy === 'month') {
-        key = `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-      } else if (groupBy === 'week') {
-        const weekStart = new Date(d);
-        weekStart.setDate(d.getDate() - d.getDay());
-        key = weekStart.toISOString().slice(0, 10);
-      } else {
-        key = d.toISOString().slice(0, 10);
+    const periodKey = (d: Date) => {
+      if (groupBy === 'month') return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+      if (groupBy === 'week') {
+        const monday = new Date(d);
+        monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        return localDay(monday);
       }
+      return localDay(d);
+    };
 
-      if (!salesByPeriod[key]) salesByPeriod[key] = { revenue: 0, orders: 0, profit: 0 };
-      salesByPeriod[key].revenue += order.finalAmount;
-      salesByPeriod[key].orders += 1;
+    type SellerRow = {
+      name: string; orders: number; sales: number; discounts: number; returns: number;
+      cancelled: number; cancelledAmount: number; zeroSales: number; bigDiscounts: number;
+    };
+    const salesByPeriod = new Map<string, { revenue: number; orders: number; profit: number }>();
+    const sellers = new Map<string, SellerRow>();
+    const products = new Map<string, { name: string; quantity: number; amount: number; cost: number }>();
+    const categories = new Map<string, { name: string; quantity: number; amount: number; profit: number }>();
+    const belowCost = new Map<string, { name: string; quantity: number; unitPrice: number; unitCost: number; loss: number }>();
+    const byHour = Array.from({ length: 24 }, (_, hour) => ({ hour, orders: 0, sales: 0 }));
+    const byWeekday = Array.from({ length: 7 }, (_, day) => ({ day, orders: 0, sales: 0 }));
+    const soldIds = new Set<string>();
+    let returns = 0;
+    let returnedItems = 0;
 
-      for (const item of order.items) {
-        salesByPeriod[key].profit += (item.unitPrice - (item.unitCost ?? item.product.costPrice ?? 0)) * item.quantity;
+    const sellerOf = (who: { id: string; firstName: string; lastName: string }) => {
+      const row = sellers.get(who.id) ?? {
+        name: `${who.firstName} ${who.lastName}`.trim(), orders: 0, sales: 0, discounts: 0, returns: 0,
+        cancelled: 0, cancelledAmount: 0, zeroSales: 0, bigDiscounts: 0,
+      };
+      sellers.set(who.id, row);
+      return row;
+    };
+
+    for (const o of orders) {
+      const d = new Date(o.createdAt);
+      const gross = o.items.reduce((s, it) => s + it.unitPrice * (it.quantity + it.returnedQty), 0);
+      // Share of the order discount kept on each line, so product/category amounts add up to the sales
+      const ratio = o.totalAmount > 0 ? o.finalAmount / o.totalAmount : 1;
+      let orderCost = 0;
+      let orderReturns = 0;
+      for (const it of o.items) {
+        soldIds.add(it.productId);
+        const unitCost = it.unitCost ?? it.product.costPrice ?? 0;
+        const amount = it.unitPrice * it.quantity * ratio;
+        const cost = unitCost * it.quantity;
+        orderCost += cost;
+        orderReturns += it.unitPrice * it.returnedQty * ratio;
+        returnedItems += it.returnedQty;
+
+        const key = `${it.productId}|${it.variant || ''}`;
+        const name = it.variant ? `${it.product.name} (${it.variant})` : it.product.name;
+        if (it.quantity > 0) {
+          const p = products.get(key) ?? { name, quantity: 0, amount: 0, cost: 0 };
+          p.quantity += it.quantity;
+          p.amount += amount;
+          p.cost += cost;
+          products.set(key, p);
+
+          const cat = it.product.category;
+          const ckey = cat?.id ?? 'none';
+          const c = categories.get(ckey) ?? { name: cat?.name ?? '', quantity: 0, amount: 0, profit: 0 };
+          c.quantity += it.quantity;
+          c.amount += amount;
+          c.profit += amount - cost;
+          categories.set(ckey, c);
+        }
+
+        if (it.quantity > 0 && unitCost > 0 && it.unitPrice < unitCost) {
+          const b = belowCost.get(key) ?? { name, quantity: 0, unitPrice: it.unitPrice, unitCost, loss: 0 };
+          b.quantity += it.quantity;
+          b.loss += (unitCost - it.unitPrice) * it.quantity;
+          belowCost.set(key, b);
+        }
       }
+      returns += orderReturns;
+
+      const k = periodKey(d);
+      const bucket = salesByPeriod.get(k) ?? { revenue: 0, orders: 0, profit: 0 };
+      bucket.revenue += o.finalAmount;
+      bucket.orders += 1;
+      bucket.profit += o.finalAmount - orderCost;
+      salesByPeriod.set(k, bucket);
+
+      byHour[d.getHours()].orders += 1;
+      byHour[d.getHours()].sales += o.finalAmount;
+      byWeekday[d.getDay()].orders += 1;
+      byWeekday[d.getDay()].sales += o.finalAmount;
+
+      const s = sellerOf(o.seller ?? o.createdBy);
+      s.orders += 1;
+      s.sales += o.finalAmount;
+      s.discounts += o.discount || 0;
+      s.returns += orderReturns;
+      if (o.finalAmount <= 0 && gross > 0) s.zeroSales += 1;
+      else if ((o.discount || 0) > 0 && o.discount >= 0.5 * (o.discount + o.finalAmount)) s.bigDiscounts += 1;
+    }
+    for (const o of cancelledOrders) {
+      const s = sellerOf(o.seller ?? o.createdBy);
+      s.cancelled += 1;
+      s.cancelledAmount += o.finalAmount;
     }
 
-    // Sales per seller: the chosen seller, else the account that rang up the sale (same rule as the cash closing)
-    const sellerStats: Record<string, { name: string; revenue: number; orders: number; discounts: number }> = {};
-    for (const order of orders) {
-      const who = order.seller ?? order.createdBy;
-      if (!sellerStats[who.id]) {
-        sellerStats[who.id] = { name: `${who.firstName} ${who.lastName}`.trim(), revenue: 0, orders: 0, discounts: 0 };
-      }
-      sellerStats[who.id].revenue += order.finalAmount;
-      sellerStats[who.id].orders += 1;
-      sellerStats[who.id].discounts += order.discount || 0;
-    }
-
-    const totalRevenue = orders.reduce((sum, o) => sum + o.finalAmount, 0);
-    const totalProfit = Object.values(salesByPeriod).reduce((sum, p) => sum + p.profit, 0);
+    const productRows = [...products.values()].map((p) => ({ ...p, profit: p.amount - p.cost }));
+    const unsold = stockedProducts
+      .filter((p) => !soldIds.has(p.id))
+      .map((p) => ({ name: p.name, stock: p.totalStock, value: p.totalStock * (p.costPrice || 0) }))
+      .sort((a, b) => b.value - a.value || b.stock - a.stock);
 
     res.json({
       success: true,
       data: {
-        totalRevenue,
-        totalProfit,
-        totalOrders: orders.length,
-        salesByPeriod: Object.entries(salesByPeriod).map(([period, data]) => ({ period, ...data })),
-        topSellers: Object.values(sellerStats).sort((a, b) => b.revenue - a.revenue),
+        from: localDay(start),
+        to: localDay(endDay),
+        groupBy,
+        summary: {
+          orders: summary.orders,
+          itemsSold: summary.itemsSold,
+          sales: summary.sales,
+          received: summary.received,
+          discounts: summary.discounts,
+          returns,
+          returnedItems,
+          refunds: -(refunds._sum.amount || 0),
+          grossProfit: summary.grossProfit,
+          expenses: summary.expenses,
+          netProfit: summary.netProfit,
+          newDebts: newDebts._sum.amountDue || 0,
+          newDebtsCount: newDebts._count,
+          cancelled: summary.cancelled,
+          averageBasket: summary.orders > 0 ? summary.sales / summary.orders : 0,
+        },
+        previous: {
+          orders: previous.orders,
+          sales: previous.sales,
+          received: previous.received,
+          grossProfit: previous.grossProfit,
+          expenses: previous.expenses,
+          netProfit: previous.netProfit,
+        },
+        byMethod: summary.byMethod,
+        salesByPeriod: [...salesByPeriod.entries()].map(([period, v]) => ({ period, ...v })),
+        sellers: [...sellers.values()].sort((a, b) => b.sales - a.sales),
+        topProducts: [...productRows].sort((a, b) => b.amount - a.amount).slice(0, 15),
+        bestMargins: [...productRows].filter((p) => p.profit > 0).sort((a, b) => b.profit - a.profit).slice(0, 5),
+        unsold: unsold.slice(0, 15),
+        unsoldCount: unsold.length,
+        belowCost: [...belowCost.values()].sort((a, b) => b.loss - a.loss),
+        categories: [...categories.values()].sort((a, b) => b.amount - a.amount),
+        byHour,
+        byWeekday,
+        // Kept for older app versions
+        totalRevenue: summary.sales,
+        totalProfit: summary.grossProfit,
+        totalOrders: summary.orders,
+        topSellers: [...sellers.values()].map((s) => ({ name: s.name, revenue: s.sales, orders: s.orders, discounts: s.discounts })),
       },
     });
   } catch (error) {
@@ -197,7 +352,6 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
   }
 };
 
-/** Clients who still owe money, with their unpaid invoices. */
 export const getDebts = async (req: Request, res: Response): Promise<void> => {
   try {
     const invoices = await prisma.invoice.findMany({
