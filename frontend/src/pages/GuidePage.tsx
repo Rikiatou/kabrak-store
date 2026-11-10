@@ -1093,6 +1093,7 @@ export function GuidePage() {
               <div className="flex gap-2 pt-2">
                 <Link
                   to={selectedModule.link}
+                  state={{ fromGuide: true }}
                   onClick={() => {
                     handleDone(selectedModule.key);
                     setSelected(null);
