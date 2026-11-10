@@ -142,8 +142,8 @@ export function AIReportsPage() {
               disabled={loading}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-purple-700 font-bold hover:bg-purple-50 disabled:opacity-60 transition-colors text-sm shadow"
             >
-              {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-              {fr ? 'Générer' : 'Generate'}
+              <span className="flex">{loading ? <RefreshCw key="spin" className="w-4 h-4 animate-spin" /> : <Sparkles key="idle" className="w-4 h-4" />}</span>
+              <span>{fr ? 'Générer' : 'Generate'}</span>
             </button>
           </div>
         </div>
