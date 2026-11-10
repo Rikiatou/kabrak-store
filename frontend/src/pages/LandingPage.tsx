@@ -10,7 +10,7 @@ const WHATSAPP = 'https://wa.me/237653561862';
 
 const faqsFR = [
   { q: 'Ça marche sans internet ?', a: 'Oui pour la caisse. Si la connexion coupe, vous continuez à vendre : les ventes sont gardées sur le téléphone et envoyées toutes seules quand internet revient, sans doublon. Il faut avoir ouvert l\'app une fois avec internet sur l\'appareil.' },
-  { q: 'C\'est pour quel type de commerce ?', a: 'Boutiques de vêtements, chaussures, sacs, bijoux, hijabs, pagnes, pâtisseries, restauration, mini-marchés, cosmétiques, quincailleries, grossistes, et aussi prestataires de services (agences, freelances, salons). Vous pouvez choisir plusieurs activités.' },
+  { q: 'C\'est pour quel type de commerce ?', a: 'Boutiques de vêtements, chaussures, sacs, bijoux, hijabs, pagnes, pâtisseries, restauration, mini-marchés, cosmétiques, quincailleries, grossistes, et aussi prestataires de services (agences, freelances, consultants, imprimeurs, couture…) : à l\'inscription, choisissez « Prestations de services ». Vous pouvez choisir plusieurs activités.' },
   { q: 'Je dois installer quelque chose ?', a: 'Non. KABRAK s\'ouvre dans le navigateur et s\'ajoute à l\'écran d\'accueil du téléphone comme une application, sans Play Store.' },
   { q: 'Comment je paie l\'abonnement ?', a: 'Par Orange Money, depuis la page Abonnement de l\'application.' },
   { q: 'Combien de personnes peuvent l\'utiliser ?', a: 'STORE : 1 personne. SHOP : 3 personnes. BUSINESS : sans limite, avec plusieurs magasins. Chaque vendeuse a son propre accès.' },
@@ -20,7 +20,7 @@ const faqsFR = [
 ];
 const faqsEN = [
   { q: 'Does it work without internet?', a: 'Yes for the cash register. If the connection drops you keep selling: sales are kept on the phone and sent automatically when internet is back, without duplicates. The app must have been opened once online on that device.' },
-  { q: 'What kind of business is it for?', a: 'Clothing, shoes, bags, jewelry, hijab and fabric shops, bakeries, food businesses, mini-markets, cosmetics, hardware stores, wholesalers, and service providers (agencies, freelancers, salons). You can pick several activities.' },
+  { q: 'What kind of business is it for?', a: 'Clothing, shoes, bags, jewelry, hijab and fabric shops, bakeries, food businesses, mini-markets, cosmetics, hardware stores, wholesalers, and service providers (agencies, freelancers, consultants, printers, tailors…): pick “Services” when you sign up. You can pick several activities.' },
   { q: 'Do I need to install anything?', a: 'No. KABRAK opens in the browser and can be added to your phone home screen like an app, without the Play Store.' },
   { q: 'How do I pay for the subscription?', a: 'With Orange Money, from the Billing page in the app.' },
   { q: 'How many people can use it?', a: 'STORE: 1 person. SHOP: 3 people. BUSINESS: unlimited, with several stores. Each seller has their own login.' },

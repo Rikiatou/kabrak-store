@@ -251,15 +251,15 @@ export function RegisterPage() {
                   </div>
                   <div className="flex-1">
                     <span className="font-bold text-gray-900 dark:text-white text-base">
-                      {language === 'fr' ? 'Services clients' : 'Client services'}
+                      {language === 'fr' ? 'Prestations de services' : 'Services'}
                     </span>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                       {language === 'fr'
-                        ? 'Marketing digital, freelance, agence, consultant, design, développement...'
-                        : 'Digital marketing, freelance, agency, consultant, design, development...'}
+                        ? 'Agence, freelance, consultant, design, imprimerie, couture, nettoyage, cours, événementiel... Vous vendez votre travail, pas des articles : pas de stock à gérer.'
+                        : 'Agency, freelance, consultant, design, printing, tailoring, cleaning, lessons, events... You sell your work, not items: no stock to manage.'}
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-2">
-                      {[language === 'fr' ? 'Projets' : 'Projects', language === 'fr' ? 'Factures' : 'Invoices', language === 'fr' ? 'Récurrent' : 'Recurring', 'Milestones'].map((f) => (
+                      {[language === 'fr' ? 'Vos services' : 'Your services', language === 'fr' ? 'Projets' : 'Projects', language === 'fr' ? 'Factures' : 'Invoices', language === 'fr' ? 'Paiements mensuels' : 'Monthly billing'].map((f) => (
                         <span key={f} className="text-[10px] text-violet-600 bg-violet-50 dark:bg-violet-900/30 px-2 py-0.5 rounded-full font-medium">{f}</span>
                       ))}
                     </div>
