@@ -28,10 +28,10 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-background">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="lg:ml-64 transition-all duration-300">
+      <div className="lg:ml-64 print:ml-0 transition-all duration-300">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <SubscriptionBanner />
-        <main className="p-3 sm:p-4 md:p-6">
+        <main className="p-3 sm:p-4 md:p-6 print:p-0">
           {fromGuide && (
             <Link
               to="/guide"
