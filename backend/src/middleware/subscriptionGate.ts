@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/prisma';
+import { billingTenantId } from '../utils/branches';
 
 export const requireActiveSubscription = async (
   req: Request,
@@ -11,8 +12,21 @@ export const requireActiveSubscription = async (
     return;
   }
 
+  const subTenantId = await billingTenantId(req.user.tenantId);
+  if (subTenantId !== req.user.tenantId) {
+    const parent = await prisma.tenant.findUnique({ where: { id: subTenantId }, select: { plan: true } });
+    if (parent?.plan !== 'BUSINESS') {
+      res.status(403).json({
+        success: false,
+        message: 'La 2e boutique est incluse avec BUSINESS. Repassez la boutique principale en BUSINESS.',
+        code: 'SUBSCRIPTION_EXPIRED',
+      });
+      return;
+    }
+  }
+
   const subscription = await prisma.subscription.findUnique({
-    where: { tenantId: req.user.tenantId },
+    where: { tenantId: subTenantId },
   });
 
   if (!subscription) {

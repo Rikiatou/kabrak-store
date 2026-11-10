@@ -146,7 +146,7 @@ app.use('/api/categories', authenticate, requireActiveSubscription, requireModul
 app.use('/api/reports', authenticate, requireActiveSubscription, reportRoutes);
 app.use('/api/cash-sessions', authenticate, requireActiveSubscription, requireModule('pos', 'closing'), cashRoutes);
 app.use('/api/loyalty', authenticate, requireActiveSubscription, requireModule('loyalty'), loyaltyRoutes);
-app.use('/api/stores', authenticate, requireActiveSubscription, requireModule('stores'), storeRoutes);
+app.use('/api/stores', authenticate, storeRoutes);
 app.use('/api/notifications', authenticate, requireActiveSubscription, notificationRoutes);
 app.use('/api/exports', authenticate, requireActiveSubscription, exportRoutes);
 app.use('/api/projects', authenticate, requireActiveSubscription, requireModule('projects', 'dashboard', 'reports'), projectRoutes);

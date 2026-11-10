@@ -2,13 +2,14 @@ import { Prisma } from '@prisma/client';
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../config/prisma';
+import { billingTenantId } from '../../utils/branches';
 import { generateInvoiceNumber } from '../../utils/invoiceNumber';
 import { generatePublicToken, generateReference } from '../orders/orders.controller';
 import { StockError, STOCK_SELECT, itemCost, moveStock, notifyLowStock, isMainMode, readVariants, tieredItemPrice, unitsPerItem } from '../../utils/stock';
 
 /** Storefront is a BUSINESS feature; every plan gets it during the free trial. */
 async function isStorefrontOpen(tenantId: string): Promise<boolean> {
-  const sub = await prisma.subscription.findUnique({ where: { tenantId } });
+  const sub = await prisma.subscription.findUnique({ where: { tenantId: await billingTenantId(tenantId) } });
   if (!sub) return false;
   const now = new Date();
   if (sub.status === 'TRIAL') return Boolean(sub.trialEndsAt && sub.trialEndsAt > now);

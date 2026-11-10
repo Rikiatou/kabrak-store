@@ -3,11 +3,13 @@ import { prisma } from '../../config/prisma';
 import { omService } from '../../services/orangeMoneyService';
 import { PLAN_PRICES } from '../../config/pricing';
 import { notifyAdmin } from '../../services/telegram';
+import { billingTenantId, syncIncludedBranches } from '../../utils/branches';
 
 export const getSubscription = async (req: Request, res: Response): Promise<void> => {
   try {
+    const tid = await billingTenantId(req.user!.tenantId);
     const subscription = await prisma.subscription.findUnique({
-      where: { tenantId: req.user!.tenantId },
+      where: { tenantId: tid },
       include: { tenant: { select: { name: true, plan: true } } },
     });
 
@@ -38,6 +40,7 @@ export const getPricing = (_req: Request, res: Response): void => {
 
 export const changePlan = async (req: Request, res: Response): Promise<void> => {
   try {
+    const tid = await billingTenantId(req.user!.tenantId);
     const { plan } = req.body;
     const price = PLAN_PRICES[plan as string];
     if (!price) {
@@ -47,11 +50,11 @@ export const changePlan = async (req: Request, res: Response): Promise<void> => 
 
     await prisma.$transaction([
       prisma.subscription.update({
-        where: { tenantId: req.user!.tenantId },
+        where: { tenantId: tid },
         data: { plan, priceMonthly: price },
       }),
       prisma.tenant.update({
-        where: { id: req.user!.tenantId },
+        where: { id: tid },
         data: { plan },
       }),
     ]);
@@ -65,6 +68,7 @@ export const changePlan = async (req: Request, res: Response): Promise<void> => 
 
 export const initiatePayment = async (req: Request, res: Response): Promise<void> => {
   try {
+    const tid = await billingTenantId(req.user!.tenantId);
     const { plan, months = 1 } = req.body;
     if (!PLAN_PRICES[plan as string]) {
       res.status(400).json({ success: false, message: 'Plan invalide' });
@@ -76,7 +80,7 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
     // Repeated clicks on "Pay" reuse the same pending request instead of creating duplicates.
     const reused = omService.isConfigured() ? null : await prisma.billingPayment.findFirst({
       where: {
-        tenantId: req.user!.tenantId,
+        tenantId: tid,
         plan: plan as string,
         months: months as number,
         amountXAF: total,
@@ -86,11 +90,11 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
       },
       orderBy: { createdAt: 'desc' },
     });
-    const orderId = reused?.omOrderId || `KBS-${Date.now()}-${req.user!.tenantId.slice(0, 8)}`;
+    const orderId = reused?.omOrderId || `KBS-${Date.now()}-${tid.slice(0, 8)}`;
 
     const billing = reused ?? await prisma.billingPayment.create({
       data: {
-        tenantId: req.user!.tenantId,
+        tenantId: tid,
         plan: plan as string,
         months: months as number,
         amountXAF: total,
@@ -126,9 +130,9 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
       }
     }
 
-    const tenant = reused ? null : await prisma.tenant.findUnique({ where: { id: req.user!.tenantId }, select: { name: true } });
+    const tenant = reused ? null : await prisma.tenant.findUnique({ where: { id: tid }, select: { name: true } });
     if (!reused) notifyAdmin(
-      `💰 Nouveau paiement à valider\n${tenant?.name || req.user!.tenantId}\n${planName} · ${months} mois · ${total.toLocaleString('fr-FR')} FCFA\nRéf : ${orderId}\nhttps://admin.kabrakeng.com/payments`,
+      `💰 Nouveau paiement à valider\n${tenant?.name || tid}\n${planName} · ${months} mois · ${total.toLocaleString('fr-FR')} FCFA\nRéf : ${orderId}\nhttps://admin.kabrakeng.com/payments`,
     );
 
     res.json({
@@ -163,9 +167,10 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
 
 export const getPaymentStatus = async (req: Request, res: Response): Promise<void> => {
   try {
+    const tid = await billingTenantId(req.user!.tenantId);
     const paymentId = req.params.paymentId as string;
     const billing = await prisma.billingPayment.findFirst({
-      where: { id: paymentId, tenantId: req.user!.tenantId },
+      where: { id: paymentId, tenantId: tid },
     });
     if (!billing) {
       res.status(404).json({ success: false, message: 'Paiement introuvable' });
@@ -223,8 +228,9 @@ export const webhook = async (req: Request, res: Response): Promise<void> => {
 
 export const getHistory = async (req: Request, res: Response): Promise<void> => {
   try {
+    const tid = await billingTenantId(req.user!.tenantId);
     const payments = await prisma.billingPayment.findMany({
-      where: { tenantId: req.user!.tenantId },
+      where: { tenantId: tid },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
@@ -278,4 +284,5 @@ async function confirmBillingPayment(billingId: string): Promise<void> {
     where: { id: billing.tenantId },
     data: { plan: planKey as 'STORE' | 'SHOP' | 'BUSINESS' },
   });
+  await syncIncludedBranches(billing.tenantId, planKey as 'STORE' | 'SHOP' | 'BUSINESS');
 }

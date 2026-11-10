@@ -9,6 +9,8 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   tenantId: string;
+  /** The user's own tenant; differs from tenantId when an owner works in another of their boutiques. */
+  homeTenantId: string;
   modules: string[];
 }
 
@@ -29,7 +31,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   }
 
   try {
-    const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
+    const decoded = jwt.verify(token, config.jwtSecret) as { userId: string; tenantId?: string };
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: { id: true, email: true, role: true, tenantId: true, isActive: true, modules: true },
@@ -40,11 +42,22 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
+    let tenantId = user.tenantId;
+    if (decoded.tenantId && decoded.tenantId !== user.tenantId) {
+      const branch = await prisma.tenant.findUnique({ where: { id: decoded.tenantId }, select: { parentTenantId: true } });
+      if (user.role !== 'OWNER' || branch?.parentTenantId !== user.tenantId) {
+        res.status(401).json({ success: false, message: 'Invalid token' });
+        return;
+      }
+      tenantId = decoded.tenantId;
+    }
+
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
-      tenantId: user.tenantId,
+      tenantId,
+      homeTenantId: user.tenantId,
       modules: user.modules,
     };
 

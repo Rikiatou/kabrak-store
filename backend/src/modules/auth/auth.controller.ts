@@ -5,6 +5,7 @@ import { prisma } from '../../config/prisma';
 import { config } from '../../config';
 import { RegisterInput, LoginInput } from './auth.schema';
 import { sendPasswordResetEmail } from '../../services/mailer';
+import { billingTenantId, groupTenants } from '../../utils/branches';
 
 function generateSlug(name: string): string {
   return name
@@ -414,19 +415,17 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
 
 export const me = async (req: Request, res: Response): Promise<void> => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user!.id },
-      include: {
-        tenant: {
-          include: { subscription: true },
-        },
-      },
-    });
+    const user = await prisma.user.findUnique({ where: { id: req.user!.id } });
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.user!.tenantId } });
 
-    if (!user) {
+    if (!user || !tenant) {
       res.status(404).json({ success: false, message: 'User not found' });
       return;
     }
+    const subscription = await prisma.subscription.findUnique({ where: { tenantId: await billingTenantId(tenant.id) } });
+    const boutiques = user.role === 'OWNER'
+      ? (await groupTenants(user.tenantId)).map((t) => ({ id: t.id, name: t.name, isMain: !t.parentTenantId, included: t.includedInParent }))
+      : [];
 
     res.json({
       success: true,
@@ -441,19 +440,20 @@ export const me = async (req: Request, res: Response): Promise<void> => {
           modules: user.modules,
         },
         tenant: {
-          id: user.tenant.id,
-          name: user.tenant.name,
-          slug: user.tenant.slug,
-          plan: user.tenant.plan,
-          businessMode: user.tenant.businessMode,
-          businessCategories: user.tenant.businessCategories,
-          currency: user.tenant.currency,
-          language: user.tenant.language,
-          logo: user.tenant.logo,
-          phone: user.tenant.phone,
-          invoiceColor: user.tenant.invoiceColor,
+          id: tenant.id,
+          name: tenant.name,
+          slug: tenant.slug,
+          plan: tenant.plan,
+          businessMode: tenant.businessMode,
+          businessCategories: tenant.businessCategories,
+          currency: tenant.currency,
+          language: tenant.language,
+          logo: tenant.logo,
+          phone: tenant.phone,
+          invoiceColor: tenant.invoiceColor,
         },
-        subscription: user.tenant.subscription,
+        subscription,
+        boutiques,
       },
     });
   } catch (error) {

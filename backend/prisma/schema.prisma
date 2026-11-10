@@ -158,6 +158,14 @@ model Tenant {
   invoiceColor       String?            @default("#2563eb")
   invoiceHeader      String?
 
+  // Extra boutique of the same owner. The first one is included in the parent's BUSINESS plan.
+  parentTenantId     String?
+  includedInParent   Boolean            @default(false)
+  parentTenant       Tenant?            @relation("TenantBranches", fields: [parentTenantId], references: [id], onDelete: Cascade)
+  branches           Tenant[]           @relation("TenantBranches")
+  transfersOut       StockTransfer[]    @relation("transferFrom")
+  transfersIn        StockTransfer[]    @relation("transferTo")
+
   users              User[]
   products           Product[]
   orders             Order[]
@@ -178,6 +186,7 @@ model Tenant {
   aiReports          AIReport[]
   cashSessions       CashSession[]
 
+  @@index([parentTenantId])
   @@map("tenants")
 }
 
@@ -828,4 +837,26 @@ model AdminAuditLog {
   @@index([createdAt])
   @@index([tenantId])
   @@map("admin_audit_logs")
+}
+
+// ─── STOCK TRANSFER (between boutiques of the same owner) ─
+
+model StockTransfer {
+  id            String   @id @default(uuid())
+  fromTenantId  String
+  toTenantId    String
+  fromProductId String?
+  toProductId   String?
+  productName   String
+  variant       String?
+  quantity      Int
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  fromTenant    Tenant   @relation("transferFrom", fields: [fromTenantId], references: [id], onDelete: Cascade)
+  toTenant      Tenant   @relation("transferTo", fields: [toTenantId], references: [id], onDelete: Cascade)
+
+  @@index([fromTenantId])
+  @@index([toTenantId])
+  @@map("stock_transfers")
 }
