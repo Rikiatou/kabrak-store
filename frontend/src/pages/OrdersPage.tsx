@@ -28,6 +28,7 @@ interface Order {
   reference: string;
   status: string;
   totalAmount: number;
+  discount?: number;
   finalAmount: number;
   notes?: string;
   createdAt: string;
@@ -80,6 +81,9 @@ const ORDER_BASED_CATS = new Set([
 export function OrdersPage() {
   const { t, language } = useTranslation();
   const tenant = useAuthStore((s) => s.tenant);
+  const canFix = ['OWNER', 'MANAGER'].includes(useAuthStore((s) => s.user?.role) || '');
+  const [fix, setFix] = useState<{ id: string; discount: number | ''; paid: number | ''; method: string } | null>(null);
+  const [fixing, setFixing] = useState(false);
   const businessCategories = tenant?.businessCategories || [];
   const isOrderBased = !!(businessCategories.length &&
     businessCategories.every((cat) => ORDER_BASED_CATS.has(cat)));
@@ -217,6 +221,25 @@ export function OrdersPage() {
       `\n${t('orders.whatsappMessage.thanks')}`
     );
     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+  };
+
+  const openFix = (order: Order) => {
+    setFix({ id: order.id, discount: 0, paid: Math.max(0, order.totalAmount - (order.invoice?.amountPaid || 0)), method: 'CASH' });
+  };
+
+  const saveFix = async () => {
+    if (!fix || fixing) return;
+    setFixing(true);
+    try {
+      await api.post(`/orders/${fix.id}/fix-discount`, { discount: Number(fix.discount) || 0, amountPaid: Number(fix.paid) || 0, method: fix.method });
+      toast.success(language === 'fr' ? 'Vente corrigée' : 'Sale fixed');
+      setFix(null);
+      fetchOrders();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, language === 'fr' ? 'Correction impossible' : 'Could not fix the sale'));
+    } finally {
+      setFixing(false);
+    }
   };
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -476,6 +499,58 @@ export function OrdersPage() {
                     </span>
                   ))}
                 </div>
+                {(order.discount ?? 0) > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-red-600">
+                      {language === 'fr' ? 'Remise' : 'Discount'} −{formatCurrency(order.discount ?? 0)} · {language === 'fr' ? 'vendu par' : 'sold by'} {`${order.createdBy.firstName} ${order.createdBy.lastName}`.trim()}
+                    </span>
+                    {canFix && order.status !== 'CANCELLED' && fix?.id !== order.id && (
+                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => openFix(order)}>
+                        {language === 'fr' ? 'Corriger la remise' : 'Fix discount'}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {fix?.id === order.id && (() => {
+                  const newTotal = Math.max(0, order.totalAmount - (Number(fix.discount) || 0));
+                  return (
+                    <div className="mt-3 rounded-lg border p-3 space-y-2 text-sm">
+                      <p className="text-xs text-muted-foreground">
+                        {language === 'fr'
+                          ? `Prix des articles : ${formatCurrency(order.totalAmount)} · déjà payé : ${formatCurrency(order.invoice?.amountPaid || 0)}. La vente garde sa date, et l'argent reçu compte pour ce jour-là.`
+                          : `Items price: ${formatCurrency(order.totalAmount)} · already paid: ${formatCurrency(order.invoice?.amountPaid || 0)}. The sale keeps its date and the money counts for that day.`}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <label className="text-xs space-y-1">
+                          <span>{language === 'fr' ? 'Vraie remise' : 'Real discount'}</span>
+                          <Input type="number" min={0} value={fix.discount === null || fix.discount === undefined ? '' : fix.discount}
+                            onChange={(e) => setFix({ ...fix, discount: e.target.value === '' ? '' : Math.max(0, +e.target.value) })} />
+                        </label>
+                        <label className="text-xs space-y-1">
+                          <span>{language === 'fr' ? 'Argent reçu en plus' : 'Extra money received'}</span>
+                          <Input type="number" min={0} value={fix.paid === null || fix.paid === undefined ? '' : fix.paid}
+                            onChange={(e) => setFix({ ...fix, paid: e.target.value === '' ? '' : Math.max(0, +e.target.value) })} />
+                        </label>
+                        <label className="text-xs space-y-1">
+                          <span>{language === 'fr' ? 'Moyen' : 'Method'}</span>
+                          <select value={fix.method} onChange={(e) => setFix({ ...fix, method: e.target.value })} className="w-full h-9 border rounded-md px-2 bg-background">
+                            <option value="CASH">{language === 'fr' ? 'Espèces' : 'Cash'}</option>
+                            <option value="ORANGE_MONEY">Orange Money</option>
+                            <option value="MTN_MOMO">MTN MoMo</option>
+                            <option value="BANK_TRANSFER">{language === 'fr' ? 'Virement' : 'Transfer'}</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{language === 'fr' ? 'Nouveau total' : 'New total'} : {formatCurrency(newTotal)}</span>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm" onClick={() => setFix(null)}>{language === 'fr' ? 'Annuler' : 'Cancel'}</Button>
+                          <Button size="sm" disabled={fixing} onClick={saveFix}>{language === 'fr' ? 'Enregistrer' : 'Save'}</Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           ))}

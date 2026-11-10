@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { randomBytes } from 'crypto';
 import { prisma } from '../../config/prisma';
 import { generateInvoiceNumber } from '../../utils/invoiceNumber';
-import { CreateOrderInput, ReturnItemsInput } from './orders.schema';
+import { CreateOrderInput, FixDiscountInput, ReturnItemsInput } from './orders.schema';
 import { StockError, STOCK_SELECT, itemCost, moveStock, notifyLowStock, unitsPerItem } from '../../utils/stock';
 
 export function generateReference(): string {
@@ -351,6 +351,67 @@ export const updateStatus = async (req: Request, res: Response): Promise<void> =
       return;
     }
     const message = error instanceof Error ? error.message : 'Failed to update order';
+    res.status(500).json({ success: false, message });
+  }
+};
+
+/**
+ * Owner fixes a wrong discount on a past sale (e.g. the amount received typed in the "Remise" box).
+ * The sale keeps its date; money received is recorded on the sale's day so that day's Z becomes right.
+ */
+export const fixDiscount = async (req: Request, res: Response): Promise<void> => {
+  const id = req.params.id as string;
+  const { discount, amountPaid, method } = req.body as FixDiscountInput;
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({ where: { id, tenantId: req.user!.tenantId }, include: { invoice: true } });
+      if (!order) throw new ReturnError(404, 'Commande non trouvée');
+      if (order.status === 'CANCELLED') throw new ReturnError(400, 'Cette vente est annulée');
+      if (discount > order.totalAmount) throw new ReturnError(400, 'La remise dépasse le total');
+      const finalAmount = order.totalAmount - discount;
+      const inv = order.invoice;
+      const alreadyPaid = inv?.amountPaid ?? 0;
+      if (finalAmount < alreadyPaid) throw new ReturnError(400, 'Le client a déjà payé plus que ce total : utilisez un retour');
+      if (alreadyPaid + amountPaid > finalAmount) throw new ReturnError(400, `Au plus ${finalAmount - alreadyPaid} F restent à payer`);
+
+      const who = await tx.user.findUnique({ where: { id: req.user!.id }, select: { firstName: true, lastName: true } });
+      const stamp = new Date().toLocaleDateString('fr-FR');
+      await tx.order.update({
+        where: { id },
+        data: {
+          discount,
+          finalAmount,
+          notes: [order.notes, `Remise corrigée ${stamp} par ${`${who?.firstName ?? ''} ${who?.lastName ?? ''}`.trim()} : ${order.discount} F → ${discount} F`].filter(Boolean).join('\n'),
+        },
+      });
+      if (inv) {
+        if (amountPaid > 0) {
+          await tx.payment.create({ data: { invoiceId: inv.id, amount: amountPaid, method, createdAt: order.createdAt, notes: 'Correction de remise' } });
+        }
+        const paid = alreadyPaid + amountPaid;
+        await tx.invoice.update({
+          where: { id: inv.id },
+          data: {
+            totalAmount: finalAmount,
+            amountPaid: paid,
+            amountDue: Math.max(0, finalAmount - paid),
+            paymentStatus: paid >= finalAmount ? 'PAID' : paid > 0 ? 'PARTIAL' : 'PENDING',
+            paidAt: paid >= finalAmount ? (inv.paidAt ?? new Date()) : null,
+          },
+        });
+        if (order.clientId && amountPaid > 0) {
+          await tx.client.update({ where: { id: order.clientId }, data: { totalSpent: { increment: amountPaid } } });
+        }
+      }
+      return tx.order.findUniqueOrThrow({ where: { id }, include: { client: true, items: { include: { product: true } }, invoice: true } });
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof ReturnError) {
+      res.status(error.status).json({ success: false, message: error.message });
+      return;
+    }
+    const message = error instanceof Error ? error.message : 'Failed to fix discount';
     res.status(500).json({ success: false, message });
   }
 };
