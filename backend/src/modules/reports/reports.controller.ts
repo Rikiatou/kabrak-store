@@ -15,8 +15,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
     const endDate = to ? new Date(to as string) : tomorrow;
 
     const [
-      todayOrders,
-      todayRevenue,
+      summary,
       totalProducts,
       totalClients,
       lowStockProducts,
@@ -25,16 +24,8 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       upcomingDeliveries,
       unpaidInvoices,
     ] = await Promise.all([
-      prisma.order.aggregate({
-        where: { tenantId, createdAt: { gte: startDate, lt: endDate }, status: { not: 'CANCELLED' } },
-        _count: true,
-        _sum: { finalAmount: true },
-      }),
-      // Money received in the period (new sales + debt payments − refunds), same as the cash closing
-      prisma.payment.aggregate({
-        where: { createdAt: { gte: startDate, lt: endDate }, invoice: { tenantId, OR: [{ orderId: null }, { order: { status: { not: 'CANCELLED' } } }] } },
-        _sum: { amount: true },
-      }),
+      // Same numbers as the cash closing (Z): sales, money received, gross profit
+      computeSummary(tenantId, startDate, endDate),
       prisma.product.count({ where: { tenantId, isActive: true } }),
       prisma.client.count({ where: { tenantId } }),
       prisma.$queryRaw<Array<{ id: string; name: string; totalStock: number; lowStockAlert: number; sellingPrice: number; image: string | null }>>`
@@ -100,21 +91,22 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       };
     });
 
-    // Calculate total gross margin for the period
-    const totalGrossMargin = topProductsWithDetails.reduce((sum, tp) => sum + (tp.grossMargin || 0), 0);
 
     res.json({
       success: true,
       data: {
-        todayOrders: todayOrders._count,
-        todaySales: todayOrders._sum.finalAmount || 0,
-        todayRevenue: todayRevenue._sum.amount || 0,
+        todayOrders: summary.orders,
+        todaySales: summary.sales,
+        todayRevenue: summary.received,
+        grossProfit: summary.grossProfit,
+        expenses: summary.expenses,
+        netProfit: summary.netProfit,
         totalProducts,
         totalClients,
         lowStockProducts,
         recentOrders,
         topProducts: topProductsWithDetails,
-        totalGrossMargin,
+        totalGrossMargin: summary.grossProfit,
         upcomingDeliveries,
         unpaidInvoices: unpaidInvoices._count,
         unpaidAmount: unpaidInvoices._sum.amountDue || 0,
