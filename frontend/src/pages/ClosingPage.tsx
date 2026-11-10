@@ -11,8 +11,8 @@ import toast from 'react-hot-toast';
 import { CashDrawer } from '@/components/CashDrawer';
 
 interface Closing {
-  date: string; orders: number; itemsSold: number; sales: number; received: number;
-  byMethod: Record<string, number>; sellers: Array<{ name: string; orders: number; sales: number; items?: Array<{ name: string; quantity: number; amount: number }> }>;
+  date: string; orders: number; itemsSold: number; sales: number; discounts: number; received: number;
+  byMethod: Record<string, number>; sellers: Array<{ name: string; orders: number; sales: number; discounts?: number; items?: Array<{ name: string; quantity: number; amount: number }> }>;
   cost: number; grossProfit: number; expenses: number; netProfit: number; lowStock: number;
 }
 
@@ -56,12 +56,13 @@ export function ClosingPage() {
     const lines = [
       `${tenant?.name || 'KABRAK'} · ${fr ? 'Clôture du' : 'Closing'} ${d}`,
       `${fr ? 'Ventes' : 'Sales'} : ${data.orders} (${data.itemsSold} ${fr ? 'articles' : 'items'}) = ${formatCurrency(data.sales)}`,
+      ...(data.discounts > 0 ? [`${fr ? 'Remises accordées' : 'Discounts given'} : ${formatCurrency(data.discounts)}`] : []),
       `${fr ? 'Encaissé' : 'Received'} : ${formatCurrency(data.received)}`,
       ...Object.entries(data.byMethod).map(([m, v]) => `  - ${(METHOD_LABELS[m] || METHOD_LABELS.OTHER)[lang]} : ${formatCurrency(v)}`),
       `${fr ? 'Bénéfice brut' : 'Gross profit'} : ${formatCurrency(data.grossProfit)}`,
       `${fr ? 'Dépenses' : 'Expenses'} : ${formatCurrency(data.expenses)}`,
       `${fr ? 'Bénéfice net' : 'Net profit'} : ${formatCurrency(data.netProfit)}`,
-      ...data.sellers.flatMap((s) => [`  · ${s.name} : ${s.orders} ${fr ? 'ventes' : 'sales'}, ${formatCurrency(s.sales)}`, ...(s.items || []).map((it) => `      ${it.quantity} x ${it.name}`)]),
+      ...data.sellers.flatMap((s) => [`  · ${s.name} : ${s.orders} ${fr ? 'ventes' : 'sales'}, ${formatCurrency(s.sales)}${s.discounts ? ` (${fr ? 'remises' : 'discounts'} −${formatCurrency(s.discounts)})` : ''}`, ...(s.items || []).map((it) => `      ${it.quantity} x ${it.name}`)]),
       ...(data.lowStock > 0 ? [`${fr ? 'Produits en stock faible' : 'Low-stock products'} : ${data.lowStock}`] : []),
     ];
     return lines.join('\n');
@@ -118,6 +119,7 @@ export function ClosingPage() {
               {data.sellers.map((s) => (
                 <div key={s.name} className="text-sm border-b last:border-0 pb-2">
                   <div className="flex justify-between font-medium"><span>{s.name} · {s.orders} {fr ? 'vente(s)' : 'sale(s)'}</span><span>{formatCurrency(s.sales)}</span></div>
+                  {s.discounts ? <div className="flex justify-between text-xs text-red-600 pl-3"><span>{fr ? 'Remises accordées' : 'Discounts given'}</span><span>−{formatCurrency(s.discounts)}</span></div> : null}
                   {(s.items || []).map((it) => (
                     <div key={it.name} className="flex justify-between text-xs text-muted-foreground pl-3"><span>{it.quantity} × {it.name}</span><span>{formatCurrency(it.amount)}</span></div>
                   ))}

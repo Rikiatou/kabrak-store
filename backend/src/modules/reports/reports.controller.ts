@@ -25,12 +25,15 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       upcomingDeliveries,
       unpaidInvoices,
     ] = await Promise.all([
-      prisma.order.count({
-        where: { tenantId, createdAt: { gte: startDate, lt: endDate } },
+      prisma.order.aggregate({
+        where: { tenantId, createdAt: { gte: startDate, lt: endDate }, status: { not: 'CANCELLED' } },
+        _count: true,
+        _sum: { finalAmount: true },
       }),
-      prisma.invoice.aggregate({
-        where: { tenantId, createdAt: { gte: startDate, lt: endDate } },
-        _sum: { amountPaid: true },
+      // Money received in the period (new sales + debt payments − refunds), same as the cash closing
+      prisma.payment.aggregate({
+        where: { createdAt: { gte: startDate, lt: endDate }, invoice: { tenantId, OR: [{ orderId: null }, { order: { status: { not: 'CANCELLED' } } }] } },
+        _sum: { amount: true },
       }),
       prisma.product.count({ where: { tenantId, isActive: true } }),
       prisma.client.count({ where: { tenantId } }),
@@ -48,13 +51,14 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
           items: { include: { product: true } },
           invoice: true,
           createdBy: { select: { firstName: true, lastName: true } },
+          seller: { select: { firstName: true, lastName: true } },
         },
         orderBy: { createdAt: 'desc' },
         take: 5,
       }),
       prisma.orderItem.groupBy({
         by: ['productId'],
-        where: { order: { tenantId, createdAt: { gte: startDate, lt: endDate } } },
+        where: { order: { tenantId, createdAt: { gte: startDate, lt: endDate }, status: { not: 'CANCELLED' } } },
         _sum: { quantity: true, totalPrice: true },
         orderBy: { _sum: { totalPrice: 'desc' } },
         take: 5,
@@ -76,7 +80,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
     });
 
     const topProductItems = await prisma.orderItem.findMany({
-      where: { productId: { in: topProductIds }, order: { tenantId, createdAt: { gte: startDate, lt: endDate } } },
+      where: { productId: { in: topProductIds }, order: { tenantId, createdAt: { gte: startDate, lt: endDate }, status: { not: 'CANCELLED' } } },
       select: { productId: true, quantity: true, unitCost: true },
     });
 
@@ -102,8 +106,9 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
     res.json({
       success: true,
       data: {
-        todayOrders,
-        todayRevenue: todayRevenue._sum.amountPaid || 0,
+        todayOrders: todayOrders._count,
+        todaySales: todayOrders._sum.finalAmount || 0,
+        todayRevenue: todayRevenue._sum.amount || 0,
         totalProducts,
         totalClients,
         lowStockProducts,
@@ -133,10 +138,12 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       where: {
         tenantId,
         createdAt: { gte: startDate, lte: endDate },
+        status: { not: 'CANCELLED' },
       },
       include: {
         items: { include: { product: true } },
         seller: { select: { id: true, firstName: true, lastName: true } },
+        createdBy: { select: { id: true, firstName: true, lastName: true } },
         invoice: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -159,7 +166,7 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       }
 
       if (!salesByPeriod[key]) salesByPeriod[key] = { revenue: 0, orders: 0, profit: 0 };
-      salesByPeriod[key].revenue += order.invoice?.amountPaid || 0;
+      salesByPeriod[key].revenue += order.finalAmount;
       salesByPeriod[key].orders += 1;
 
       for (const item of order.items) {
@@ -167,20 +174,19 @@ export const getSalesReport = async (req: Request, res: Response): Promise<void>
       }
     }
 
-    // Top sellers
-    const sellerStats: Record<string, { name: string; revenue: number; orders: number }> = {};
+    // Sales per seller: the chosen seller, else the account that rang up the sale (same rule as the cash closing)
+    const sellerStats: Record<string, { name: string; revenue: number; orders: number; discounts: number }> = {};
     for (const order of orders) {
-      if (order.seller) {
-        const key = order.seller.id;
-        if (!sellerStats[key]) {
-          sellerStats[key] = { name: `${order.seller.firstName} ${order.seller.lastName}`, revenue: 0, orders: 0 };
-        }
-        sellerStats[key].revenue += order.invoice?.amountPaid || 0;
-        sellerStats[key].orders += 1;
+      const who = order.seller ?? order.createdBy;
+      if (!sellerStats[who.id]) {
+        sellerStats[who.id] = { name: `${who.firstName} ${who.lastName}`.trim(), revenue: 0, orders: 0, discounts: 0 };
       }
+      sellerStats[who.id].revenue += order.finalAmount;
+      sellerStats[who.id].orders += 1;
+      sellerStats[who.id].discounts += order.discount || 0;
     }
 
-    const totalRevenue = orders.reduce((sum, o) => sum + (o.invoice?.amountPaid || 0), 0);
+    const totalRevenue = orders.reduce((sum, o) => sum + o.finalAmount, 0);
     const totalProfit = Object.values(salesByPeriod).reduce((sum, p) => sum + p.profit, 0);
 
     res.json({
@@ -240,7 +246,7 @@ export interface PeriodSummary {
   discounts: number;
   received: number;
   byMethod: Record<string, number>;
-  sellers: Array<{ name: string; orders: number; sales: number; items: Array<{ name: string; quantity: number; amount: number }> }>;
+  sellers: Array<{ name: string; orders: number; sales: number; discounts: number; items: Array<{ name: string; quantity: number; amount: number }> }>;
   topProducts: Array<{ name: string; quantity: number; amount: number }>;
   cancelled: { count: number; amount: number };
   cost: number;
@@ -292,7 +298,7 @@ export async function computeSummary(
   for (const p of payments) byMethod[p.method] = (byMethod[p.method] || 0) + p.amount;
   const received = payments.reduce((s, p) => s + p.amount, 0);
 
-  const sellers = new Map<string, { name: string; orders: number; sales: number; items: Map<string, { name: string; quantity: number; amount: number }> }>();
+  const sellers = new Map<string, { name: string; orders: number; sales: number; discounts: number; items: Map<string, { name: string; quantity: number; amount: number }> }>();
   const products = new Map<string, { name: string; quantity: number; amount: number }>();
   let sales = 0;
   let discounts = 0;
@@ -312,9 +318,10 @@ export async function computeSummary(
       products.set(key, row);
     }
     const who = o.seller ?? o.createdBy;
-    const entry = sellers.get(who.id) ?? { name: `${who.firstName} ${who.lastName}`.trim(), orders: 0, sales: 0, items: new Map() };
+    const entry = sellers.get(who.id) ?? { name: `${who.firstName} ${who.lastName}`.trim(), orders: 0, sales: 0, discounts: 0, items: new Map() };
     entry.orders += 1;
     entry.sales += o.finalAmount;
+    entry.discounts += o.discount || 0;
     for (const it of o.items) {
       const key = `${it.productId}|${it.variant || ''}`;
       const row = entry.items.get(key) ?? { name: it.variant ? `${it.product.name} (${it.variant})` : it.product.name, quantity: 0, amount: 0 };

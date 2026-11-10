@@ -9,6 +9,7 @@ import { Search, Plus, Minus, Trash2, ShoppingCart, ScanLine, User, CreditCard, 
 import { Link } from 'react-router-dom';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
 import { InvoiceModal } from '@/components/InvoiceModal';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
@@ -201,6 +202,9 @@ export function POSPage() {
   const total = Math.max(0, subtotal - (Number(discount) || 0));
   const change = (Number(amountPaid) || 0) > total ? (Number(amountPaid) || 0) - total : 0;
   const paymentStatus = (Number(amountPaid) || 0) >= total ? 'PAID' : (Number(amountPaid) || 0) > 0 ? 'PARTIAL' : 'PENDING';
+  // A discount of half the ticket or more is usually the amount received typed in the wrong box
+  const bigDiscount = subtotal > 0 && (Number(discount) || 0) >= subtotal / 2;
+  const [discountCheck, setDiscountCheck] = useState(false);
 
   const addScanned = (p: Product, variant?: string) => {
     const stock = variant ? (variantsOf(p).find((v) => v.name === variant)?.stock ?? 0) : p.totalStock;
@@ -228,6 +232,11 @@ export function POSPage() {
         ? (language === 'fr' ? `Code ${code} introuvable sur cet appareil (hors ligne)` : `Code ${code} not found on this device (offline)`)
         : (language === 'fr' ? `Aucun produit avec le code ${code}` : `No product with code ${code}`));
     }
+  };
+
+  const startCheckout = () => {
+    if (bigDiscount) setDiscountCheck(true);
+    else handleCheckout();
   };
 
   const handleCheckout = async () => {
@@ -295,12 +304,12 @@ export function POSPage() {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === 'Enter' && cart.length > 0 && !processing) handleCheckout();
+      if (e.key === 'Enter' && cart.length > 0 && !processing) startCheckout();
       if (e.key === 'Escape' && cart.length > 0) resetData();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [cart, processing]);
+  }, [cart, processing, bigDiscount]);
 
   const renderClientPicker = () => {
     if (!showClientPicker) return null;
@@ -541,6 +550,13 @@ export function POSPage() {
                 value={discount ?? ''} onChange={(e) => setDiscount(e.target.value === '' ? '' : Math.max(0, +e.target.value))}
               />
             </div>
+            {bigDiscount && (
+              <p className="text-xs text-red-600 font-medium">
+                {language === 'fr'
+                  ? `Remise de ${formatCurrency(Number(discount) || 0)} : la vente comptera ${formatCurrency(total)}. Le montant payé par le client se met dans « Montant reçu », pas ici.`
+                  : `Discount of ${formatCurrency(Number(discount) || 0)}: the sale will count ${formatCurrency(total)}. The amount the customer paid goes in "Amount received", not here.`}
+              </p>
+            )}
             <details className="text-sm text-gray-500" open={Boolean(notes || dueDate)}>
               <summary className="cursor-pointer select-none">{language === 'fr' ? 'Note / date de retrait (optionnel)' : 'Note / pickup date (optional)'}</summary>
               <div className="mt-2 space-y-2">
@@ -605,7 +621,7 @@ export function POSPage() {
           <Button
             className="w-full h-12 text-base font-bold"
             disabled={cart.length === 0 || processing}
-            onClick={handleCheckout}
+            onClick={startCheckout}
           >
             {processing
               ? (language === 'fr' ? 'Traitement...' : 'Processing...')
@@ -689,6 +705,18 @@ export function POSPage() {
           </div>
         );
       })() : null}
+
+      <ConfirmDialog
+        open={discountCheck}
+        title={language === 'fr' ? 'Grosse remise' : 'Large discount'}
+        message={language === 'fr'
+          ? `Sous-total ${formatCurrency(subtotal)}, remise ${formatCurrency(Number(discount) || 0)} : la vente sera enregistrée à ${formatCurrency(total)}. C'est bien une remise, et pas le montant reçu ?`
+          : `Subtotal ${formatCurrency(subtotal)}, discount ${formatCurrency(Number(discount) || 0)}: the sale will be saved at ${formatCurrency(total)}. Is this really a discount, not the amount received?`}
+        confirmLabel={language === 'fr' ? 'Oui, valider' : 'Yes, complete'}
+        cancelLabel={language === 'fr' ? 'Corriger' : 'Fix it'}
+        onConfirm={() => { setDiscountCheck(false); handleCheckout(); }}
+        onCancel={() => setDiscountCheck(false)}
+      />
 
       {/* Invoice modal after checkout */}
       {showInvoice && completedInvoice ? (
