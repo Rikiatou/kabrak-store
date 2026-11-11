@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { PLAN_PRICES } from '../../config/pricing';
+import { syncIncludedBranches } from '../../utils/branches';
 
 type SubLike = { status: string; endDate: Date; trialEndsAt: Date | null } | null | undefined;
 
@@ -321,6 +322,7 @@ export const changeTenantPlan = async (req: Request, res: Response): Promise<voi
         data: { plan: plan as 'STORE' | 'SHOP' | 'BUSINESS' },
       }),
     ]);
+    await syncIncludedBranches(tenantId, plan as 'STORE' | 'SHOP' | 'BUSINESS');
 
     res.json({ success: true, message: `Plan changé vers ${plan}` });
   } catch (error) {
@@ -450,6 +452,7 @@ export const approvePayment = async (req: Request, res: Response): Promise<void>
           where: { id: billing.tenantId },
           data: { plan: billing.plan as 'STORE' | 'SHOP' | 'BUSINESS' },
         });
+        await syncIncludedBranches(billing.tenantId, billing.plan as 'STORE' | 'SHOP' | 'BUSINESS', tx);
       }
       const updated = await tx.billingPayment.findUnique({ where: { id: billing.id } });
       return { updated, duplicates: duplicates.count };

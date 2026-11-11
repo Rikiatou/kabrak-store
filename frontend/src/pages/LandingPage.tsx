@@ -13,7 +13,7 @@ const faqsFR = [
   { q: 'C\'est pour quel type de commerce ?', a: 'Boutiques de vêtements, chaussures, sacs, bijoux, hijabs, pagnes, pâtisseries, restauration, mini-marchés, cosmétiques, quincailleries, grossistes, et aussi prestataires de services (agences, freelances, consultants, imprimeurs, couture…) : à l\'inscription, choisissez « Prestations de services ». Vous pouvez choisir plusieurs activités.' },
   { q: 'Je dois installer quelque chose ?', a: 'Non. KABRAK s\'ouvre dans le navigateur et s\'ajoute à l\'écran d\'accueil du téléphone comme une application, sans Play Store.' },
   { q: 'Comment je paie l\'abonnement ?', a: 'Par Orange Money, depuis la page Abonnement de l\'application.' },
-  { q: 'Combien de personnes peuvent l\'utiliser ?', a: 'STORE : 1 personne. SHOP : 3 personnes. BUSINESS : sans limite, avec plusieurs magasins. Chaque vendeuse a son propre accès.' },
+  { q: 'Combien de personnes peuvent l\'utiliser ?', a: 'STORE : 1 personne. SHOP : 3 personnes. BUSINESS : sans limite, avec 2 boutiques incluses (chacune son stock, ses clients et ses employés). Chaque vendeuse a son propre accès.' },
   { q: 'Si je perds mon téléphone, je perds tout ?', a: 'Non. Vos données sont enregistrées sur nos serveurs, pas seulement sur le téléphone. Vous vous reconnectez sur un autre appareil et vous retrouvez tout. Vous pouvez aussi exporter vos données à tout moment.' },
   { q: 'Y a-t-il un essai gratuit ?', a: '7 jours gratuits avec toutes les fonctions. Aucune carte bancaire.' },
   { q: 'C\'est quoi la boutique en ligne ?', a: 'Avec l\'offre BUSINESS, vous avez un lien (kabrak-store.kabrakeng.com/storefront/votre-boutique) à partager. Vos clientes voient vos produits avec photos et prix, choisissent taille et couleur, remplissent un panier et envoient la commande. Elle arrive dans Commandes et sur votre WhatsApp, et le stock est réservé. Elle est offerte sur toutes les offres pendant les 7 jours d\'essai.' },
@@ -23,7 +23,7 @@ const faqsEN = [
   { q: 'What kind of business is it for?', a: 'Clothing, shoes, bags, jewelry, hijab and fabric shops, bakeries, food businesses, mini-markets, cosmetics, hardware stores, wholesalers, and service providers (agencies, freelancers, consultants, printers, tailors…): pick “Services” when you sign up. You can pick several activities.' },
   { q: 'Do I need to install anything?', a: 'No. KABRAK opens in the browser and can be added to your phone home screen like an app, without the Play Store.' },
   { q: 'How do I pay for the subscription?', a: 'With Orange Money, from the Billing page in the app.' },
-  { q: 'How many people can use it?', a: 'STORE: 1 person. SHOP: 3 people. BUSINESS: unlimited, with several stores. Each seller has their own login.' },
+  { q: 'How many people can use it?', a: 'STORE: 1 person. SHOP: 3 people. BUSINESS: unlimited, with 2 stores included (each with its own stock, clients and staff). Each seller has their own login.' },
   { q: 'If I lose my phone, do I lose everything?', a: 'No. Your data is stored on our servers, not only on the phone. Log in on another device and everything is there. You can also export your data at any time.' },
   { q: 'Is there a free trial?', a: '7 days free with every feature. No bank card.' },
   { q: 'What is the online shop?', a: 'With the BUSINESS plan you get a link (kabrak-store.kabrakeng.com/storefront/your-shop) to share. Customers see your products with photos and prices, pick size and colour, fill a cart and send the order. It lands in Orders and on your WhatsApp, and stock is reserved. It is included on every plan during the 7-day trial.' },
@@ -99,10 +99,10 @@ export function LandingPage() {
     },
     {
       name: 'BUSINESS', price: '14 900', perDay: fr ? 'soit 497 FCFA par jour' : 'about 497 FCFA a day',
-      who: fr ? 'Pour plusieurs magasins' : 'For several stores', users: fr ? 'Utilisateurs illimités' : 'Unlimited users',
+      who: fr ? 'Pour 2 boutiques' : 'For 2 stores', users: fr ? 'Utilisateurs illimités' : 'Unlimited users',
       features: fr
-        ? ['Tout SHOP', 'Plusieurs magasins', 'Boutique en ligne : panier, tailles, couleurs', 'Commandes en ligne enregistrées + WhatsApp', 'Rapports IA']
-        : ['Everything in SHOP', 'Several stores', 'Online shop: cart, sizes, colours', 'Online orders saved + WhatsApp', 'AI reports'],
+        ? ['Tout SHOP', '2 boutiques incluses : stock, clients et employés séparés', 'Transfert de stock entre boutiques', 'Boutique en ligne : panier, tailles, couleurs', 'Commandes en ligne enregistrées + WhatsApp', 'Rapports IA']
+        : ['Everything in SHOP', '2 stores included: separate stock, clients and staff', 'Stock transfers between stores', 'Online shop: cart, sizes, colours', 'Online orders saved + WhatsApp', 'AI reports'],
     },
   ];
 

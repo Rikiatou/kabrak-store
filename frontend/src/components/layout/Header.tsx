@@ -1,4 +1,4 @@
-import { Moon, Sun, Globe, LogOut, Download, Menu, WifiOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Moon, Sun, Globe, LogOut, Download, Menu, WifiOff, RefreshCw, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useOfflineStatus, syncOfflineSales, discardFailedSales } from '@/lib/offline';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({ onMenuClick }: HeaderProps) {
-  const { user, tenant, theme, toggleTheme, language, setLanguage, logout } = useAuthStore();
+  const { user, tenant, theme, toggleTheme, language, setLanguage, logout, boutiques, switchBoutique } = useAuthStore();
   const navigate = useNavigate();
   const offline = useOfflineStatus();
   const fr = language === 'fr';
@@ -55,9 +55,25 @@ export function Header({ onMenuClick }: HeaderProps) {
 
       {/* Business name */}
       <div className="flex-1 min-w-0">
-        <h2 className="text-sm sm:text-lg font-semibold text-foreground truncate">
-          {tenant?.name || 'KABRAK'}
-        </h2>
+        {boutiques.length > 1 && tenant ? (
+          <label className="relative inline-flex max-w-full items-center">
+            <span className="sr-only">{fr ? 'Changer de boutique' : 'Switch store'}</span>
+            <select
+              value={tenant.id}
+              onChange={(e) => switchBoutique(e.target.value).catch((err) => toast.error(getApiErrorMessage(err)))}
+              className="max-w-full appearance-none truncate rounded-lg border bg-background py-1 pl-2 pr-7 text-sm sm:text-lg font-semibold text-foreground"
+            >
+              {boutiques.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 w-4 h-4 text-muted-foreground" />
+          </label>
+        ) : (
+          <h2 className="text-sm sm:text-lg font-semibold text-foreground truncate">
+            {tenant?.name || 'KABRAK'}
+          </h2>
+        )}
       </div>
 
       {/* Actions */}

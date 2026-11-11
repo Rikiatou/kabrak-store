@@ -48,7 +48,7 @@ export const translations = {
       guide: 'Guide d\'utilisation',
       categories: 'Catégories',
       loyalty: 'Fidélité',
-      stores: 'Magasins',
+      stores: 'Boutiques',
       projects: 'Projets',
       services: 'Services',
       recurring: 'Facturation récurrente',
