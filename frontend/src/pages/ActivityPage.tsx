@@ -25,6 +25,7 @@ const ACTIONS: { key: string; fr: string; en: string }[] = [
   { key: 'SALE_DISCOUNT', fr: 'Ventes avec remise', en: 'Sales with discount' },
   { key: 'DISCOUNT_FIX', fr: 'Remises corrigées', en: 'Fixed discounts' },
   { key: 'PRODUCT_', fr: 'Produits (prix, stock, suppression)', en: 'Products (price, stock, deletion)' },
+  { key: 'STOCK_TRANSFER', fr: 'Transferts entre boutiques', en: 'Transfers between stores' },
   { key: 'CASH_CLOSE', fr: 'Fermetures de caisse', en: 'Cash closings' },
   { key: 'EXPENSE_DELETE', fr: 'Dépenses supprimées', en: 'Deleted expenses' },
   { key: 'CLIENT_DELETE', fr: 'Clients supprimés', en: 'Deleted clients' },
