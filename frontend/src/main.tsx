@@ -5,9 +5,11 @@ import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 import { installErrorReporter } from './lib/errorReporter'
 import { installStaleChunkReload } from './lib/staleChunk'
+import { installAppUpdateCheck } from './lib/appUpdate'
 
 installErrorReporter()
 installStaleChunkReload()
+installAppUpdateCheck()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
