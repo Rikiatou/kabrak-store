@@ -1,5 +1,7 @@
 const CACHE_NAME = 'kabrak-v7';
 const OFFLINE_URL = '/offline.html';
+// Filled at build time by the sw-precache plugin in vite.config.ts
+const BUILD_ASSETS = [];
 
 const PRECACHE_URLS = [
   '/',
@@ -13,7 +15,10 @@ const PRECACHE_URLS = [
 // Install: cache offline page + shell
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_NAME).then((cache) => Promise.all(
+      [...PRECACHE_URLS, ...BUILD_ASSETS].map((url) =>
+        cache.add(new Request(url, { cache: 'reload' })).catch(() => undefined))
+    ))
   );
   self.skipWaiting();
 });
@@ -21,13 +26,12 @@ self.addEventListener('install', (event) => {
 // Activate: clean old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(
-        names
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      )
-    )
+    // Keep the previous build too: a tab still running it can open its pages offline
+    caches.keys().then((names) => {
+      const builds = names.filter((name) => name.startsWith('kabrak-'));
+      const keep = new Set([CACHE_NAME, ...builds.filter((n) => n !== CACHE_NAME).slice(-1)]);
+      return Promise.all(names.filter((name) => !keep.has(name)).map((name) => caches.delete(name)));
+    })
   );
   self.clients.claim();
 });
