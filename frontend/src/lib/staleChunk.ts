@@ -14,9 +14,10 @@ export function reloadOnStaleChunk(error: unknown): never {
 
 export function installStaleChunkReload(): void {
   window.addEventListener('vite:preloadError', (event) => {
-    event.preventDefault();
     try {
       reloadOnStaleChunk((event as Event & { payload?: unknown }).payload);
+      // Only swallow the error when we reload: otherwise Vite resolves the import with undefined
+      event.preventDefault();
     } catch {
       /* already reloaded recently: let the lazy import fail normally */
     }
