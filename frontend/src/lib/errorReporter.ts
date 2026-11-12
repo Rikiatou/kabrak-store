@@ -45,6 +45,7 @@ export function installErrorReporter(): void {
   window.addEventListener('unhandledrejection', (e) => {
     const r = e.reason as { message?: string; stack?: string; isAxiosError?: boolean } | undefined;
     if (r?.isAxiosError) return; // API errors are recorded by the server itself
+    if (r?.message === 'setPhotoOptions failed') return; // Chrome camera rejection on some Android phones, not app code
     reportError(r?.message || String(r), { stack: r?.stack });
   });
 }

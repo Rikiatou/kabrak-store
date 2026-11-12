@@ -202,8 +202,10 @@ export function POSPage() {
 
   const subtotal = cart.reduce((sum, item) => sum + (linePrice(item) * item.quantity), 0);
   const total = Math.max(0, subtotal - (Number(discount) || 0));
-  const change = (Number(amountPaid) || 0) > total ? (Number(amountPaid) || 0) - total : 0;
-  const paymentStatus = (Number(amountPaid) || 0) >= total ? 'PAID' : (Number(amountPaid) || 0) > 0 ? 'PARTIAL' : 'PENDING';
+  // Empty "amount received" means the client paid the exact total; credit needs an explicit 0
+  const paidNow = amountPaid === '' ? total : Number(amountPaid) || 0;
+  const change = paidNow > total ? paidNow - total : 0;
+  const paymentStatus = paidNow >= total ? 'PAID' : paidNow > 0 ? 'PARTIAL' : 'PENDING';
   // A discount of half the ticket or more is usually the amount received typed in the wrong box
   const bigDiscount = subtotal > 0 && (Number(discount) || 0) >= subtotal / 2;
   const [discountCheck, setDiscountCheck] = useState(false);
@@ -256,7 +258,7 @@ export function POSPage() {
     const payload = {
       clientId: selectedClient?.id || null,
       paymentMethod,
-      amountPaid: Math.min(Number(amountPaid) || 0, total),
+      amountPaid: Math.min(paidNow, total),
       discount: Number(discount) || 0,
       notes: notes || undefined,
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
@@ -621,11 +623,15 @@ export function POSPage() {
               <Input
                 type="number" min={0}
                 value={amountPaid ?? ''}
+                placeholder={total > 0 ? String(total) : ''}
                 onChange={(e) => setAmountPaid(e.target.value === '' ? '' : Math.max(0, +e.target.value))}
                 className="flex-1"
               />
               <Button variant="outline" size="sm" onClick={() => setAmountPaid(total)}>
                 {language === 'fr' ? 'Exact' : 'Exact'}
+              </Button>
+              <Button variant={amountPaid === 0 ? 'default' : 'outline'} size="sm" onClick={() => setAmountPaid(amountPaid === 0 ? '' : 0)}>
+                {language === 'fr' ? 'À crédit' : 'On credit'}
               </Button>
             </div>
             {change > 0 ? (

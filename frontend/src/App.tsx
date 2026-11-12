@@ -16,7 +16,12 @@ import { useTranslation } from './i18n/useTranslation';
 
 // Lazy-load authenticated pages to reduce initial bundle size
 import { reloadOnStaleChunk } from '@/lib/staleChunk';
-const lazyPage: typeof lazy = (load) => lazy(() => load().catch(reloadOnStaleChunk));
+const lazyPage: typeof lazy = (load) => lazy(() => load()
+  .then((m) => {
+    if (!m?.default) throw new Error('Failed to fetch dynamically imported module');
+    return m;
+  })
+  .catch(reloadOnStaleChunk));
 const DashboardPage = lazyPage(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const ProductsPage = lazyPage(() => import('./pages/ProductsPage').then(m => ({ default: m.ProductsPage })));
 const OrdersPage = lazyPage(() => import('./pages/OrdersPage').then(m => ({ default: m.OrdersPage })));
