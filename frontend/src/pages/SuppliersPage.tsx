@@ -1,5 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Plus, Trash2, Phone, Mail, MapPin, X, Search, Pencil } from 'lucide-react';
+import { Plus, Trash2, Phone, Mail, MapPin, X, Search, Pencil, PackagePlus, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '@/lib/utils';
+import { useAuthStore } from '@/stores/authStore';
+import { canSeeCosts } from '@/lib/modules';
 import { useTranslation } from '@/i18n/useTranslation';
 import api, { getApiErrorMessage } from '@/lib/api';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -14,6 +18,10 @@ interface Supplier {
   address?: string;
   notes?: string;
   createdAt: string;
+  purchasesCount?: number;
+  purchasedTotal?: number;
+  owed?: number;
+  lastPurchaseAt?: string | null;
 }
 
 const emptyForm = { name: '', phone: '', email: '', address: '', notes: '' };
@@ -26,6 +34,10 @@ export function SuppliersPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
+  const showCosts = canSeeCosts(useAuthStore((s) => s.user));
+  const fr = language === 'fr';
+  const waLink = (phone: string) => `https://wa.me/${phone.replace(/\D/g, '').replace(/^(6\d{8})$/, '237$1')}`;
 
   const debouncedSearch = useDebounce(search);
 
@@ -145,6 +157,30 @@ export function SuppliersPage() {
                         <p className="text-xs text-muted-foreground mt-1 italic">{sup.notes}</p>
                       )}
                     </div>
+                    {showCosts && sup.purchasesCount !== undefined && (
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                        <span>{fr ? 'Achats' : 'Purchases'} : <b>{formatCurrency(sup.purchasedTotal || 0)}</b> ({sup.purchasesCount})</span>
+                        {(sup.owed || 0) > 0
+                          ? <span className="text-red-600">{fr ? 'Reste à payer' : 'Owed'} : <b>{formatCurrency(sup.owed || 0)}</b></span>
+                          : sup.purchasesCount > 0 && <span className="text-green-600">{fr ? 'Tout payé' : 'All paid'}</span>}
+                        {sup.lastPurchaseAt && <span className="text-muted-foreground">{fr ? 'Dernier arrivage' : 'Last arrival'} : {new Date(sup.lastPurchaseAt).toLocaleDateString(fr ? 'fr-FR' : 'en-GB')}</span>}
+                      </div>
+                    )}
+                    {showCosts && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button onClick={() => navigate(`/purchases?new=1&supplier=${sup.id}`)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700">
+                          <PackagePlus className="w-3.5 h-3.5" />{fr ? 'Nouvel arrivage' : 'New arrival'}
+                        </button>
+                        <button onClick={() => navigate(`/purchases?supplier=${sup.id}`)} className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold hover:bg-accent">
+                          {fr ? 'Voir ses achats' : 'See purchases'}
+                        </button>
+                        {sup.phone && (
+                          <a href={waLink(sup.phone)} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold hover:bg-accent">
+                            <MessageCircle className="w-3.5 h-3.5" />WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-1 flex-shrink-0">
                     <button onClick={() => handleEdit(sup)} className="text-muted-foreground hover:text-blue-500 p-1 transition-colors">
