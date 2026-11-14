@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
+import { canSeeCosts } from '../../utils/costs';
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -11,7 +12,26 @@ export const getAll = async (req: Request, res: Response): Promise<void> => {
       prisma.supplier.findMany({ where, skip, take: parseInt(limit as string), orderBy: { name: 'asc' } }),
       prisma.supplier.count({ where }),
     ]);
-    res.json({ success: true, data: suppliers, pagination: { total, page: parseInt(page as string), limit: parseInt(limit as string), pages: Math.ceil(total / parseInt(limit as string)) } });
+    const showCosts = canSeeCosts(req.user!.role);
+    const stats = showCosts && suppliers.length
+      ? await prisma.purchase.findMany({
+          where: { tenantId: req.user!.tenantId, status: 'RECEIVED', supplierId: { in: suppliers.map((s) => s.id) } },
+          select: { supplierId: true, total: true, amountPaid: true, date: true },
+        })
+      : [];
+    const data = suppliers.map((s) => {
+      const mine = stats.filter((p) => p.supplierId === s.id);
+      return showCosts
+        ? {
+            ...s,
+            purchasesCount: mine.length,
+            purchasedTotal: mine.reduce((sum, p) => sum + p.total, 0),
+            owed: mine.reduce((sum, p) => sum + Math.max(0, p.total - p.amountPaid), 0),
+            lastPurchaseAt: mine.reduce<Date | null>((d, p) => (!d || p.date > d ? p.date : d), null),
+          }
+        : s;
+    });
+    res.json({ success: true, data, pagination: { total, page: parseInt(page as string), limit: parseInt(limit as string), pages: Math.ceil(total / parseInt(limit as string)) } });
   } catch (error) {
     res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Error' });
   }
@@ -51,11 +71,11 @@ export const remove = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const existing = await prisma.supplier.findFirst({
       where: { id: id as string, tenantId: req.user!.tenantId as string },
-      include: { _count: { select: { expenses: true } } },
+      include: { _count: { select: { expenses: true, purchases: true } } },
     });
     if (!existing) { res.status(404).json({ success: false, message: 'Not found' }); return; }
-    if (existing._count.expenses > 0) {
-      res.status(400).json({ success: false, message: 'Fournisseur lié à des dépenses — suppression impossible' });
+    if (existing._count.expenses > 0 || existing._count.purchases > 0) {
+      res.status(400).json({ success: false, message: 'Fournisseur lié à des achats ou des dépenses — suppression impossible' });
       return;
     }
     await prisma.supplier.delete({ where: { id: id as string } });

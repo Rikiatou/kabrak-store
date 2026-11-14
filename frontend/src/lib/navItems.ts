@@ -2,7 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   UserCog, Truck, BarChart3, CreditCard, Tags,
-  Heart, Store, FolderKanban, RefreshCw, Monitor, Settings, TrendingDown, Building2, Sparkles, Briefcase, BookOpen, ClipboardCheck, CalendarDays, HandCoins, History } from 'lucide-react';
+  Heart, Store, FolderKanban, RefreshCw, Monitor, Settings, TrendingDown, Building2, Sparkles, Briefcase, BookOpen, ClipboardCheck, CalendarDays, HandCoins, History, PackagePlus } from 'lucide-react';
 
 import { ALWAYS_ALLOWED, canAccess } from './modules';
 
@@ -28,6 +28,7 @@ export const navItems: NavItem[] = [
   { key: 'dashboard', icon: LayoutDashboard, path: '/dashboard' },
   // Product mode
   { key: 'products', icon: Package, path: '/products', modes: ['PRODUCT'] },
+  { key: 'purchases', icon: PackagePlus, path: '/purchases', modes: ['PRODUCT'], roles: ['OWNER', 'MANAGER'] },
   { key: 'orders', icon: ShoppingCart, path: '/orders', modes: ['PRODUCT'] },
   { key: 'pos', icon: Monitor, path: '/pos', modes: ['PRODUCT'], hideWhenOrderBased: true },
   { key: 'closing', icon: ClipboardCheck, path: '/closing', modes: ['PRODUCT'] },
