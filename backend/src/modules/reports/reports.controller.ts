@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 import { canSeeCosts, hideProductCost, hideSummaryProfit } from '../../utils/costs';
+import { stockValue } from '../../utils/stock';
 
 export const getDashboard = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -24,6 +25,7 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
       topProducts,
       upcomingDeliveries,
       unpaidInvoices,
+      stockProducts,
     ] = await Promise.all([
       // Same numbers as the cash closing (Z): sales, money received, gross profit
       computeSummary(tenantId, startDate, endDate),
@@ -63,7 +65,12 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
         _sum: { amountDue: true },
         _count: true,
       }),
+      prisma.product.findMany({
+        where: { tenantId, isActive: true, isService: false },
+        select: { totalStock: true, costPrice: true, sellingPrice: true, variants: true },
+      }),
     ]);
+    const stock = stockValue(stockProducts);
 
     // Fetch product details for top products (tenant-scoped)
     const topProductIds = topProducts.map((p) => p.productId);
@@ -114,6 +121,8 @@ export const getDashboard = async (req: Request, res: Response): Promise<void> =
         upcomingDeliveries,
         unpaidInvoices: unpaidInvoices._count,
         unpaidAmount: unpaidInvoices._sum.amountDue || 0,
+        stockCapital: showCosts ? stock.cost : undefined,
+        stockRetailValue: stock.retail,
       },
     });
   } catch (error) {

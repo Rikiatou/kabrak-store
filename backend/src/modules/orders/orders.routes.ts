@@ -12,7 +12,7 @@ router.get('/agenda', getAgenda);
 router.get('/:id', getOne);
 router.post('/', validate(createOrderSchema), create);
 router.patch('/:id/status', validate(updateOrderStatusSchema), updateStatus);
-router.post('/:id/return', authorize('OWNER', 'MANAGER'), validate(returnItemsSchema), returnItems);
+router.post('/:id/return', validate(returnItemsSchema), returnItems);
 
 router.post('/:id/fix-discount', authorize('OWNER', 'MANAGER'), validate(fixDiscountSchema), fixDiscount);
 

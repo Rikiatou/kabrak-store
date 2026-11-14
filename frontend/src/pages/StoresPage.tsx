@@ -25,7 +25,7 @@ interface BoutiqueData {
   users: number;
 }
 
-interface OverviewRow { id: string; name: string; salesToday: number; ordersToday: number; salesMonth: number; debts: number; products: number; lowStock: number }
+interface OverviewRow { id: string; name: string; salesToday: number; ordersToday: number; salesMonth: number; debts: number; products: number; lowStock: number; receivedToday: number; stockCapital?: number; stockRetailValue: number }
 interface Overview { boutiques: OverviewRow[]; total: Omit<OverviewRow, 'id' | 'name'> }
 interface TransferProduct { id: string; name: string; totalStock: number; variants: { name: string; stock: number }[] | null }
 interface Transfer { id: string; productName: string; variant: string | null; quantity: number; createdAt: string; fromTenant: { name: string }; toTenant: { name: string } }
@@ -239,7 +239,10 @@ export function StoresPage() {
                 <tr className="text-left text-muted-foreground border-b">
                   <th className="py-2 pr-3">{fr ? 'Boutique' : 'Store'}</th>
                   <th className="py-2 pr-3 text-right">{fr ? 'Ventes du jour' : 'Sales today'}</th>
+                  <th className="py-2 pr-3 text-right">{fr ? 'Encaissé du jour' : 'Received today'}</th>
                   <th className="py-2 pr-3 text-right">{fr ? 'Ventes du mois' : 'Sales this month'}</th>
+                  {overview.total.stockCapital !== undefined && <th className="py-2 pr-3 text-right">{fr ? 'Capital en stock' : 'Stock capital'}</th>}
+                  <th className="py-2 pr-3 text-right">{fr ? 'Valeur de vente du stock' : 'Stock sale value'}</th>
                   <th className="py-2 pr-3 text-right">{fr ? 'Dettes clients' : 'Client debts'}</th>
                   <th className="py-2 text-right">{fr ? 'Stock bas' : 'Low stock'}</th>
                 </tr>
@@ -249,7 +252,10 @@ export function StoresPage() {
                   <tr key={r.id} className="border-b">
                     <td className="py-2 pr-3 font-medium">{r.name}</td>
                     <td className="py-2 pr-3 text-right">{formatCurrency(r.salesToday)} <span className="text-muted-foreground">({r.ordersToday})</span></td>
+                    <td className="py-2 pr-3 text-right">{formatCurrency(r.receivedToday)}</td>
                     <td className="py-2 pr-3 text-right">{formatCurrency(r.salesMonth)}</td>
+                    {r.stockCapital !== undefined && <td className="py-2 pr-3 text-right">{formatCurrency(r.stockCapital)}</td>}
+                    <td className="py-2 pr-3 text-right">{formatCurrency(r.stockRetailValue)}</td>
                     <td className="py-2 pr-3 text-right">{formatCurrency(r.debts)}</td>
                     <td className="py-2 text-right">{r.lowStock}</td>
                   </tr>
@@ -257,7 +263,10 @@ export function StoresPage() {
                 <tr className="font-bold">
                   <td className="py-2 pr-3">{fr ? 'Total' : 'Total'}</td>
                   <td className="py-2 pr-3 text-right">{formatCurrency(overview.total.salesToday)}</td>
+                  <td className="py-2 pr-3 text-right">{formatCurrency(overview.total.receivedToday)}</td>
                   <td className="py-2 pr-3 text-right">{formatCurrency(overview.total.salesMonth)}</td>
+                  {overview.total.stockCapital !== undefined && <td className="py-2 pr-3 text-right">{formatCurrency(overview.total.stockCapital)}</td>}
+                  <td className="py-2 pr-3 text-right">{formatCurrency(overview.total.stockRetailValue)}</td>
                   <td className="py-2 pr-3 text-right">{formatCurrency(overview.total.debts)}</td>
                   <td className="py-2 text-right">{overview.total.lowStock}</td>
                 </tr>

@@ -235,8 +235,6 @@ export function InvoicesPage() {
     setShowPaymentModal(true);
   };
 
-  const authUser = useAuthStore((s) => s.user);
-  const canRefund = authUser?.role === 'OWNER' || authUser?.role === 'MANAGER';
   const fr = language === 'fr';
   const [returnInv, setReturnInv] = useState<Invoice | null>(null);
   const [returnQty, setReturnQty] = useState<Record<string, string>>({});
@@ -529,7 +527,7 @@ export function InvoicesPage() {
                       <DollarSign className="w-4 h-4" />
                     </Button>
                   )}
-                  {canRefund && inv.order?.id && inv.order.items.some((i) => i.quantity > 0) && (
+                  {inv.order?.id && inv.order.items.some((i) => i.quantity > 0) && (
                     <Button variant="outline" size="sm" onClick={() => openReturn(inv)} title={language === 'fr' ? 'Retour / remboursement' : 'Return / refund'}>
                       <RotateCcw className="w-4 h-4" />
                     </Button>

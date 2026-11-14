@@ -35,6 +35,8 @@ interface DashboardData {
   upcomingDeliveries?: number;
   unpaidInvoices?: number;
   unpaidAmount?: number;
+  stockCapital?: number;
+  stockRetailValue?: number;
 }
 
 interface ServiceDashboardData {
@@ -391,6 +393,25 @@ export function DashboardPage() {
           })
         )}
       </div>
+
+      {!isService && productData?.stockRetailValue !== undefined && (
+        <div className="grid grid-cols-2 gap-2 sm:gap-4">
+          {showCosts && productData.stockCapital !== undefined && (
+            <StatTile
+              label={language === 'fr' ? 'Capital en stock' : 'Stock capital'}
+              icon={Package}
+              sub={language === 'fr' ? "Stock × prix d'achat" : 'Stock × purchase price'}
+              value={formatCurrency(productData.stockCapital)}
+            />
+          )}
+          <StatTile
+            label={language === 'fr' ? 'Valeur de vente du stock' : 'Stock sale value'}
+            icon={TrendingUp}
+            sub={language === 'fr' ? 'Stock × prix de vente' : 'Stock × selling price'}
+            value={formatCurrency(productData.stockRetailValue)}
+          />
+        </div>
+      )}
 
       {/* Primary Action Button (Adaptive) */}
       {useAdaptiveDashboard && categoryConfig && (
