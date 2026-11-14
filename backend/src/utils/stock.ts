@@ -203,3 +203,24 @@ export async function notifyLowStock(tenantId: string, productIds?: string[]) {
   }
   return { products: low.map(({ p }) => p), created };
 }
+
+/** Stock value at purchase price (capital) and at selling price. Variants carry their own stock and prices. */
+export const stockValue = (products: Array<{ totalStock: number; costPrice: number; sellingPrice: number; variants: unknown }>) => {
+  let cost = 0;
+  let retail = 0;
+  for (const p of products) {
+    const variants = readVariants(p.variants);
+    if (variants.length) {
+      for (const v of variants) {
+        const units = Math.max(0, v.stock);
+        cost += units * v.costPrice;
+        retail += units * v.sellingPrice;
+      }
+    } else {
+      const units = Math.max(0, p.totalStock);
+      cost += units * p.costPrice;
+      retail += units * p.sellingPrice;
+    }
+  }
+  return { cost: Math.round(cost), retail: Math.round(retail) };
+};

@@ -7,7 +7,8 @@ import { config } from '../../config';
 import { groupTenants, isInGroup } from '../../utils/branches';
 import { PLAN_PRICES } from '../../config/pricing';
 import { logActivity } from '../../utils/activity';
-import { StockError, StockProduct, moveStock, readVariants } from '../../utils/stock';
+import { StockError, StockProduct, moveStock, readVariants, stockValue } from '../../utils/stock';
+import { canSeeCosts } from '../../utils/costs';
 
 const fail = (res: Response, error: unknown) => {
   const message = error instanceof Error ? error.message : 'Erreur';
@@ -198,12 +199,14 @@ export const overview = async (req: Request, res: Response): Promise<void> => {
     const today = new Date(new Date().setHours(0, 0, 0, 0));
     const month = new Date(today.getFullYear(), today.getMonth(), 1);
     const rows = await Promise.all(tenants.map(async (t) => {
-      const [day, mon, debts, products] = await Promise.all([
+      const [day, mon, debts, products, paidToday] = await Promise.all([
         prisma.order.aggregate({ where: { tenantId: t.id, createdAt: { gte: today }, status: { not: 'CANCELLED' } }, _sum: { finalAmount: true }, _count: true }),
         prisma.order.aggregate({ where: { tenantId: t.id, createdAt: { gte: month }, status: { not: 'CANCELLED' } }, _sum: { finalAmount: true } }),
         prisma.invoice.aggregate({ where: { tenantId: t.id, amountDue: { gt: 0 } }, _sum: { amountDue: true } }),
-        prisma.product.findMany({ where: { tenantId: t.id, isActive: true, isService: false }, select: { totalStock: true, lowStockAlert: true } }),
+        prisma.product.findMany({ where: { tenantId: t.id, isActive: true, isService: false }, select: { totalStock: true, lowStockAlert: true, costPrice: true, sellingPrice: true, variants: true } }),
+        prisma.payment.aggregate({ where: { invoice: { tenantId: t.id }, createdAt: { gte: today } }, _sum: { amount: true } }),
       ]);
+      const stock = stockValue(products);
       return {
         id: t.id,
         name: t.name,
@@ -214,14 +217,23 @@ export const overview = async (req: Request, res: Response): Promise<void> => {
         debts: debts._sum.amountDue || 0,
         products: products.length,
         lowStock: products.filter((p) => p.totalStock <= p.lowStockAlert).length,
+        receivedToday: paidToday._sum.amount || 0,
+        stockCapital: stock.cost,
+        stockRetailValue: stock.retail,
       };
     }));
-    const sum = (k: 'salesToday' | 'ordersToday' | 'salesMonth' | 'debts' | 'products' | 'lowStock') => rows.reduce((s, r) => s + r[k], 0);
+    type Key = Exclude<keyof (typeof rows)[number], 'id' | 'name' | 'isMain'>;
+    const sum = (k: Key) => rows.reduce((s, r) => s + r[k], 0);
+    const showCosts = canSeeCosts(req.user!.role);
     res.json({
       success: true,
       data: {
-        boutiques: rows,
-        total: { salesToday: sum('salesToday'), ordersToday: sum('ordersToday'), salesMonth: sum('salesMonth'), debts: sum('debts'), products: sum('products'), lowStock: sum('lowStock') },
+        boutiques: showCosts ? rows : rows.map((r) => ({ ...r, stockCapital: undefined })),
+        total: {
+          salesToday: sum('salesToday'), ordersToday: sum('ordersToday'), salesMonth: sum('salesMonth'), debts: sum('debts'),
+          products: sum('products'), lowStock: sum('lowStock'), receivedToday: sum('receivedToday'),
+          stockCapital: showCosts ? sum('stockCapital') : undefined, stockRetailValue: sum('stockRetailValue'),
+        },
       },
     });
   } catch (error) {
