@@ -192,23 +192,39 @@ export function InvoiceModal({ invoice, onClose }: Props) {
         logging: false,
       });
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], `facture-${invoice.invoiceNumber}.png`, { type: 'image/png' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file],
-            title: `Facture ${invoice.invoiceNumber} — ${tenant?.name}`,
-          });
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `facture-${invoice.invoiceNumber}.png`;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-      }, 'image/png');
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('toBlob failed');
+      const name = `facture-${invoice.invoiceNumber}.png`;
+      const file = new File([blob], name, { type: 'image/png' });
+      const download = () => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      };
+      if (!navigator.canShare?.({ files: [file] })) { download(); return; }
+      const data = { files: [file], title: `Facture ${invoice.invoiceNumber} — ${tenant?.name}` };
+      try {
+        await navigator.share(data);
+      } catch (e) {
+        const err = (e as Error)?.name;
+        if (err === 'AbortError') return;
+        if (err !== 'NotAllowedError') { download(); return; }
+        // iPhone only opens the share sheet right after a tap; drawing the image took too long, so ask for one more tap
+        toast((t) => (
+          <span className="flex items-center gap-3">
+            <span>{fr ? 'Image prête' : 'Image ready'}</span>
+            <button
+              className="px-3 py-1 rounded-lg bg-blue-600 text-white text-sm font-semibold"
+              onClick={() => { toast.dismiss(t.id); navigator.share(data).catch((e2) => { if ((e2 as Error)?.name !== 'AbortError') download(); }); }}
+            >
+              {fr ? 'Partager' : 'Share'}
+            </button>
+          </span>
+        ), { duration: 15_000, id: 'share-ready' });
+      }
     } catch (e) {
       console.error(e);
       toast.error(fr ? 'Erreur lors du partage' : 'Error sharing');
