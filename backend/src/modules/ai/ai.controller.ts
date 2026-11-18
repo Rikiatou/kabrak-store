@@ -1,6 +1,41 @@
 import { Request, Response } from 'express';
 import { prisma } from '../../config/prisma';
 
+// Groq free tier has per-model rate limits; fall back to a smaller model before giving up.
+const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+
+async function callGroq(apiKey: string, prompt: string): Promise<string | null> {
+  for (const model of GROQ_MODELS) {
+    try {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: 'Tu es un expert business analyst pour les PME en Afrique. Donne des rapports concis, actionnables et adaptés au contexte local.' },
+            { role: 'user', content: prompt },
+          ],
+          max_tokens: 1200,
+          temperature: 0.7,
+        }),
+        signal: AbortSignal.timeout(45000),
+      });
+      if (!response.ok) {
+        console.warn(`[AI] Groq ${model} → ${response.status}: ${(await response.text()).slice(0, 300)}`);
+        continue;
+      }
+      const data = (await response.json()) as { choices?: { message?: { content?: string } }[] };
+      const content = data.choices?.[0]?.message?.content;
+      if (content) return content;
+      console.warn(`[AI] Groq ${model} returned no content`);
+    } catch (err) {
+      console.warn(`[AI] Groq ${model} failed: ${(err as Error).message}`);
+    }
+  }
+  return null;
+}
+
 export const generateReport = async (req: Request, res: Response): Promise<void> => {
   try {
     const tenantId = req.user!.tenantId;
@@ -110,36 +145,20 @@ ${clients.slice(0, 5).map(c => `- ${c.name}: ${c.totalSpent.toLocaleString()} XA
     // Call Groq (free, fast Llama 3)
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      res.status(500).json({ success: false, message: 'AI service not configured', code: 'AI_UNAVAILABLE' });
+      console.warn('[AI] GROQ_API_KEY is not set');
+      res.status(503).json({ success: false, message: 'Les rapports IA ne sont pas encore activés. Contactez KABRAK.', code: 'AI_UNAVAILABLE' });
       return;
     }
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          { role: 'system', content: 'Tu es un expert business analyst pour les PME en Afrique. Donne des rapports concis, actionnables et adaptés au contexte local.' },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 1200,
-        temperature: 0.7,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Groq API error:', errorText);
-      res.status(500).json({ success: false, message: 'AI service error', code: 'AI_UNAVAILABLE' });
+    const report = await callGroq(apiKey, prompt);
+    if (!report) {
+      res.status(503).json({
+        success: false,
+        message: 'Le service IA est très demandé en ce moment. Réessayez dans quelques minutes.',
+        code: 'AI_UNAVAILABLE',
+      });
       return;
     }
-
-    const data = await response.json() as any;
-    const report = data.choices[0]?.message?.content || 'Erreur génération rapport';
 
     // Persist report for usage tracking and history
     try {
